@@ -1,0 +1,110 @@
+name: macOS V1.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Main App.py'
+      - 'mini_whiteboard/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'assets/**'
+      - 'requirements*.txt'
+      - 'build_macos.sh'
+      - 'Mini Whiteboard.macos.spec'
+      - '.github/workflows/macos-v1.1.yml'
+      - '.gitattributes'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-v11-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUNBUFFERED: '1'
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      MINIWHITEBOARD_PYTHON: .venv-macos/bin/python
+      MINIWHITEBOARD_ARCH: universal2
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-macos.txt
+
+      - name: Print initial build environment
+        run: python -m scripts.macos_smoke --environment-only
+
+      - name: Install Mac and build dependencies
+        run: |
+          python -m venv .venv-macos
+          "$MINIWHITEBOARD_PYTHON" -m pip install -r requirements-dev.txt -r requirements-macos.txt
+          "$MINIWHITEBOARD_PYTHON" -m pip check
+
+      - name: Verify Mac imports and platform selection
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          "$MINIWHITEBOARD_PYTHON" -m scripts.macos_smoke
+
+      - name: Run the complete automated suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -o pipefail
+          "$MINIWHITEBOARD_PYTHON" -m unittest discover -v 2>&1 | tee verification/macos-ci-tests.txt
+
+      - name: Build and validate the Mac app
+        run: bash build_macos.sh
+
+      - name: Briefly launch the packaged app
+        env:
+          QT_QPA_PLATFORM: cocoa
+        run: |
+          "$MINIWHITEBOARD_PYTHON" -m scripts.macos_startup_check
+
+      - name: Create and verify the Mac ZIP with ditto
+        run: |
+          "$MINIWHITEBOARD_PYTHON" -m scripts.macos_package_release
+
+      - name: Write the verification summary
+        run: |
+          "$MINIWHITEBOARD_PYTHON" -m scripts.macos_ci_summary >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the verified tester ZIP
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: MacMiniWhiteboardV1.1
+          path: build/MacMiniWhiteboardV1.1.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload verification logs even when a check fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: macos-v1.1-verification
+          path: verification/
+          if-no-files-found: warn
+          retention-days: 30

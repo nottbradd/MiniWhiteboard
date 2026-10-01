@@ -1,0 +1,156 @@
+"""A real editor owns all typing; only finish/help commands are intercepted."""
+import math
+
+from PySide6.QtCore import QEvent, QRectF, Qt, Signal, QTimer
+from PySide6.QtGui import QFont, QTextCursor, QTextOption, QPainterPath, QPainter
+from PySide6.QtWidgets import (QFrame, QTextEdit, QGraphicsView, QGraphicsScene,
+                              QGraphicsProxyWidget)
+
+from .settings import INK, SELECTION
+from .transforms import translation
+from . import rendering
+
+
+class TextEditor(QTextEdit):
+    committed = Signal()
+    help_requested = Signal()
+
+    def __init__(self, obj, parent):
+        super().__init__(parent)
+        self.commit_timer = QTimer(self)
+        self.commit_timer.setSingleShot(True)
+        self.commit_timer.timeout.connect(self.commit_if_unfocused)
+        self.setAcceptRichText(False)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setStyleSheet(f"QTextEdit {{ background: transparent; color: {obj.color}; "
+                           f"border: 1px dashed {SELECTION}; padding: 0; }}")
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.setTabChangesFocus(False)
+        self.document().setDocumentMargin(2)
+        from .shortcuts import ui_font_family
+        font = QFont(ui_font_family())
+        font.setPointSizeF(obj.size)
+        self.setFont(font)
+        option = self.document().defaultTextOption()
+        option.setWrapMode(QTextOption.WrapMode.NoWrap)
+        self.document().setDefaultTextOption(option)
+        self.setPlainText(obj.text)
+        self.move(0, 0)
+        self.textChanged.connect(self.fit_contents)
+        self.fit_contents()
+        self.moveCursor(QTextCursor.MoveOperation.End)
+
+    def fit_contents(self):
+        self.document().adjustSize()
+        size = self.document().size()
+        self.resize(max(60, math.ceil(size.width())+4), max(30, math.ceil(size.height())+4))
+
+    def event(self, event):
+        if event.type() == QEvent.Type.ShortcutOverride:
+            # Accepting this delivers the real key to this editor, rather than
+            # allowing an ancestor's QAction/QShortcut to steal it.
+            event.accept()
+            return True
+        return super().event(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape or (
+                event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            self.committed.emit()
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_F1:
+            self.help_requested.emit()
+            return
+        # Letters, numbers, Enter, arrows, clipboard, delete and undo/redo all
+        # retain QTextEdit behavior. Never forward these to the canvas router.
+        super().keyPressEvent(event)
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        # A native context menu temporarily takes focus; returning from it must
+        # not commit/destroy the editor underneath copy/paste actions.
+        if event.reason() != Qt.FocusReason.PopupFocusReason:
+            self.commit_timer.start(0)
+
+    def commit_if_unfocused(self):
+        if self.isVisible() and not self.hasFocus():
+            self.committed.emit()
+
+
+class MaskedEditorProxy(QGraphicsProxyWidget):
+    """Mask only the embedded text widget; its popup children keep normal UI."""
+
+    def __init__(self, obj):
+        super().__init__()
+        self.obj = obj
+
+    def paint(self, painter, option, widget=None):
+        painter.save()
+        if self.obj.erasures:
+            clip = QPainterPath()
+            clip.addRect(self.boundingRect())
+            # QTextEdit has a one-pixel frame around its two-pixel document margin.
+            offset = translation(1-self.obj.position[0], 1-self.obj.position[1])
+            mask = rendering.qt_transform(offset).map(rendering.mask_path(self.obj.erasures))
+            painter.setClipPath(clip.subtracted(mask), Qt.ClipOperation.IntersectClip)
+        super().paint(painter, option, widget)
+        painter.restore()
+
+
+class EditorOverlay(QGraphicsView):
+    """Temporary scene for one real QTextEdit, without changing the object canvas."""
+
+    def __init__(self, obj, editor, canvas):
+        super().__init__(canvas)
+        self.canvas = canvas
+        self.editor = editor
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setStyleSheet("QGraphicsView { background: transparent; border: none; }")
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.viewport().setAutoFillBackground(False)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
+        self.setScene(QGraphicsScene(self))
+        self.proxy = MaskedEditorProxy(obj)
+        self.scene().addItem(self.proxy)
+        self.proxy.setWidget(editor)
+        transform = obj.transform @ translation(obj.position[0]-1, obj.position[1]-1)
+        self.proxy.setTransform(rendering.qt_transform(transform))
+        self.setGeometry(canvas.rect())
+        self.setSceneRect(QRectF(canvas.rect()))
+
+    def activate_editor(self):
+        self.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.scene().setFocus(Qt.FocusReason.MouseFocusReason)
+        self.proxy.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.editor.setFocus(Qt.FocusReason.MouseFocusReason)
+
+    def owns_mouse_event(self, watched, event):
+        if watched is self.editor or self.editor.isAncestorOf(watched):
+            return True
+        if watched in (self, self.viewport()):
+            p = event.position().toPoint()
+            if watched is self:
+                p = self.viewport().mapFrom(self, p)
+            scene_pos = self.mapToScene(p)
+            return self.proxy.contains(self.proxy.mapFromScene(scene_pos))
+        return False
+
+    def mousePressEvent(self, event):
+        if not self.proxy.contains(self.proxy.mapFromScene(self.mapToScene(event.position().toPoint()))):
+            self.canvas.finish_editing()
+            # The overlay and canvas share coordinates. Complete the outside
+            # click as a normal canvas press; subsequent events target canvas.
+            self.canvas.mousePressEvent(event)
+            return
+        super().mousePressEvent(event)
+
+    def resizeEvent(self, event):
+        self.setSceneRect(QRectF(self.viewport().rect()))
+        super().resizeEvent(event)

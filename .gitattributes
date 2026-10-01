@@ -1,0 +1,10 @@
+# Shell scripts must remain runnable after a Windows checkout and push.
+* text=auto
+*.sh text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.spec text eol=lf
+*.md text eol=lf
+*.ico binary
+*.icns binary
+*.png binary
