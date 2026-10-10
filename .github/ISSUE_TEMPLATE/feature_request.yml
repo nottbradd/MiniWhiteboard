@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest an improvement to Mini Whiteboard.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would this help you do?
+      description: Describe the task or limitation you encountered.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: Include an example of how you would use it.
+    validations:
+      required: true

@@ -1,49 +1,69 @@
 # Verification report — Mini Whiteboard Version 1.1
 
-## GitHub macOS CI preparation — 2026-10-01
-
-**Prepared locally; actual GitHub macOS execution is PENDING repository creation
-and authenticated push.** No Mac build, signature, startup or ZIP result is
-claimed. Interactive native Mac acceptance remains NOT RUN.
+## Public repository preparation — 2026-10-10
 
 | Check | Actual result | Scope/evidence |
 |---|---|---|
-| Latest full local automated suite | **PASSED — 156 tests** | Windows/offscreen; `verification/macos-ci-local-tests.txt` |
-| GitHub workflow validation | **PASSED — actionlint 1.7.12** | `verification/macos-actionlint.txt`; downloaded official binary/checksum matched |
-| Mac shell syntax | PASSED | `bash -n build_macos.sh` using Git Bash |
-| Python compilation | PASSED | compileall on source, scripts and tests |
+| Full local automated suite | **PASSED — 156 tests in 5.428 s** | Windows/offscreen; `verification/public-repository-tests.txt` |
+| Both Actions workflows | **PASSED — actionlint 1.7.12** | Existing Mac pipeline and new Windows tests pipeline |
+| Documentation links | PASSED | All relative file targets in the updated guides/reports exist |
 | Dependency consistency | PASSED | pip check: no broken requirements |
-| Windows release preservation | PASSED | Desktop Windows ZIP and frozen EXE match recorded SHA-256 values |
-| macOS dependency installation/imports/tests/build/bundle/ZIP on runner | **PENDING** | Workflow supplied, not executed yet |
-| Limited packaged Cocoa startup | **NOT RUN** | New owned-process check supplied; requires actual Mac runner |
-| Interactive Mac checklist | **NOT RUN** | Global input, menus, TCC, windows, Spaces and physical displays |
+| Existing tracked history | No findings in the scanned categories | One initial commit; generated-artifact filenames and common credential signatures checked |
+| Current documentation privacy | PASSED | Machine-specific absolute paths removed from current files; historical paths remain in the initial commit |
+| Workspace Windows package preservation | PASSED | Existing workspace ZIP and EXE match the recorded SHA-256 values below; no rebuild |
+| New native GUI/hardware checks | **NOT RUN** | This update changes documentation and repository configuration |
 
-The 11 new portable tests exercise ZIP CRC/root/traversal, manifest structure and
-content changes, external dependency rejection, metadata/architecture/Windows-file
-validation, and early-exit/error/normal-termination startup monitoring. They do
-not verify Mac APIs or Mach-O tools on this Windows host. No source application
-adapter was modified. The original Windows release remains intact.
+The sandbox initially blocked temporary-file access in 14 tests. The complete
+suite then passed outside the sandbox. The history scan is not proof that every
+possible secret is absent. The original Desktop archives were not found at their
+previously recorded locations; this turn verified the retained workspace release.
+The first hosted result for the new Windows workflow will be recorded after push.
 
-The workflow keeps full unittest failure gates and uses the existing Mac build
-shell/spec. It uploads a ditto-created, clean-extracted and revalidated archive
-as **MacMiniWhiteboardV1.1**, plus separate logs even on failure. Package validation
-adds plutil/file, runtime/frozen module checks and Windows binary exclusion.
-Limited startup is explicitly NOT RUN when there is no WindowServer login session.
+## GitHub macOS execution — observed 2026-10-10
 
-The connected GitHub account is `nottbradd`, but no repository exists for this
-project, no local origin is configured, and Git Credential Manager lists no
-GitHub accounts. Source is committed locally on main. Follow
-[GITHUB_SETUP.md](GITHUB_SETUP.md) to create the empty private repository, push,
-run **Actions → macOS V1.1**, and download the inner Mac release ZIP. Update this
-report with actual run URL/revision/versions/results/hash after success. Generated
-local logs/builds/archives are excluded from Git; CI reports remain artifacts.
+The [October 1 Actions run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
+**succeeded** for commit `7cd78288558ed1120fa39d7fabf331d438034c2f`.
+Its job logs and downloaded verification artifact were inspected on October 10.
+The macOS build, Universal2 validation, limited Cocoa startup and ZIP are
+**CI VERIFIED**. Interactive native acceptance remains **NOT RUN**.
 
-## Cross-platform Windows release verification — 2026-10-01
+| Check | Actual result | Evidence/scope |
+|---|---|---|
+| Runner environment | macOS 14.8.9, arm64; Python 3.13.15 universal2 | Installed-environment/import report and job logs |
+| Dependencies and imports | PASSED | PySide6/Qt 6.11.2, PyInstaller 6.22.3, PyObjC 12.2.2; dependency installation and platform selection |
+| Full runner suite | **PASSED — 156 tests in 6.712 s** | Complete unittest step |
+| PyInstaller app build | **PASSED — Universal2** | Build step and package report |
+| Bundle validation | **PASSED — 861 checks** | Metadata, runtime, Mach-O/linkage, symlinks, Windows binary exclusion and signatures |
+| Limited packaged startup | **PASSED** | Eight seconds; normal Cocoa termination, exit 0; does not establish interactive acceptance |
+| ditto archive and clean extraction | **PASSED** | Root/CRC, complete manifest comparison and extracted-bundle validation |
+| Native global input, menus, focus, TCC, capture, Spaces, physical displays | **NOT RUN** | [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md) |
+| Intel execution | **NOT RUN** | Universal2 inspection is not execution on Intel |
 
-**Windows candidate built, tested and packaged. Mac source/build tools implemented;
-native Mac verification and the `.app`/Mac ZIP are NOT RUN.** This section
-supersedes earlier release paths and counts; the older refinement report below
-is retained as historical evidence.
+Inner archive: `MacMiniWhiteboardV1.1.zip`, **74,214,960 bytes**, SHA-256
+`56402e4443d09abac57c1a010017bf78d3de3217d9ef80a8898abb3a85cd63f1`.
+Artifacts: **MacMiniWhiteboardV1.1** and **macos-v1.1-verification**, expiring
+October 31, 2026. The app is an ad-hoc signed tester build; no stable GitHub
+Release has been published. See [GITHUB_SETUP.md](GITHUB_SETUP.md) for downloads.
+
+Generated `verification/` and `.test-artifacts/` paths in this report name local
+outputs, which are excluded from Git. Hosted evidence is available in the run's
+logs and verification artifact. This source-publication update does not rebuild
+or publish either platform's binary. Binary distribution notices remain a
+separate task; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Historical local CI preparation — 2026-10-01
+
+Before the first hosted run, 156 local tests, actionlint 1.7.12, Mac shell syntax,
+Python compilation, dependency consistency and Windows release preservation
+passed. Eleven portable tests covered ZIP CRC/root/traversal, manifest changes,
+external dependency rejection, metadata/architecture/Windows-file validation and
+startup monitoring. These local tests were separate from the real Mac results above.
+
+## Historical cross-platform Windows release verification — 2026-10-01
+
+**At this Windows release stage, the Mac build and native checks had not run.**
+The observed Mac CI results above supersede that build status. This section
+records the Windows release paths/counts; older refinement evidence follows.
 
 Environment: Windows 11 10.0.26200, Python 3.12.14 x64, PySide6 6.11.2,
 PyInstaller 6.22.3. Available hardware: one 1920×1080 display at 100%.
@@ -69,7 +89,7 @@ PyInstaller 6.22.3. Available hardware: one 1920×1080 display at 100%.
 | Native Mac lifecycle/windows/focus/Command/clipboard/capture/Retina/Spaces | NOT RUN | `MACOS_CHECKLIST.md`; Windows mocks are not native evidence |
 | Mac .app/Universal2/signing/ditto ZIP | NOT RUN | Build/spec/check/release scripts supplied; no Mac artifact is claimed |
 
-Final Windows Desktop archive: `C:\Users\RadiumPCs\OneDrive\Desktop\WinMiniWhiteboardV1.1.zip`
+Final Windows Desktop archive: `Desktop/WinMiniWhiteboardV1.1.zip`
 (45,589,638 bytes). SHA-256:
 `97f9d4c48cadab4f89ac2d29a5ce62dfe1542979d80ef8cc055b2e4669851450`.
 
@@ -270,10 +290,10 @@ background module.
 
 ## Executable and replaced archive
 
-- EXE: `C:/Users/RadiumPCs/OneDrive/Desktop/mini whiteboard app/dist/Mini Whiteboard/Mini Whiteboard.exe`
+- EXE: `dist/Mini Whiteboard/Mini Whiteboard.exe`
 - EXE bytes: **1,849,849**.
 - EXE SHA-256: `3cc32a2034dc4bd14e981febb08b79dd38957ff9b2d233143b18b0ff902139d1`.
-- ZIP: `C:/Users/RadiumPCs/OneDrive/Desktop/MiniWhiteboard.zip`.
+- ZIP: `Desktop/MiniWhiteboard.zip`.
 - ZIP bytes: **45,577,426**, about 45.6 MB (43.5 MiB).
 - ZIP SHA-256: `09bac13fef9ce702855e208784c1dbc07fa97f039121d0e0258218e2797d1b51`.
 - All **165 runtime files** are under `Mini Whiteboard/`, including `_internal`.

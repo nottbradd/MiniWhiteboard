@@ -1,6 +1,7 @@
 # Mini Whiteboard specification — Version 1.1
 
-Updated 2026-10-01 for cross-platform Version 1.1. The cross-platform addendum
+Updated 2026-10-10 for repository publication preparation; Version 1.1 is retained.
+The cross-platform addendum
 below supersedes earlier Windows-only wording and release paths. Sections 10–11
 retain the shared feature and screenshot refinements.
 The sections below incorporate the new requirements; placement and lifecycle
@@ -10,6 +11,19 @@ Build a complete desktop application called “Mini Whiteboard” for Windows 10
 and macOS 14+, keeping one shared PySide6 implementation.
 
 ## Cross-platform V1.1 addendum
+
+### Source publication addendum — 2026-10-10
+
+- Use the user-selected MIT license for the project's own source/assets. Keep
+  dependency license scope and binary-release obligations documented separately.
+- Provide portable public setup instructions, contribution guidance and issue/PR
+  templates. Exclude generated artifacts and credentials from source commits.
+- Run automated Windows tests on main pushes and pull requests. Preserve the
+  existing Mac build/verification workflow and already verified Windows binaries.
+- Record the observed October 1 hosted Mac success in the verification documents;
+  keep interactive Mac acceptance and Intel execution marked NOT RUN.
+- Prepare the existing repository while retaining private visibility. Public
+  visibility is a separate publishing step chosen by the user.
 
 ### GitHub-hosted Mac release addendum — 2026-10-01
 

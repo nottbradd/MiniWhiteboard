@@ -1,5 +1,16 @@
 # Approved implementation plan
 
+## Public repository preparation — 2026-10-10
+
+The user requested preparation for public visibility and chose the MIT license.
+Add LICENSE, third-party scope/notices, public-facing README, contribution and
+issue/PR guidance, and a Windows automated-test workflow. Replace current
+machine-specific documentation paths with portable paths and record observed
+Mac CI evidence. Review tracked history for generated artifacts and credential
+signatures. Validate the workflows and automated suite before pushing. Preserve
+application code, Version 1.1 and existing binary packages. Keep visibility
+private for the user's final publishing step.
+
 ## GitHub-hosted macOS completion — approved update (2026-10-01)
 
 The build/automated verification stage will use the real GitHub-hosted `macos-14`
@@ -13,15 +24,16 @@ Prepared: local Git main branch, artifact/environment/cache exclusions, LF rules
 verification, owned-process startup check and runner result summary. The workflow
 uses Python 3.13, existing requirements/build shell/spec, full failure gates,
 ditto archive/extraction, and the requested artifact name. Local verification is
-recorded in TEST_RESULTS; Mac execution remains pending repository creation/push.
+recorded in TEST_RESULTS. The actual October 1 Mac workflow succeeded and was
+reviewed on October 10: 156 tests, Universal2 build/validation, limited Cocoa
+startup and ditto ZIP round-trip all passed. The repository now exists at
+[nottbradd/MiniWhiteboard](https://github.com/nottbradd/MiniWhiteboard).
 
-Next: create the empty private GitHub repository, push the local commit, and run
-**Actions → macOS V1.1 → Run workflow**. Fix actual runner failures and rerun.
-Only a successful run permits CI VERIFIED status and delivery of the Mac tester
-ZIP. Preserve global input/menu/TCC/window/Spaces/Retina/multi-monitor NOT RUN
-statuses until interactive tests happen. See [GITHUB_SETUP.md](GITHUB_SETUP.md).
+Next: download the verified inner tester ZIP unchanged and complete interactive
+acceptance. Preserve global input/menu/TCC/window/Spaces/Retina/multi-monitor
+NOT RUN statuses until observed use. See [GITHUB_SETUP.md](GITHUB_SETUP.md).
 
-## Cross-platform Version 1.1 — current implementation status (2026-10-01)
+## Cross-platform Version 1.1 — implementation status (updated 2026-10-10)
 
 The cross-platform plan and amendments are approved. Product version remains 1.1.
 The older milestones below record the history; this section governs current work.
@@ -46,10 +58,10 @@ The older milestones below record the history; this section governs current work
 7. **Done:** 143 automated tests, 111 final native checks, 33 real-input checks and
    16 packaged checks passed. The new Windows ZIP is on Desktop; all 165 files
    match the final build, and the previous tester archive is unchanged.
-8. **Build can use GitHub-hosted macOS:** build/test the real `.app`, verify its
-   ditto ZIP and transfer those finished bytes unchanged to the Windows Desktop.
-   This stage is pending the first actual CI run. Bare-Escape feasibility and
-   the interactive native checklist remain separate NOT RUN items.
+8. **CI VERIFIED:** the hosted Mac run built and validated the real Universal2
+   `.app` and its ditto ZIP, including a limited packaged startup check. Transfer
+   the finished ZIP unchanged; Desktop delivery has not been verified here.
+   Bare-Escape feasibility and interactive acceptance remain NOT RUN.
 
 Follow-up source audit: capture's QObject/timer creation is deferred until after
 QApplication and parented to it. Two startup-order regressions bring the latest
@@ -399,7 +411,7 @@ build's features even though that build used the label 1.2.0.
    capture checks. Measure 4K image transforms and multi-object clipboard work.
 9. Build the GUI executable, verify launch/runtime/metadata, stage a clean archive,
    validate every ZIP entry against the distribution and replace the located
-   `C:\Users\RadiumPCs\OneDrive\Desktop\MiniWhiteboard.zip`. Preserve its filename.
+   `Desktop/MiniWhiteboard.zip`. Preserve its filename.
 
 Implementation decisions: custom MIME is JSON rather than an executable object
 format; source images retain full pixels; external clipboard previews have a

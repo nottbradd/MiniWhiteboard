@@ -1,20 +1,20 @@
 # Mini Whiteboard 1.1 — cross-platform implementation report
 
-Date: 2026-10-01. Work performed on Windows 11, one 1920×1080 display at 100%.
+Implementation recorded 2026-10-01 on Windows 11, one 1920×1080 display at
+100%. Hosted Mac results reviewed 2026-10-10.
 
-**Windows is built, verified and packaged on the Desktop. The shared refactor and
-Mac implementation/build/verification sources are complete for native testing.
-The Mac native acceptance gate, `.app` build and Mac ZIP remain open.** No Mac
-runtime, signing or hardware result is inferred from Windows tests.
+**Windows is built, verified and packaged. The hosted Mac workflow has also
+succeeded:** [October 1 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399),
+commit `7cd78288558ed1120fa39d7fabf331d438034c2f`. Its macOS 14.8.9 arm64 runner,
+with Python 3.13.15, passed 156 tests, built/validated Universal2, passed a limited
+packaged Cocoa startup check and verified the ditto ZIP after extraction.
+Interactive Mac acceptance and Intel execution remain **NOT RUN**.
 
-**GitHub Actions update:** the requested `macos-14` pipeline is prepared, locally
-linted and committed in a new local Git repository. Its first actual run is
-**PENDING repository creation, authenticated push and runner execution**. A
-GitHub Project exists, but the user has not created a source repository. No
-accessible repository or signed-in local Git account was found. The local suite
-now passes **156 tests**. Mac application implementation remains unchanged; the
-build's final guidance, verification/package tools and CI documentation were
-updated. The existing Windows executable and Desktop ZIP hashes are unchanged.
+The repository is [nottbradd/MiniWhiteboard](https://github.com/nottbradd/MiniWhiteboard).
+The source-publication update adds the selected MIT license, contribution/report
+instructions and Windows CI. Existing application code and Windows packages are
+preserved. Generated verification paths below name ignored local outputs; real
+Mac CI reports are available in the linked run's verification artifact.
 
 ## 1. Changed files
 
@@ -131,9 +131,9 @@ FPS or a claim of a new speedup. See PERFORMANCE.md. Native Mac performance: NOT
 Universal2 is the default target in the Mac build. PyInstaller must accept the
 complete dependency stack; the checker inspects every Mach-O file, executable
 mode, internal symlink and code signature. A real `IncompatibleBinaryArchError`
-allows arm64 fallback on Apple Silicon, retaining the failed log. **No Mac build
-has been attempted here; Universal2 compatibility and Intel execution are not
-verified.** This follows [PyInstaller's architecture requirements](https://pyinstaller.org/en/stable/feature-notes.html#macos-multi-arch-support).
+allows arm64 fallback on Apple Silicon, retaining the failed log. **The hosted
+run built and verified Universal2 without fallback. Intel execution remains
+NOT RUN.** This follows [PyInstaller's architecture requirements](https://pyinstaller.org/en/stable/feature-notes.html#macos-multi-arch-support).
 
 The initial spec permits PyInstaller's ad-hoc signing. Developer ID is an optional
 environment setting for a future signed/notarised/stapled release. No Apple
@@ -154,7 +154,9 @@ No Mac signature, notarisation or Gatekeeper result was produced on Windows.
 | Compilation / pip consistency / version | **PASSED** |
 | Windows archive integrity | **PASSED: all 165 file hashes and CRCs** |
 | Old Windows build/release preservation | **PASSED** |
-| Native Mac and Mac build/signing/ZIP | **NOT RUN** |
+| Mac build / Universal2 / ad-hoc signature / ditto ZIP | **CI VERIFIED**, October 1 run |
+| Limited packaged Cocoa startup | **CI VERIFIED**, eight seconds, normal exit 0 |
+| Interactive Mac acceptance / Intel execution | **NOT RUN** |
 
 All native tests used owned Windows processes/windows. Native Mac hotkeys/Escape,
 menu/Dock/lifetime, focus/topmost/corner input, physical Command shortcuts,
@@ -170,18 +172,21 @@ testing also remain NOT RUN. See both manual checklists.
   (1,864,080 bytes). SHA-256:
   `3d53acc4b8f22e0f21ce0b6acecd307b06aecf76206eae38e9b3d6abfbddc94a`.
 - **Windows ZIP on Desktop:**
-  `C:\Users\RadiumPCs\OneDrive\Desktop\WinMiniWhiteboardV1.1.zip`
+  `Desktop/WinMiniWhiteboardV1.1.zip`
   (45,589,638 bytes). SHA-256:
   `97f9d4c48cadab4f89ac2d29a5ce62dfe1542979d80ef8cc055b2e4669851450`.
   A workspace copy is in `build/WinMiniWhiteboardV1.1.zip`. The actual Desktop copy
   was reopened and every entry verified against the final distribution.
 - **Previous tester archive:** `MiniWhiteboardV1.1.zip` on Desktop remains unchanged;
   its SHA-256 is `09bac13fef9ce702855e208784c1dbc07fa97f039121d0e0258218e2797d1b51`.
-- **Mac .app:** not built; no actual location to report. The build script targets
-  `dist/macos-v11/Mini Whiteboard.app` on a Mac.
-- **Mac ZIP:** not produced or verified; no actual location to report. Its script
-  targets `build/MacMiniWhiteboardV1.1.zip` on a Mac using ditto. Transfer finished
-  verified bytes to Windows Desktop without repacking.
+- **Mac .app:** built and verified in CI, `dist/macos-v11/Mini Whiteboard.app`.
+- **Mac ZIP:** built and verified in CI, `MacMiniWhiteboardV1.1.zip`, 74,214,960
+  bytes, SHA-256 `56402e4443d09abac57c1a010017bf78d3de3217d9ef80a8898abb3a85cd63f1`.
+  Available as the inner file in the run's **MacMiniWhiteboardV1.1** artifact;
+  transfer unchanged. Desktop delivery has not been verified here.
+- **Public binary release:** none published. Interactive acceptance and complete
+  third-party distribution notices remain separate release work; see
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Windows launch: extract the Desktop ZIP, open `Mini Whiteboard`, run
 `Mini Whiteboard.exe`, and keep `_internal` alongside it. Look in the system tray.
@@ -217,8 +222,9 @@ all interactive NOT RUN statuses.
 
 No application adapter, requirements, architecture target or PyInstaller spec
 was changed for CI. Universal2 remains the default, with the existing conditional
-arm64 fallback after a demonstrated architecture mismatch. Native framework APIs
-and full-stack architecture acceptance still need an actual runner result.
+arm64 fallback after a demonstrated architecture mismatch. The actual hosted
+result confirms imports and full-stack Universal2 build
+acceptance. Interactive native API behaviour remains unverified.
 
 Local results: **156 tests passed**, actionlint 1.7.12 passed, shell syntax and
 Python compilation passed, and pip check found no broken dependencies. The 11 new
@@ -227,13 +233,11 @@ metadata/architecture/Windows-file rejection, and startup liveness/termination.
 They do not constitute native Mac verification. Logs remain under ignored local
 `verification/`; future runner reports are downloadable artifacts.
 
-Follow [GITHUB_SETUP.md](GITHUB_SETUP.md): create an empty private repository,
-push the prepared local commit, then **Actions → macOS V1.1 → Run workflow**.
-Download the artifact from a successful run, extract its outer GitHub archive,
-and transfer the inner `MacMiniWhiteboardV1.1.zip` unchanged. Record the actual
-run URL, revision, runner/package versions, test result and ZIP SHA-256 before
-changing Mac build status to CI VERIFIED. The original goal remains incomplete
-until the workflow actually succeeds. Interactive Mac acceptance remains open.
+Follow [GITHUB_SETUP.md](GITHUB_SETUP.md) to rerun the existing workflow or
+download the successful run's artifact. Extract GitHub's outer archive and
+transfer the inner `MacMiniWhiteboardV1.1.zip` unchanged. The run URL, revision,
+runner/package versions, results and hash are recorded in TEST_RESULTS.
+The automated Mac stage has succeeded; interactive acceptance remains open.
 
 GitHub schedules `macos-14` brownouts in October and retirement on November 2,
 2026. The initial workflow keeps the requested label; an unavailable runner is
@@ -254,5 +258,5 @@ an external failure, not an application test result. See
    then copy its ZIP unchanged to Windows Desktop and compare SHA-256 values.
 
 Copyable commands, expected results and future signing commands are in
-[README.md](README.md#build-on-macos-14) and [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md).
+[README.md](README.md#test-and-build) and [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md).
 This remaining stage needs macOS; all independent Windows work is delivered.

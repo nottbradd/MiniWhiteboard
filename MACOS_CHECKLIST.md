@@ -1,17 +1,17 @@
 # macOS 14+ acceptance checklist — Mini Whiteboard 1.1
 
-**Current result: NOT RUN.** Implementation was performed on Windows. Record
-PASSED, FAILED or NOT RUN for each item below on a real Mac. Unit/mocked tests
-cannot establish native behaviour. Keep OS version, CPU architecture, display
-arrangement/scales, source revision/hash, bundle signature and logs with results.
+**Interactive acceptance: NOT RUN.** Record PASSED, FAILED or NOT RUN for
+each interactive item on a real Mac. Keep OS, architecture, display setup,
+source revision/hash, signature and logs with results.
 
-The automated build can now run on a GitHub-hosted Mac without an owned Mac.
-Its workflow is prepared and locally linted, but **the first GitHub run is pending
-repository creation/push**. Follow [GITHUB_SETUP.md](GITHUB_SETUP.md). After a real
-successful run, record automated results as CI VERIFIED with its run URL/revision;
-the interactive items below remain NOT RUN until observed on a Mac. A limited
-startup report cannot establish global input, menu use, TCC, window or display
-behaviour. The CI tester ZIP can be produced before this interactive acceptance.
+[The October 1 hosted run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
+was reviewed on October 10 and passed dependency/import checks, 156 automated
+tests, Universal2 build/bundle validation, a limited packaged Cocoa startup check
+and ZIP extraction/revalidation. Runner: macOS 14.8.9, arm64, Python 3.13.15.
+Those build checks are **CI VERIFIED** for that artifact. Limited startup cannot
+establish global input, menu use, TCC, focus or physical display behaviour.
+Intel execution and all interactive acceptance below remain **NOT RUN**.
+See [TEST_RESULTS.md](TEST_RESULTS.md) and [GITHUB_SETUP.md](GITHUB_SETUP.md).
 
 ## 1. Setup and Escape feasibility gate
 
@@ -134,11 +134,11 @@ bash build_macos.sh
 open 'dist/macos-v11/Mini Whiteboard.app'
 ```
 
-- [ ] Build first attempts Universal2. Read `verification/macos-build-universal2.txt`.
+- [x] **CI VERIFIED for the October 1 artifact:** build first attempts Universal2. Read `verification/macos-build-universal2.txt`.
   Only an actual architecture mismatch permits arm64 fallback; record the exact
   binary/blocker. `macos-package-check.json` checks every Mach-O slice, signature,
   internal symlink and absence of build-machine Python/Homebrew paths.
-- [ ] Inspect `Contents/Info.plist`: bundle ID `com.brad.miniwhiteboard`, both versions
+- [x] **CI VERIFIED for the October 1 artifact:** inspect `Contents/Info.plist`: bundle ID `com.brad.miniwhiteboard`, both versions
   1.1, minimum 14.0, LSUIElement, correct icon and screen-capture purpose string.
 - [ ] Launch by Finder on a clean supported Mac without Python installed; no
   Terminal. Repeat sections 1–5 against the packaged app, especially global keys,
@@ -175,7 +175,7 @@ For local Mac packaging after bundle validation:
 shasum -a 256 build/MacMiniWhiteboardV1.1.zip
 ```
 
-- [ ] Archive contains `Mini Whiteboard.app` at the root. `ditto` round-trip verifies
+- [x] **CI VERIFIED for the October 1 artifact:** archive contains `Mini Whiteboard.app` at the root. `ditto` round-trip verifies
   hashes, executable modes, symlinks and code signature. Store the release JSON.
 - [ ] Transfer that ZIP unchanged to the Windows Desktop; do not extract/repack.
   Compare `Get-FileHash -Algorithm SHA256` with the Mac hash. Preserve the existing

@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem with Mini Whiteboard.
+title: "[Bug]: "
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/version, Mini Whiteboard version, source or packaged build, and display setup if relevant.
+      placeholder: Windows 11, V1.1 packaged build, one display at 125% scale
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the keys pressed and tool being used.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Remove credentials, private content and personal paths before posting.

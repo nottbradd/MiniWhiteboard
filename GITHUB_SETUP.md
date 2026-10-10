@@ -1,155 +1,115 @@
-# Build the Mac tester from your Windows PC
+# GitHub repository, builds and publication
 
-The source repository and macOS workflow are prepared locally. **The workflow has
-not run on GitHub yet.** There is no remote repository configured. The connected
-GitHub account is `nottbradd`; the local GitHub CLI is not installed and Git
-Credential Manager has no signed-in GitHub accounts. Your GitHub Project can
-track work, but a repository is needed to hold these files and run Actions.
+The repository is [nottbradd/MiniWhiteboard](https://github.com/nottbradd/MiniWhiteboard).
+It already contains the source on `main`. Repository preparation does not change
+its visibility; the final visibility change is described below.
 
-The existing Windows release ZIPs remain unchanged. Do not upload the Windows
-environment, distributions or ZIPs with the source.
+## Verified Mac build
 
-## 1. Create the repository
+[The October 1 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
+succeeded for source commit `7cd78288558ed1120fa39d7fabf331d438034c2f`.
+It ran on macOS 14.8.9, arm64, with universal2 Python 3.13.15, PySide6/Qt 6.11.2,
+PyInstaller 6.22.3 and PyObjC 12.2.2. It passed all 156 tests, built and validated
+the Universal2 bundle, passed an eight-second packaged Cocoa startup check with
+normal termination, and verified the `ditto` ZIP after clean extraction.
 
-Sign in to [GitHub's new repository page](https://github.com/new) as `nottbradd`.
-Choose owner **nottbradd**, name **MiniWhiteboard**, and **Private**. Leave the
-README, .gitignore and licence initialization options off: this local repository
-already has its files and history. Click **Create repository**.
+The limited startup check does not establish interactive Mac behaviour.
+[MACOS_CHECKLIST.md](MACOS_CHECKLIST.md) records those remaining **NOT RUN** checks.
 
-If that name already exists, inspect the repository before using it. Use another
-empty repository name if necessary and substitute its URL below. Do not force-push
-over an existing repository.
+## Run the workflows
 
-## 2. Push this prepared repository
+In the repository, choose **Actions → macOS V1.1 → Run workflow**, select **main**,
+then run it. Relevant source/build/test pushes to main also trigger it;
+documentation-only pushes do not. **Windows tests** runs on code/config main pushes, pull
+requests to main and manual dispatches. It tests the source without rebuilding
+the Windows release.
 
-Open PowerShell in the project folder:
+The Mac job uses `macos-14`, Python 3.13 and pinned GitHub actions. It checks
+imports/platform selection, runs the complete suite, builds using the existing
+shell/spec, validates the bundle, briefly launches its owned app process and
+creates and round-trips the ZIP. Bundle checks cover metadata, frozen modules,
+Mach-O architecture/linkage, symlinks and signatures. Windows binaries fail
+validation. If no WindowServer login session is available, the startup check
+explicitly reports **NOT RUN**. Universal2 is the default; a real architecture
+mismatch on an arm64 host is required before an arm64 fallback.
 
-```powershell
-Set-Location -LiteralPath 'C:\Users\RadiumPCs\OneDrive\Desktop\mini whiteboard app'
-git status
-git log -1 --oneline
-git remote -v
-git remote add origin https://github.com/nottbradd/MiniWhiteboard.git
-git push -u origin main
-```
+**Runner availability:** GitHub has announced October 2026 interruptions and
+November 2 retirement for `macos-14`. See
+[the runner notice](https://github.com/actions/runner-images/issues/13518).
+When changing the runner, rerun the pipeline and record its actual OS and
+architecture. The application's minimum deployment target remains macOS 14.0.
 
-Only add `origin` when `git remote -v` has no existing origin. If there is one,
-check its URL first. The push uses Git Credential Manager, which is already
-installed with Git; complete its browser sign-in to the intended account. Do not
-put an access token in the remote URL or paste credentials into the project.
+## Download the Mac tester artifact
 
-A local commit is supplied, so you do not need to commit it again. For later
-changes, the exact commands are:
-
-```powershell
-git add .
-git diff --cached --stat
-git commit -m "Update Mini Whiteboard macOS CI"
-git push origin main
-```
-
-The local commit uses `nottbradd` and the account's GitHub no-reply address. You
-can choose a different local Git author identity with `git config user.name` and
-`git config user.email` before making later commits.
-
-### Optional GitHub CLI route
-
-If you prefer the CLI, install it, reopen PowerShell, then authenticate and create
-the empty private repository. Use this route instead of creating it on the website:
-
-```powershell
-winget install --id GitHub.cli --exact
-# Reopen PowerShell, then return to the project directory.
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git
-gh repo create nottbradd/MiniWhiteboard --private --source . --remote origin --push
-```
-
-Again, check for an existing repository and remote before creating either.
-
-## 3. Run the Mac workflow
-
-In the repository, go to **Actions → macOS V1.1 → Run workflow**, select **main**,
-then click **Run workflow**. Relevant source/build/test pushes to main also run it;
-documentation-only pushes do not. If GitHub asks you to enable Actions for this
-repository, enable them first.
-
-The job uses the requested real GitHub-hosted `macos-14` runner and Python 3.13.
-The checkout, Python setup and artifact actions are pinned to verified revisions
-of their current v7 tags. Pip caches downloads using all three requirements files.
-The development and Mac requirement files already include the base requirements.
-
-The job prints OS/CPU/Python/package versions, installs dependencies, checks Mac
-imports and production platform selection, runs the complete unittest suite,
-uses `build_macos.sh` and the existing Mac spec, and validates the bundle. The
-build script also retains its own full test gate. No Windows build runs here.
-
-Bundle checks cover the plist, Version 1.1, `com.brad.miniwhiteboard`, LSUIElement,
-minimum macOS 14.0, Python/Qt/native bridge/frozen modules, Cocoa plugin, every
-Mach-O architecture, dependency install names, internal symlinks and signatures.
-Windows PE/EXE/DLL files fail validation. A brief Cocoa launch checks for immediate
-failure, then requests normal termination of its owned process. If the runner has
-no WindowServer login session, that startup check reports **NOT RUN** explicitly.
-
-The archive is created on macOS with `ditto`. Its root and CRCs are checked; clean
-extraction must preserve all files, directories, permissions, hashes and symlinks.
-The extracted app undergoes the complete bundle validation again before upload.
-
-Universal2 remains the default. The existing build permits arm64 fallback only
-after a real architecture mismatch on an arm64 host. Other build failures fail
-the workflow and retain their logs; no test is skipped to obtain a green run.
-
-**Runner availability:** GitHub schedules `macos-14` interruptions during October
-2026 and retirement on **November 2, 2026**. The initial workflow retains your
-requested label. A failure before checkout may be a runner availability problem;
-check [GitHub's runner notice](https://github.com/actions/runner-images/issues/13518).
-After retirement, choose an available Mac runner, rerun the entire pipeline and
-record its actual OS/architecture; changing the runner does not prove macOS 14
-execution. The bundle minimum remains 14.0.
-
-## 4. Download the verified archive
-
-Open the **successful run**. In its **Artifacts** section, download
-**MacMiniWhiteboardV1.1**. GitHub supplies an outer artifact archive; extract that
-outer archive on Windows to obtain the already-created inner file:
+Open a successful run and download **MacMiniWhiteboardV1.1** under **Artifacts**.
+Extract GitHub's outer archive on Windows to obtain the already-created inner ZIP:
 
 ```text
 MacMiniWhiteboardV1.1.zip
 └── Mini Whiteboard.app
 ```
 
-Copy the inner **MacMiniWhiteboardV1.1.zip** unchanged to your Windows Desktop.
-Keep it zipped on Windows. Do not extract and rebuild that Mac archive on Windows;
-the inner ZIP preserves Mac permissions and symlinks. Send that inner file to Mac
-testers. They extract it on macOS, move the app to Applications and open it. The
-initial app is ad-hoc signed and remains a tester/beta release until interactive
-acceptance is done; Apple's Open Anyway guidance is in README.
+Keep that inner ZIP unchanged when transferring it to a Mac. Extract it on macOS;
+this preserves Mac permissions and symlinks. The initial ad-hoc signed app is a
+tester build. See README for installation and Apple's Open Anyway instructions.
 
-Download **macos-v1.1-verification** from the same run for tests, environment,
-build, bundle, startup, extracted-bundle and ZIP reports. Compare the release
-report's SHA-256 with the downloaded inner ZIP:
+Download **macos-v1.1-verification** from the same run for environment, tests,
+build, bundle, startup and archive reports. Artifacts are retained for 30 days,
+subject to repository limits; the October 1 artifacts expire on October 31.
 
-```powershell
-Get-FileHash -LiteralPath "$env:USERPROFILE\OneDrive\Desktop\MacMiniWhiteboardV1.1.zip" -Algorithm SHA256
+For the October 1 run, the inner ZIP is **74,214,960 bytes** with SHA-256:
+
+```text
+56402e4443d09abac57c1a010017bf78d3de3217d9ef80a8898abb3a85cd63f1
 ```
 
-Artifacts are retained for 30 days, subject to repository limits. If a job fails,
-open its failing step and download the verification artifact. Fix the actual
-dependency/import/test/build/linkage/startup/package failure and rerun; do not
-record an artifact from a failed run as a release.
+Compare a downloaded inner ZIP from its folder in PowerShell:
 
-## 5. What success proves
+```powershell
+Get-FileHash -LiteralPath .\MacMiniWhiteboardV1.1.zip -Algorithm SHA256
+```
 
-Only after an actual successful runner execution, record **CI VERIFIED** for
-dependency installation, real Mac imports, automated tests, PyInstaller build,
-bundle metadata/architecture/linkage/signatures, and the ditto ZIP round-trip.
-Record limited startup as **CI VERIFIED** only if its own report says PASSED.
-Save the run URL, source commit, runner versions, reports and archive SHA-256.
-Update CROSS_PLATFORM_REPORT and TEST_RESULTS from those real results.
+Do not confuse the inner ZIP's hash with GitHub's outer artifact digest. Do not
+use an artifact from a failed run as a verified build. Actions artifacts and
+stable GitHub Releases serve different purposes. No stable release has been
+published; dependency notices and interactive acceptance remain binary-release
+work, described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-These interactive checks remain **NOT RUN**: Control+Option+W with another app
-focused, real two-press cursor placement, global Escape, menu-bar mouse input,
-always-on-top, Screen Recording prompts, screenshot-region interaction, Spaces,
-Mission Control, Stage Manager, Retina and physical multi-monitor behaviour.
-The full list remains in [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md). A Universal2
-binary inspection also does not prove execution on both CPU architectures.
+## Work on the source
+
+Clone the existing repository rather than creating another one:
+
+```powershell
+git clone https://github.com/nottbradd/MiniWhiteboard.git
+Set-Location MiniWhiteboard
+git status
+git remote -v
+```
+
+For changes, review and stage the intended source files, commit and push using
+your normal Git credentials. Keep tokens out of remote URLs and committed files.
+Generated environments, builds, archives and verification output are ignored.
+
+## Make the repository public
+
+The source now has an MIT license, contribution guidance, issue/PR templates,
+public-facing documentation and automated workflows. Before changing visibility,
+review the current source and the history. The initial commit's documentation
+still contains historical machine-specific paths. The current documentation
+uses portable paths. A scan of the existing history found no common credential
+signatures or tracked generated artifacts; it cannot prove the absence of every
+possible secret.
+
+When you choose to publish, open **Settings → General → Danger Zone → Change
+repository visibility**, choose **Public**, and complete GitHub's confirmation.
+GitHub explains the effects in
+[its visibility guide](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility).
+This exposes source/history and Actions logs to visitors. Public source does not
+require publishing the tester ZIP as a stable release.
+
+Suggested **About** description:
+
+> A lightweight desktop whiteboard for drawing, text and screenshot annotations.
+> Windows app with a macOS preview; built with Python and PySide6.
+
+Suggested topics: `whiteboard`, `desktop-app`, `pyside6`, `python`, `windows`, `macos`.
