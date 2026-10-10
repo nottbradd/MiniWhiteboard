@@ -5,6 +5,7 @@
 | Check | Actual result | Scope/evidence |
 |---|---|---|
 | Full local automated suite | **PASSED — 156 tests in 5.428 s** | Windows/offscreen; `verification/public-repository-tests.txt` |
+| New hosted Windows workflow | **PASSED — 156 tests in 5.518 s** | [October 10 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38040194417), commit `acbfae87756b8acf034f7a4359c425c4fc488633`; Windows Server 2025, Python 3.12.10 |
 | Both Actions workflows | **PASSED — actionlint 1.7.12** | Existing Mac pipeline and new Windows tests pipeline |
 | Documentation links | PASSED | All relative file targets in the updated guides/reports exist |
 | Dependency consistency | PASSED | pip check: no broken requirements |
@@ -17,7 +18,8 @@ The sandbox initially blocked temporary-file access in 14 tests. The complete
 suite then passed outside the sandbox. The history scan is not proof that every
 possible secret is absent. The original Desktop archives were not found at their
 previously recorded locations; this turn verified the retained workspace release.
-The first hosted result for the new Windows workflow will be recorded after push.
+The first hosted Windows run passed dependency installation, pip check and the
+complete offscreen suite. It does not establish native GUI acceptance on that runner.
 
 ## GitHub macOS execution — observed 2026-10-10
 

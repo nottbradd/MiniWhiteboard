@@ -4,6 +4,9 @@ The repository is [nottbradd/MiniWhiteboard](https://github.com/nottbradd/MiniWh
 It already contains the source on `main`. Repository preparation does not change
 its visibility; the final visibility change is described below.
 
+The [first Windows tests run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38040194417)
+passed all 156 tests on October 10. GitHub recognizes the project's MIT license.
+
 ## Verified Mac build
 
 [The October 1 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
