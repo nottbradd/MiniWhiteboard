@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 
 from scripts.build_support import verify_release_files
@@ -49,3 +50,21 @@ class ReleaseNoticeTests(unittest.TestCase):
     def test_verified_package_has_complete_notices(self):
         self.assertEqual(verify_release_files(self.root), {
             'license_files':1, 'licenses_verified':True, 'unused_qt_products_absent':True})
+
+    @unittest.skipIf(sys.platform == 'win32', 'Real Mac bundle symlinks run on Mac CI')
+    def test_mac_bundle_notice_alias_counts_physical_manifest_once(self):
+        resources = self.root / 'Contents' / 'Resources'
+        frameworks = self.root / 'Contents' / 'Frameworks'
+        resources.mkdir(parents=True)
+        frameworks.mkdir(parents=True)
+        self.licenses.rename(resources / 'licenses')
+        (frameworks / 'licenses').symlink_to('../Resources/licenses', target_is_directory=True)
+        self.assertEqual(verify_release_files(self.root)['license_files'], 1)
+
+    @unittest.skipIf(sys.platform == 'win32', 'Real Mac bundle symlinks run on Mac CI')
+    def test_mac_bundle_notice_alias_cannot_point_outside_package(self):
+        bundle = self.root / 'Mini Whiteboard.app'
+        bundle.mkdir()
+        (bundle / 'licenses').symlink_to(self.licenses, target_is_directory=True)
+        with self.assertRaisesRegex(RuntimeError, 'must stay inside the package'):
+            verify_release_files(bundle)

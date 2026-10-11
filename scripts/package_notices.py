@@ -28,9 +28,13 @@ def stage(project=PROJECT, destination=None):
     add('THIRD_PARTY_NOTICES.md', (project / 'docs' / 'THIRD_PARTY_NOTICES.md').read_bytes())
     for source in sorted((project / 'assets' / 'licenses').glob('*')):
         if source.is_file():
+            if source.name.startswith('pyobjc-') and sys.platform != 'darwin':
+                continue
             add('upstream/' + source.name, source.read_bytes())
     required = {'qtbase-6.11.2.txt', 'qtsvg-6.11.2.txt', 'qtimageformats-6.11.2.txt',
                 'pyside-setup-6.11.2.txt', 'SOURCES.md'}
+    if sys.platform == 'darwin':
+        required.add('pyobjc-12.2.2.txt')
     if not required.issubset({p.name for p in (project / 'assets' / 'licenses').glob('*')}):
         raise RuntimeError('The versioned upstream notices are incomplete.')
 

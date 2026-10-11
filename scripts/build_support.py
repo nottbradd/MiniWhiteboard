@@ -30,11 +30,16 @@ def verify_release_files(root):
     import json
     import hashlib
     root = Path(root)
-    manifests = list(root.rglob('licenses/MANIFEST.json'))
+    # PyInstaller exposes Mac data through both Resources and a Frameworks
+    # symlink. Count the physical manifest once, while rejecting external links.
+    manifests = {p.resolve() for p in root.rglob('licenses/MANIFEST.json')}
+    if any(not p.is_relative_to(root.resolve()) for p in manifests):
+        raise RuntimeError('License manifest must stay inside the package.')
     if len(manifests) != 1:
         raise RuntimeError('The package needs one license manifest.')
-    base = manifests[0].parent
-    report = json.loads(manifests[0].read_text(encoding='utf-8'))
+    manifest = next(iter(manifests))
+    base = manifest.parent
+    report = json.loads(manifest.read_text(encoding='utf-8'))
     for entry in report['files']:
         path = base / entry['path']
         if not path.resolve().is_relative_to(base.resolve()):
