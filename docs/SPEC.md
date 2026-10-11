@@ -1,6 +1,6 @@
 # Mini Whiteboard specification — Version 1.1
 
-Updated 2026-10-10 for repository publication preparation; Version 1.1 is retained.
+Updated 2026-10-11 for release publication; Version 1.1 is retained.
 The cross-platform addendum
 below supersedes earlier Windows-only wording and release paths. Sections 10–11
 retain the shared feature and screenshot refinements.
@@ -12,7 +12,24 @@ and macOS 14+, keeping one shared PySide6 implementation.
 
 ## Cross-platform V1.1 addendum
 
-### Source publication addendum — 2026-10-10
+### V1.1 release and repository polish — 2026-10-11
+
+- Publish a stable Windows V1.1 release and a clearly labelled Mac preview.
+  Keep native interactive Mac acceptance and Intel execution marked NOT RUN
+  until observed. This supersedes the earlier private-visibility and overall
+  tester-release wording below.
+- Provide app ZIPs, SHA-256 checksums, dependency license texts and exact Qt/PySide
+  source archives. Rebuild and verify both app packages before publication;
+  preserve the previous Windows distribution while preparing the new one.
+- Exclude unused Qt Virtual Keyboard, QML, Quick and PDF products. Verify the
+  intended notices and check the actual libraries shipped by each platform.
+- Put direct downloads, an authentic placement GIF and an app screenshot near
+  the top of README. Set the repository description, topics and release homepage.
+- Keep README, CONTRIBUTING and LICENSE at the root. Move reference documents
+  into `docs/` and rename the launcher to `main.py`, updating all live references.
+- Prepare a short sharing post for the owner to publish.
+
+### Historical source publication addendum — 2026-10-10
 
 - Use the user-selected MIT license for the project's own source/assets. Keep
   dependency license scope and binary-release obligations documented separately.

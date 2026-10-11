@@ -175,9 +175,9 @@ whole-application speedup.
 .\.venv\Scripts\python.exe -m scripts.raster_cache_check
 ```
 
-- Native: [before](verification/screenshot-native-before.json), [after](verification/screenshot-native-after.json), [before profile](verification/screenshot-native-profile-before.txt), [after profile](verification/screenshot-native-profile-after.txt).
-- Offscreen: [before](verification/screenshot-before.json), [after](verification/screenshot-after.json), [before profile](verification/screenshot-profile-before.txt), [after profile](verification/screenshot-profile-after.txt).
-- [Paired raster results](verification/screenshot-raster-comparison.json), [verification and limitations](TEST_RESULTS.md).
+- Native: [before](../verification/screenshot-native-before.json), [after](../verification/screenshot-native-after.json), [before profile](../verification/screenshot-native-profile-before.txt), [after profile](../verification/screenshot-native-profile-after.txt).
+- Offscreen: [before](../verification/screenshot-before.json), [after](../verification/screenshot-after.json), [before profile](../verification/screenshot-profile-before.txt), [after profile](../verification/screenshot-profile-after.txt).
+- [Paired raster results](../verification/screenshot-raster-comparison.json), [verification and limitations](TEST_RESULTS.md).
 
 ## Historical initial Version 1.1 measurements — before screenshot refinement
 
@@ -202,8 +202,8 @@ regression in these fixtures and does not establish a guaranteed speedup.
 The 500-object marquee release took 9.056 ms to select objects/build the frame.
 Pointer movement itself required no document repaint. All 10/100/500 rows,
 commit times and paint fractions are in
-[performance-v11.json](verification/performance-v11.json); the independent
-[profile-v11.txt](verification/profile-v11.txt) records cProfile results.
+[performance-v11.json](../verification/performance-v11.json); the independent
+[profile-v11.txt](../verification/profile-v11.txt) records cProfile results.
 
 ### Large image and clipboard workload
 
@@ -247,7 +247,7 @@ Reproduce:
 ```
 
 Raw image/copy results:
-[performance-images-v11.json](verification/performance-images-v11.json).
+[performance-images-v11.json](../verification/performance-images-v11.json).
 
 ## Previous polish baseline — development label 1.2.0
 
@@ -347,7 +347,7 @@ were introduced.
 .\.venv\Scripts\python.exe -m scripts.performance_check --frames 16 --output .test-artifacts/performance.json --profile .test-artifacts/profile.txt
 ```
 
-- [Before timings](verification/performance-before.json)
-- [After timings, p95, commit costs and paint areas](verification/performance-after.json)
-- [Before profile](verification/profile-before.txt)
-- [After profile](verification/profile-after.txt)
+- [Before timings](../verification/performance-before.json)
+- [After timings, p95, commit costs and paint areas](../verification/performance-after.json)
+- [Before profile](../verification/profile-before.txt)
+- [After profile](../verification/profile-after.txt)

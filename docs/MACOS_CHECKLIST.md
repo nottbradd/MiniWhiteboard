@@ -48,7 +48,7 @@ the gate fails, keeping the limitation explicit.
 .venv-macos/bin/python -m scripts.macos_native_smoke
 .venv-macos/bin/python -m scripts.macos_native_smoke --capture
 .venv-macos/bin/python -m scripts.screenshot_performance --native --frames 30 --repeats 2 --output verification/macos-performance.json
-.venv-macos/bin/python 'Main App.py'
+.venv-macos/bin/python 'main.py'
 ```
 
 The native smoke uses owned windows and Qt-delivered key events; it does not

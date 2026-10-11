@@ -12,6 +12,7 @@ from mini_whiteboard import windows
 from mini_whiteboard import APP_VERSION
 from mini_whiteboard.geometry import Rect
 from mini_whiteboard.settings import BORDER, SHADOW
+from .build_support import verify_release_files
 
 
 def main():
@@ -29,6 +30,8 @@ def main():
         if not condition:
             raise AssertionError(label)
 
+    notices = verify_release_files(executable.parent)
+    check('License notices are complete and unused Qt products are absent', True, notices)
     pe = pefile.PE(str(executable))
     check("Executable is Windows GUI subsystem (no console)", pe.OPTIONAL_HEADER.Subsystem == 2)
     version_strings = {}

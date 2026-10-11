@@ -1,6 +1,45 @@
 # Verification report — Mini Whiteboard Version 1.1
 
-## Public repository preparation — 2026-10-10
+## V1.1 release preparation — 2026-10-11
+
+The owner approved a stable Windows release with a clearly labelled Mac preview.
+The release packages are being rebuilt with notice collections and source
+access. The earlier sections retain historical counts and artifacts.
+
+| Check | Actual result | Scope/evidence |
+|---|---|---|
+| Windows build test gate | **PASSED — 160 tests in 4.548 s** | `verification/public-release-build.txt`; Windows/offscreen |
+| Windows packaging | **PASSED** | `dist/releases-v11/Mini Whiteboard/`; launcher is `main.py`, Version 1.1 retained |
+| Windows ZIP | **PASSED — 172 files** | CRC and every file SHA-256 match the distribution; 37,769,059 bytes |
+| Dependency notice hashes | **PASSED — 15 files** | Package manifest and notice SHA-256 verified |
+| Unused Qt products | **PASSED** | Actual DLLs: Core, Gui, Network, Svg, Widgets; no QML/Quick/PDF/VirtualKeyboard |
+| Both Actions workflows | **PASSED — actionlint 1.7.12** | Windows tests and Mac build pipeline |
+| Placement GIF and screenshot | **PASSED — generated and visually inspected** | 29 frames, 7.52 s; actual app controller/renderer on a controlled desktop |
+| Windows native GUI regressions | **PASSED — 110 checks** | Owned windows; one 1920×1080 display at 100%; `verification/release-native-smoke.json` |
+| Real Windows keyboard/mouse workflow | **PASSED — 31 checks** | Two distinct W presses, repeat/release suppression, preview, focus, Escape and S capture; `verification/release-hotkey-workflow.json` |
+| Packaged Windows executable | **PASSED — 17 checks** | Startup, duplicate instance, exact placement, screenshot capture, board lifetime, metadata and notices; `verification/release-package-check.json` |
+| Dependency consistency and source compilation | PASSED | pip check and compileall |
+| Documentation file links | **PASSED — 91 targets** | All local targets in README, CONTRIBUTING and docs exist |
+| Previous Windows package preservation | PASSED | Existing `dist/windows-v11` executable and `build/WinMiniWhiteboardV1.1.zip` match their recorded hashes |
+| Fresh hosted Mac build | Pending | Mac preview will use the new pipeline artifact |
+
+Windows ZIP SHA-256:
+`d0de836c042366ff6802bc758990b473744d55b7964ac367b3c32ce25cc385c7`.
+Executable SHA-256:
+`b64cbe13c1dec342b1ff2cc02c9d72db106b1147047627f3805444b578519097`.
+
+The first packaged startup failed because the build environment exposed an
+unrelated Poppler ICU DLL ahead of Windows' system library. The build now uses a
+scoped Python/system library search path, fresh work output and a guard rejecting
+that unintended DLL. OneDrive's read-only work directory also prevented the
+packager's own cleanup; the build uses verified in-project PowerShell cleanup.
+The rebuilt executable and final ZIP passed the checks above. Generated version
+resources are normalized so a build does not introduce whitespace-only changes.
+
+Interactive Mac acceptance, Intel execution, physical mixed-DPI/multi-monitor
+Windows checks and clean-machine deployment remain **NOT RUN**.
+
+## Historical public repository preparation — 2026-10-10
 
 | Check | Actual result | Scope/evidence |
 |---|---|---|
@@ -21,7 +60,7 @@ previously recorded locations; this turn verified the retained workspace release
 The first hosted Windows run passed dependency installation, pip check and the
 complete offscreen suite. It does not establish native GUI acceptance on that runner.
 
-## GitHub macOS execution — observed 2026-10-10
+## Historical GitHub macOS execution — observed 2026-10-10
 
 The [October 1 Actions run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
 **succeeded** for commit `7cd78288558ed1120fa39d7fabf331d438034c2f`.
@@ -313,7 +352,7 @@ screenshot selection.
 ```powershell
 & '.\dist\Mini Whiteboard\Mini Whiteboard.exe'
 # Source:
-.\.venv\Scripts\python.exe '.\Main App.py'
+.\.venv\Scripts\python.exe '.\main.py'
 ```
 
 The portable distribution remains unsigned. Documents are session-only; only
@@ -336,11 +375,11 @@ F1 shortcut text is unchanged because this refinement adds no user command.
 
 ## Evidence
 
-- [126-test log](verification/final-tests-refinement.txt), [production build log](verification/build-refinement.txt).
-- [110 native checks](verification/native-smoke.json), [33 real-input checks](verification/hotkey-workflow.json), [16 packaged checks](verification/package-check.json).
-- [Actual Desktop ZIP manifest and per-file hashes](verification/release-manifest.json).
-- [Screenshot border visual](verification/refinement-screenshot-border.png), [blank board](verification/board-monitor-1.png), [F1](verification/help-monitor-1.png).
-- [Native before](verification/screenshot-native-before.json), [native after](verification/screenshot-native-after.json), [paired raster](verification/screenshot-raster-comparison.json).
+- [126-test log](../verification/final-tests-refinement.txt), [production build log](../verification/build-refinement.txt).
+- [110 native checks](../verification/native-smoke.json), [33 real-input checks](../verification/hotkey-workflow.json), [16 packaged checks](../verification/package-check.json).
+- [Actual Desktop ZIP manifest and per-file hashes](../verification/release-manifest.json).
+- [Screenshot border visual](../verification/refinement-screenshot-border.png), [blank board](../verification/board-monitor-1.png), [F1](../verification/help-monitor-1.png).
+- [Native before](../verification/screenshot-native-before.json), [native after](../verification/screenshot-native-after.json), [paired raster](../verification/screenshot-raster-comparison.json).
 
 Earlier packaged-test attempts stopped on test-pointer timing and pixel sampling
 at assumed bounds. The final harness uses the actual owned window bounds and

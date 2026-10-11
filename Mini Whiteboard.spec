@@ -2,11 +2,15 @@
 from pathlib import Path
 
 project = Path(SPECPATH)
+import sys
+sys.path.insert(0, str(project))
+from scripts.build_support import configure_qt_plugins, notice_data
+configure_qt_plugins()
 a = Analysis(
-    [str(project / "Main App.py")],
+    [str(project / "main.py")],
     pathex=[str(project)],
     binaries=[],
-    datas=[],
+    datas=notice_data(project),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

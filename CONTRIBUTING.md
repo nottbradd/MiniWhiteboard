@@ -6,7 +6,7 @@ Linux is currently unsupported.
 
 ## Before changing the app
 
-Read [SPEC.md](SPEC.md) for current behaviour and [PLAN.md](PLAN.md) for the
+Read [SPEC.md](docs/SPEC.md) for current behaviour and [PLAN.md](docs/PLAN.md) for the
 design decisions. Shared drawing, documents and tools belong in the shared
 modules. Native behaviour belongs in `mini_whiteboard/platform/windows/` or
 `mini_whiteboard/platform/macos/`. Tests use fake platform services when they
@@ -43,8 +43,8 @@ changes do not need new tests. The Windows tests workflow runs for code/config p
 to `main`; the macOS build workflow runs for relevant pushes to `main` and manual
 dispatches.
 
-Use [MANUAL_TESTING.md](MANUAL_TESTING.md) and
-[MACOS_CHECKLIST.md](MACOS_CHECKLIST.md) for native acceptance. Native scripts can
+Use [MANUAL_TESTING.md](docs/MANUAL_TESTING.md) and
+[MACOS_CHECKLIST.md](docs/MACOS_CHECKLIST.md) for native acceptance. Native scripts can
 operate windows, hotkeys, the clipboard and screen capture on your desktop; run
 them deliberately in a suitable test session. Report the OS, display setup and
 checks actually performed. Mark unperformed GUI/hardware checks **NOT RUN**.
@@ -70,4 +70,4 @@ without posting exploit details or credentials in a public issue.
 Contributions to this project's own source and assets are provided under the
 [MIT license](LICENSE). Preserve applicable notices when adding third-party
 material. Dependencies retain their own terms; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).

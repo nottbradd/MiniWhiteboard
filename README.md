@@ -7,6 +7,32 @@ A small desktop whiteboard you place with two keyboard presses. Draw, type, past
 images and annotate screenshots without a permanent toolbar. Version **1.1** uses
 PySide6, with a Windows tray icon and a macOS menu-bar item. Launch opens no board.
 
+## Download V1.1
+
+| Download | Status | How to open it |
+|---|---|---|
+| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.1/WinMiniWhiteboardV1.1.zip) | Stable; Windows 10/11, 64-bit | Extract the ZIP, open **Mini Whiteboard**, then run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.1/MacMiniWhiteboardV1.1-Preview.zip) | Preview; macOS 14+ | Extract on a Mac, move **Mini Whiteboard.app** to Applications, then open it. |
+
+Both downloads include Python and Qt. See the [V1.1 release notes and checksums](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.1).
+
+The Mac preview has passed automated build, bundle, startup and archive checks.
+Interactive Mac testing is still outstanding. It is ad-hoc signed; if macOS
+blocks a trusted download, follow [Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
+
+![Two presses place a whiteboard](docs/media/placement.gif)
+
+The demo uses the real app controller and renderer on a controlled desktop.
+Point at one corner, press the shortcut, move to the opposite corner and press
+again. The dotted outline becomes a board.
+
+<details>
+<summary>See a board with drawing, shapes and text</summary>
+
+![Mini Whiteboard with drawing, shapes and text](docs/media/whiteboard.png)
+
+</details>
+
 ## Features
 
 - Exactly two presses to place a board: **Ctrl+Alt+W** on Windows or
@@ -33,30 +59,8 @@ no accounts, network service or telemetry.
 
 The observed Mac runner used macOS 14.8.9 on arm64 with Python 3.13.15. Universal2
 binary validation does not prove execution on Intel. See
-[TEST_RESULTS.md](TEST_RESULTS.md) for actual results and both platform checklists
+[TEST_RESULTS.md](docs/TEST_RESULTS.md) for actual results and both platform checklists
 for the remaining GUI/hardware checks.
-
-## Get the app
-
-**No stable GitHub Release has been published yet.** You can run from source or,
-for Mac testing, download the artifact from the successful Actions run above.
-[GITHUB_SETUP.md](GITHUB_SETUP.md) explains how to obtain the inner
-`MacMiniWhiteboardV1.1.zip`. Actions artifacts expire; they are separate from
-GitHub Releases.
-
-For an existing Windows tester ZIP, extract it, open **Mini Whiteboard**, and run
-**Mini Whiteboard.exe**. Keep its `_internal` folder alongside the executable.
-The packaged build includes Python and Qt.
-
-For a Mac tester ZIP, extract it on macOS, move **Mini Whiteboard.app** to
-Applications, and open it. This initial build is ad-hoc signed. For a trusted
-build blocked by Gatekeeper, follow
-[Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
-Interactive Mac hotkeys, focus, permissions, capture and physical display
-behaviour still need [native acceptance](MACOS_CHECKLIST.md).
-
-Binary-release preparation also includes the dependency notices and requirements
-in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Run from source
 
@@ -185,12 +189,16 @@ Actions artifacts.
 
 ## Development and limitations
 
+The [documentation index](docs/README.md) links the specifications, build and
+verification reports, and manual checklists. The source launcher is `main.py`;
+`python -m mini_whiteboard` remains supported.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributions,
-[SPEC.md](SPEC.md) for behaviour, [PLAN.md](PLAN.md) for design history,
-[PERFORMANCE.md](PERFORMANCE.md) for measurements, and
-[CROSS_PLATFORM_REPORT.md](CROSS_PLATFORM_REPORT.md) for platform details.
-Manual checks are in [MANUAL_TESTING.md](MANUAL_TESTING.md) and
-[MACOS_CHECKLIST.md](MACOS_CHECKLIST.md).
+[SPEC.md](docs/SPEC.md) for behaviour, [PLAN.md](docs/PLAN.md) for design history,
+[PERFORMANCE.md](docs/PERFORMANCE.md) for measurements, and
+[CROSS_PLATFORM_REPORT.md](docs/CROSS_PLATFORM_REPORT.md) for platform details.
+Manual checks are in [MANUAL_TESTING.md](docs/MANUAL_TESTING.md) and
+[MACOS_CHECKLIST.md](docs/MACOS_CHECKLIST.md).
 
 Image import is limited to 64 million pixels and editable clipboard data to
 96 MB. Protected desktop content may be unavailable to native capture. Physical
@@ -202,4 +210,7 @@ over every full-screen app is not guaranteed.
 
 Mini Whiteboard's own source and assets use the [MIT license](LICENSE).
 Dependencies retain their own licenses; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+The downloads include dependency license texts, a manifest of the exact
+versions and notice hashes, and instructions for rebuilding or replacing Qt.
+The release also provides the corresponding Qt/PySide source archives.

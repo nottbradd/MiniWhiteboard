@@ -1,6 +1,22 @@
 # Approved implementation plan
 
-## Public repository preparation — 2026-10-10
+## V1.1 release and repository polish — approved 2026-10-11
+
+Publish V1.1 as a stable Windows release with a clearly labelled Mac preview.
+Rebuild both packages with dependency notices and source access, run the
+Windows native regressions, and use a fresh hosted Mac build for the preview.
+Keep interactive Mac and physical hardware checks marked NOT RUN until observed.
+
+Add a placement GIF and screenshot made with the app, repository description
+and discovery topics, and direct download links. Move reference guides into
+`docs/`, keep README/CONTRIBUTING/LICENSE at the root, and rename the launcher
+to `main.py`. Update references and validate the build workflows. Prepare a
+short post for the owner to publish. Results are in [TEST_RESULTS.md](TEST_RESULTS.md).
+
+The sections below record earlier decisions; the earlier instruction to leave
+the repository private was superseded by the subsequent publication request.
+
+## Historical public repository preparation — 2026-10-10
 
 The user requested preparation for public visibility and chose the MIT license.
 Add LICENSE, third-party scope/notices, public-facing README, contribution and
@@ -207,7 +223,7 @@ Reference: https://doc.qt.io/qt-6/qevent.html#Type-enum
 ## 3. Application structure
 
 PySide6 is the only runtime dependency; use standard-library ctypes for
-Windows integration. Main App.py remains a small entry point.
+Windows integration. main.py remains a small entry point.
 
 | Area | Responsibility |
 |---|---|

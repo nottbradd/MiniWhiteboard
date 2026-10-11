@@ -20,7 +20,7 @@ def main():
     print("\nInteractive Mac acceptance: **NOT RUN**. Global keys, two-press cursor placement, "
           "Escape with another app focused, menu mouse interaction, always-on-top, permission "
           "prompts, screenshot selection, Spaces, Mission Control, Stage Manager, real Retina "
-          "and physical multi-monitor behaviour remain on MACOS_CHECKLIST.md.")
+          "and physical multi-monitor behaviour remain on docs/MACOS_CHECKLIST.md.")
     print("\nDownload **MacMiniWhiteboardV1.1** below. Extract GitHub's outer artifact archive "
           "to obtain **MacMiniWhiteboardV1.1.zip**; transfer that inner ZIP unchanged.")
 

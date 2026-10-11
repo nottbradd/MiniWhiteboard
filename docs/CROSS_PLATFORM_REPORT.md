@@ -1,5 +1,15 @@
 # Mini Whiteboard 1.1 — cross-platform implementation report
 
+## Release publication update — 2026-10-11
+
+V1.1 is being prepared as a stable Windows release with a Mac preview, as
+approved by the owner. Reference documents now live in `docs/`; the launcher
+is `main.py`. Both packages include staged dependency notices and source access,
+and exclude unused Qt Virtual Keyboard, QML, Quick and PDF products. The
+placement GIF and screenshot use the real app renderer on a controlled desktop.
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) and [TEST_RESULTS.md](TEST_RESULTS.md) for
+the current publication evidence. The sections below retain earlier results.
+
 Implementation recorded 2026-10-01 on Windows 11, one 1920×1080 display at
 100%. Hosted Mac results reviewed 2026-10-10.
 
@@ -258,5 +268,5 @@ an external failure, not an application test result. See
    then copy its ZIP unchanged to Windows Desktop and compare SHA-256 values.
 
 Copyable commands, expected results and future signing commands are in
-[README.md](README.md#test-and-build) and [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md).
+[README.md](../README.md#test-and-build) and [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md).
 This remaining stage needs macOS; all independent Windows work is delivered.

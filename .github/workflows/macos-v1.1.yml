@@ -5,11 +5,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'Main App.py'
+      - 'main.py'
       - 'mini_whiteboard/**'
       - 'tests/**'
       - 'scripts/**'
       - 'assets/**'
+      - 'docs/THIRD_PARTY_NOTICES.md'
       - 'requirements*.txt'
       - 'build_macos.sh'
       - 'Mini Whiteboard.macos.spec'

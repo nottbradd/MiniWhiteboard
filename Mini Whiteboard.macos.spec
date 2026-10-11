@@ -7,10 +7,13 @@ from PyInstaller.utils.hooks import collect_submodules
 if sys.platform != "darwin":
     raise SystemExit("Mini Whiteboard.app must be built on macOS.")
 project = Path(SPECPATH)
+sys.path.insert(0, str(project))
+from scripts.build_support import configure_qt_plugins, notice_data
+configure_qt_plugins()
 target = os.environ.get("MINIWHITEBOARD_ARCH", "universal2")
 identity = os.environ.get("MINIWHITEBOARD_SIGNING_IDENTITY") or None
 a = Analysis(
-    [str(project / "Main App.py")], pathex=[str(project)], binaries=[], datas=[],
+    [str(project / "main.py")], pathex=[str(project)], binaries=[], datas=notice_data(project),
     hiddenimports=["objc", "AppKit", "Foundation", "CoreMedia"] +
                   collect_submodules("Quartz") + collect_submodules("ScreenCaptureKit"),
     hookspath=[], hooksconfig={}, runtime_hooks=[],

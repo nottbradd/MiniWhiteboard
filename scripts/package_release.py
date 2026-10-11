@@ -7,6 +7,7 @@ import zipfile
 
 import pefile
 from mini_whiteboard import APP_VERSION
+from .build_support import verify_release_files
 
 
 def version_strings(executable):
@@ -27,6 +28,7 @@ def main():
     parser.add_argument('--archive', type=Path, default=Path('build/WinMiniWhiteboardV1.1.zip'))
     args = parser.parse_args()
     distribution = args.distribution.resolve()
+    license_report = verify_release_files(distribution)
     files = sorted(p for p in distribution.rglob('*') if p.is_file())
     if not files:
         raise RuntimeError('Build the distribution first.')
@@ -59,7 +61,7 @@ def main():
         info = version_strings(executable)
         if info.get('ProductVersion') != APP_VERSION or info.get('FileVersion') != APP_VERSION:
             raise RuntimeError('The ZIP does not contain the requested version.')
-    result = {'version':APP_VERSION,'archive':str(archive.resolve()),'archive_bytes':archive.stat().st_size,
+    result = {'version':APP_VERSION,**license_report,'archive':str(archive.resolve()),'archive_bytes':archive.stat().st_size,
               'archive_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),
               'executable':str(distribution/'Mini Whiteboard.exe'),'executable_bytes':len(executable),
               'executable_sha256':hashlib.sha256(executable).hexdigest(),

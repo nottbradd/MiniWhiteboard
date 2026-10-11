@@ -1,0 +1,52 @@
+"""Shared PyInstaller policy for the desktop widget application."""
+from pathlib import Path
+
+
+def configure_qt_plugins():
+    """Filter unused plugins before their Qt library dependencies are collected."""
+    from PyInstaller.utils.hooks.qt import pyside6_library_info
+    original = pyside6_library_info.collect_plugins
+
+    def collect(plugin_type):
+        if plugin_type == 'platforminputcontexts':
+            # Native IME is handled by the Windows/Cocoa platform plugins.
+            # Qt Virtual Keyboard is a separate QML product we do not use.
+            return []
+        return [(source, target) for source, target in original(plugin_type)
+                if 'qpdf' not in Path(source).name.lower()]
+
+    pyside6_library_info.collect_plugins = collect
+
+
+def notice_data(project):
+    root = Path(project) / 'build' / 'license-notices'
+    if not (root / 'MANIFEST.json').is_file():
+        raise RuntimeError('Run python -m scripts.package_notices before packaging.')
+    return [(str(root), 'licenses')]
+
+
+def verify_release_files(root):
+    """Fail a distribution with missing notices or an unintended Qt product."""
+    import json
+    import hashlib
+    root = Path(root)
+    manifests = list(root.rglob('licenses/MANIFEST.json'))
+    if len(manifests) != 1:
+        raise RuntimeError('The package needs one license manifest.')
+    base = manifests[0].parent
+    report = json.loads(manifests[0].read_text(encoding='utf-8'))
+    for entry in report['files']:
+        path = base / entry['path']
+        if not path.resolve().is_relative_to(base.resolve()):
+            raise RuntimeError('Unsafe license manifest path.')
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != entry['sha256']:
+            raise RuntimeError('Missing or modified license notice: ' + entry['path'])
+    forbidden = ('virtualkeyboard', 'qt6pdf', 'qtpdf.framework', 'qpdf', 'qt6qml',
+                 'qtqml.framework', 'qt6quick', 'qtquick.framework', 'icuuc.dll')
+    unexpected = [p.relative_to(root).as_posix() for p in root.rglob('*')
+                  if p.is_file() and any(name in p.relative_to(root).as_posix().lower()
+                                        for name in forbidden)]
+    if unexpected:
+        raise RuntimeError('Unused Qt products found in package: ' + ', '.join(unexpected))
+    return {'license_files': len(report['files']), 'licenses_verified': True,
+            'unused_qt_products_absent': True}

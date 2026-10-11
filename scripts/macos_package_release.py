@@ -9,6 +9,7 @@ import tempfile
 import zipfile
 from pathlib import PurePosixPath
 from .macos_package_check import bundle_manifest, validate_bundle
+from .build_support import verify_release_files
 
 
 def inspect_zip(archive, bundle_name="Mini Whiteboard.app"):
@@ -35,6 +36,7 @@ def main():
     parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v11/Mini Whiteboard.app"))
     args = parser.parse_args()
     bundle = args.bundle.resolve()
+    license_report = verify_release_files(bundle)
     report = json.loads(Path("verification/macos-package-check.json").read_text())
     if report["status"] != "PASSED" or Path(report["bundle"]) != bundle or report["files"] != bundle_manifest(bundle):
         raise SystemExit("Run scripts.macos_package_check on this exact bundle first.")
@@ -52,11 +54,11 @@ def main():
             json.dumps(extracted_report, indent=2), encoding="utf-8")
         if extracted_report["status"] != "PASSED":
             raise RuntimeError("Extracted app validation failed: " + extracted_report.get("error", "unknown"))
-    result = dict(status="PASSED", archive=str(archive), bytes=archive.stat().st_size,
+    result = dict(status="PASSED", **license_report, archive=str(archive), bytes=archive.stat().st_size,
                   sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
                   metadata_roundtrip=True, architecture=report["architecture"], zip_inspection=inspection,
                   extracted_bundle="PASSED",
-                  native_acceptance="See MACOS_CHECKLIST.md and native reports; packaging alone does not verify GUI behaviour.")
+                  native_acceptance="See docs/MACOS_CHECKLIST.md and native reports; packaging alone does not verify GUI behaviour.")
     Path("verification/macos-release.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 

@@ -23,7 +23,8 @@ def main():
             StringStruct('InternalName', 'Mini Whiteboard'),
         ])]), VarFileInfo([VarStruct('Translation', [1033, 1200])])],
     )
-    Path('assets/version_info.txt').write_text(str(info), encoding='utf-8')
+    resource = '\n'.join(line.rstrip() for line in str(info).splitlines()) + '\n'
+    Path('assets/version_info.txt').write_text(resource, encoding='utf-8')
     manifest = Path('assets/app.manifest')
     manifest.write_text(re.sub(r'(<assemblyIdentity version=")[^"]+',
                               lambda match: match.group(1)+'.'.join(map(str,version)),
