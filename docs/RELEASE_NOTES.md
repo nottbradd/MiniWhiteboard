@@ -15,6 +15,7 @@ shows a tray/menu-bar icon; it opens no board until you place one.
 
 **Windows:** extract the ZIP, open the **Mini Whiteboard** folder and run
 **Mini Whiteboard.exe**. Keep the executable and `_internal` folder together.
+The Windows package is unsigned.
 
 **Mac preview:** extract the ZIP on macOS and move **Mini Whiteboard.app** to
 Applications. The app is ad-hoc signed. If macOS blocks a trusted copy, follow
@@ -51,16 +52,27 @@ only preferences are saved. The application has no account, service or telemetry
 
 | Check | Actual result |
 |---|---|
-| Windows automated suite | 160 tests passed |
+| Windows automated suite | 160 tests passed; 2 Mac-only tests skipped (162 discovered) |
 | Windows native GUI regressions | 110 checks passed |
 | Real Windows keyboard/mouse workflow | 31 checks passed |
 | Packaged Windows executable | 17 checks passed |
-| Windows ZIP | 172 files; CRC and every file SHA-256 verified |
-| Windows dependency notices | 15 files; all hashes verified |
-| Fresh Mac preview build | Verification pending before publication |
+| Windows ZIP | 174 files; CRC and every file SHA-256 verified |
+| Windows dependency notices | 17 files; all hashes verified |
+| Mac automated suite | 162 tests passed |
+| Mac bundle | Universal2; 769 checks passed |
+| Mac packaged startup | 8-second check passed; normal exit |
+| Mac ZIP and dependency notices | ditto extraction/metadata verified; 15 notice hashes verified |
+
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550793)
+and [Mac build/verification](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854)
+passed for the release source. The Mac runner was macOS 14.8.9 on arm64 with
+Python 3.13.15; checking both architectures does not establish Intel execution.
 
 Windows download SHA-256:
-`d0de836c042366ff6802bc758990b473744d55b7964ac367b3c32ce25cc385c7`.
+`99c5d6e8e7737dd0ef7c2d701004b30b69f66ff428c41524243a06e81c83ae69`.
+
+Mac preview SHA-256:
+`6e624db8d1214ae9229e600ecc1bf0b1cc605fab3fcfb867a39015cc4e28ec92`.
 
 Interactive Mac hotkeys, external focus, menus, permissions, capture, Spaces and
 physical display checks remain **NOT RUN**. Intel execution remains **NOT RUN**.
@@ -74,7 +86,8 @@ and [complete test report](https://github.com/nottbradd/MiniWhiteboard/blob/v1.1
 archives. The packages contain license texts, exact dependency versions and
 notice hashes. The Qt/PySide 6.11.2 source archives attached to this release are
 for developers rebuilding or replacing those libraries; they are not required
-to run the app. See the [dependency source guide](https://github.com/nottbradd/MiniWhiteboard/blob/v1.1/assets/licenses/SOURCES.md).
+to run the app. The Mac bridge's PyObjC core source archive is included too.
+See the [dependency source guide](https://github.com/nottbradd/MiniWhiteboard/blob/v1.1/assets/licenses/SOURCES.md).
 
 Mini Whiteboard's own code and assets are MIT licensed. Dependencies retain
 their original licenses. [Feedback and bug reports](https://github.com/nottbradd/MiniWhiteboard/issues)

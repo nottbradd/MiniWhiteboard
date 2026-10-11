@@ -1,43 +1,80 @@
 # Verification report — Mini Whiteboard Version 1.1
 
-## V1.1 release preparation — 2026-10-11
+## V1.1 release verification — 2026-10-11
 
-The owner approved a stable Windows release with a clearly labelled Mac preview.
-The release packages are being rebuilt with notice collections and source
-access. The earlier sections retain historical counts and artifacts.
+V1.1 ships as a stable Windows release with a clearly labelled Mac preview.
+Both packages were rebuilt with dependency notices and source access. The
+sections below this update retain historical counts and artifacts.
 
 | Check | Actual result | Scope/evidence |
 |---|---|---|
-| Windows build test gate | **PASSED — 160 tests in 4.548 s** | `verification/public-release-build.txt`; Windows/offscreen |
-| Windows packaging | **PASSED** | `dist/releases-v11/Mini Whiteboard/`; launcher is `main.py`, Version 1.1 retained |
-| Windows ZIP | **PASSED — 172 files** | CRC and every file SHA-256 match the distribution; 37,769,059 bytes |
-| Dependency notice hashes | **PASSED — 15 files** | Package manifest and notice SHA-256 verified |
-| Unused Qt products | **PASSED** | Actual DLLs: Core, Gui, Network, Svg, Widgets; no QML/Quick/PDF/VirtualKeyboard |
-| Both Actions workflows | **PASSED — actionlint 1.7.12** | Windows tests and Mac build pipeline |
-| Placement GIF and screenshot | **PASSED — generated and visually inspected** | 29 frames, 7.52 s; actual app controller/renderer on a controlled desktop |
+| Windows build test gate | **PASSED — 162 discovered; 160 passed, 2 Mac-only tests skipped; 6.349 s** | `verification/public-release-build.txt`; Windows/offscreen |
+| Hosted Windows suite | **PASSED — 162 discovered; 160 passed, 2 skipped; 4.899 s** | [October 11 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550793); Windows Server 2025 |
 | Windows native GUI regressions | **PASSED — 110 checks** | Owned windows; one 1920×1080 display at 100%; `verification/release-native-smoke.json` |
 | Real Windows keyboard/mouse workflow | **PASSED — 31 checks** | Two distinct W presses, repeat/release suppression, preview, focus, Escape and S capture; `verification/release-hotkey-workflow.json` |
-| Packaged Windows executable | **PASSED — 17 checks** | Startup, duplicate instance, exact placement, screenshot capture, board lifetime, metadata and notices; `verification/release-package-check.json` |
+| Final packaged Windows executable | **PASSED — 17 checks** | Startup, duplicate instance, preview/placement, pixels, screenshot capture, lifetime, metadata and notices; `verification/release-package-check.json` |
+| Windows ZIP | **PASSED — 174 files** | CRC and every file SHA-256 match the distribution; 37,774,004 bytes |
+| Windows notice hashes and libraries | **PASSED — 17 notice files** | Actual Qt DLLs: Core, Gui, Network, Svg, Widgets; no QML/Quick/PDF/VirtualKeyboard or unrelated ICU DLL |
+| Hosted Mac suite | **PASSED — 162 tests, 7.873 s** | [October 11 run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854), source `97a8c48330aba03a67ab0fb62aacd014494640ef` |
+| Mac environment and imports | PASSED | macOS 14.8.9 arm64; universal2 Python 3.13.15, Qt/PySide6 6.11.2, PyInstaller 6.22.3, PyObjC 12.2.2 |
+| Mac build and bundle | **PASSED — Universal2, 769 checks** | Metadata, frozen modules, architectures/linkage, signatures, symlinks and Windows-file exclusion |
+| Limited packaged Mac startup | **PASSED — 8 s, exit 0** | Normal Cocoa termination; detects immediate startup failure, does not establish interactive acceptance |
+| Mac ditto ZIP and clean extraction | **PASSED — 375 entries** | Complete file/mode/symlink manifest comparison and extracted-bundle validation; 56,416,470 bytes |
+| Mac notice hashes and libraries | **PASSED — 15 notice files** | Core, DBus, Gui, Network, Svg, Widgets frameworks; unused Qt products absent |
+| Mac transfer through Windows | PASSED | Both Actions artifact digests verified; inner ZIP unchanged and matched to the Mac builder; all notice hashes checked |
+| Both Actions workflows | **PASSED — actionlint 1.7.12** | Windows tests and Mac build pipeline |
 | Dependency consistency and source compilation | PASSED | pip check and compileall |
-| Documentation file links | **PASSED — 91 targets** | All local targets in README, CONTRIBUTING and docs exist |
+| Documentation file links | **PASSED — 94 targets** | All local targets in README, CONTRIBUTING and docs exist |
+| Placement GIF and screenshot | **PASSED — generated and visually inspected** | 29 frames, 7.52 s; actual app controller/renderer on a controlled desktop |
 | Previous Windows package preservation | PASSED | Existing `dist/windows-v11` executable and `build/WinMiniWhiteboardV1.1.zip` match their recorded hashes |
-| Fresh hosted Mac build | Pending | Mac preview will use the new pipeline artifact |
 
-Windows ZIP SHA-256:
-`d0de836c042366ff6802bc758990b473744d55b7964ac367b3c32ce25cc385c7`.
-Executable SHA-256:
-`b64cbe13c1dec342b1ff2cc02c9d72db106b1147047627f3805444b578519097`.
+### Download hashes
 
-The first packaged startup failed because the build environment exposed an
-unrelated Poppler ICU DLL ahead of Windows' system library. The build now uses a
-scoped Python/system library search path, fresh work output and a guard rejecting
-that unintended DLL. OneDrive's read-only work directory also prevented the
-packager's own cleanup; the build uses verified in-project PowerShell cleanup.
-The rebuilt executable and final ZIP passed the checks above. Generated version
-resources are normalized so a build does not introduce whitespace-only changes.
+| Asset | SHA-256 |
+|---|---|
+| `WinMiniWhiteboardV1.1.zip` | `99c5d6e8e7737dd0ef7c2d701004b30b69f66ff428c41524243a06e81c83ae69` |
+| `MacMiniWhiteboardV1.1-Preview.zip` | `6e624db8d1214ae9229e600ecc1bf0b1cc605fab3fcfb867a39015cc4e28ec92` |
 
-Interactive Mac acceptance, Intel execution, physical mixed-DPI/multi-monitor
-Windows checks and clean-machine deployment remain **NOT RUN**.
+The Windows executable SHA-256 is `11e42743bd2bde4e5974b1dd09339aaff6812bf685d93a94ff9c0a7cd2450a01`.
+`SHA256SUMS.txt` on the release also covers the five dependency source archives.
+The build outputs are `dist/releases-v11/Mini Whiteboard/` and the native Mac
+bundle; the release ZIPs are staged under `build/releases-v1.1/`.
+
+### Corrections verified during packaging
+
+The initial Windows build exposed an unrelated Poppler ICU DLL ahead of Windows'
+system library and failed to import QtCore. The build now scopes its library
+search to Python/system paths and rejects that unintended DLL. OneDrive's
+read-only work output required verified in-project PowerShell cleanup. Version
+resources are normalized to avoid whitespace-only changes.
+
+The packaged placement check now waits for the actual preview before moving the
+pointer. Its earlier fixed delay could move the pointer before the queued first
+press was handled. The final executable passed all 17 checks.
+
+The first Mac archive step counted a normal Frameworks-to-Resources symlink as
+another license manifest. It now resolves physical manifest paths, rejects
+external links and has two regression tests that passed on the real Mac runner.
+The final Mac archive passed extraction, signatures, metadata and notice checks.
+The audit also added PyObjC's source license and original OpenSSL/libffi notices.
+OpenSSL versions are recorded in each packaged manifest: Windows 3.5.8 and Mac
+3.0.21. Their upstream Apache license files are byte-identical. The Windows
+libffi ABI-8 DLL has no version resource; no binary version is inferred from it.
+
+### Checks not run
+
+- Interactive Mac global W/S shortcuts, physical two-press placement, bare
+  Escape with external focus, menu use, editor focus/Command keys, TCC and actual
+  capture, floating windows, Spaces/Stage Manager, Retina and physical displays.
+- Execution of the Mac app on an Intel Mac.
+- Windows mixed-DPI/multiple/negative-coordinate displays, monitor removal,
+  clean-machine/Windows 10 deployment, hand-operated IME input and extended use.
+- Third-party clipboard application interoperability beyond the owned fixtures.
+
+See [MACOS_CHECKLIST.md](MACOS_CHECKLIST.md) and
+[MANUAL_TESTING.md](MANUAL_TESTING.md). Generated verification paths name ignored
+local outputs; hosted Mac logs/reports are in the linked run. Builds and limited
+startup do not replace native interactive acceptance.
 
 ## Historical public repository preparation — 2026-10-10
 

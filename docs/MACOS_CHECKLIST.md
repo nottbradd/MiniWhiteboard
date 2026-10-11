@@ -4,14 +4,15 @@
 each interactive item on a real Mac. Keep OS, architecture, display setup,
 source revision/hash, signature and logs with results.
 
-[The October 1 hosted run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399)
-was reviewed on October 10 and passed dependency/import checks, 156 automated
-tests, Universal2 build/bundle validation, a limited packaged Cocoa startup check
-and ZIP extraction/revalidation. Runner: macOS 14.8.9, arm64, Python 3.13.15.
-Those build checks are **CI VERIFIED** for that artifact. Limited startup cannot
-establish global input, menu use, TCC, focus or physical display behaviour.
-Intel execution and all interactive acceptance below remain **NOT RUN**.
-See [TEST_RESULTS.md](TEST_RESULTS.md) and [GITHUB_SETUP.md](GITHUB_SETUP.md).
+[The October 11 release run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854)
+passed 162 tests, Universal2 build/769 bundle checks, an eight-second packaged
+Cocoa startup check, and ditto ZIP extraction/revalidation. The package has 15
+verified notice files. Runner: macOS 14.8.9, arm64, Python 3.13.15.
+Those checks are **CI VERIFIED**. Limited startup does not establish global
+input, menu use, TCC, focus or physical display behaviour. The download remains
+a **Mac preview**. Intel execution and all interactive acceptance below remain
+**NOT RUN**. See [TEST_RESULTS.md](TEST_RESULTS.md) and
+[GITHUB_SETUP.md](GITHUB_SETUP.md).
 
 ## 1. Setup and Escape feasibility gate
 

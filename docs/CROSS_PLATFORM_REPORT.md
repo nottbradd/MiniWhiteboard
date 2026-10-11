@@ -2,11 +2,15 @@
 
 ## Release publication update — 2026-10-11
 
-V1.1 is being prepared as a stable Windows release with a Mac preview, as
+V1.1 ships as a stable Windows release with a Mac preview, as
 approved by the owner. Reference documents now live in `docs/`; the launcher
 is `main.py`. Both packages include staged dependency notices and source access,
 and exclude unused Qt Virtual Keyboard, QML, Quick and PDF products. The
 placement GIF and screenshot use the real app renderer on a controlled desktop.
+The final Windows package passed 110 native checks, 31 real input checks and
+17 packaged checks. The [October 11 Mac run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854)
+passed 162 tests, Universal2/769 bundle checks, limited startup and archive
+verification. Interactive Mac acceptance and Intel execution remain NOT RUN.
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) and [TEST_RESULTS.md](TEST_RESULTS.md) for
 the current publication evidence. The sections below retain earlier results.
 

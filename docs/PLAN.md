@@ -11,7 +11,10 @@ Add a placement GIF and screenshot made with the app, repository description
 and discovery topics, and direct download links. Move reference guides into
 `docs/`, keep README/CONTRIBUTING/LICENSE at the root, and rename the launcher
 to `main.py`. Update references and validate the build workflows. Prepare a
-short post for the owner to publish. Results are in [TEST_RESULTS.md](TEST_RESULTS.md).
+short post for the owner to publish. The Windows package/native gates and the
+fresh hosted Mac pipeline passed. App ZIPs, notice collections, checksums and
+source archives are staged for the V1.1 release. Results are in
+[TEST_RESULTS.md](TEST_RESULTS.md).
 
 The sections below record earlier decisions; the earlier instruction to leave
 the repository private was superseded by the subsequent publication request.

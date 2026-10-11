@@ -53,8 +53,8 @@ no accounts, network service or telemetry.
 
 | Platform | Support and evidence |
 |---|---|
-| Windows 10/11, 64-bit | Native input, capture, lifecycle and packaged-app checks passed on Windows 11. Physical mixed-DPI and clean-machine deployment remain untested. |
-| macOS 14+, preview | [The October 1 CI run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/36831877399) passed 156 tests, built and validated a Universal2 app, passed a limited packaged startup check and verified the ZIP round-trip. Interactive acceptance remains **NOT RUN**. |
+| Windows 10/11, x64 | Native input, capture, lifecycle and packaged-app checks passed on Windows 11. Physical mixed-DPI and clean-machine deployment remain untested. |
+| macOS 14+, preview | [The October 11 CI run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854) passed 162 tests, built and validated a Universal2 app, passed a limited packaged startup check and verified the ZIP round-trip. Interactive acceptance remains **NOT RUN**. |
 | Linux | Unsupported. |
 
 The observed Mac runner used macOS 14.8.9 on arm64 with Python 3.13.15. Universal2

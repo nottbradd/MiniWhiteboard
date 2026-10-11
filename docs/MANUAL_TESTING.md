@@ -3,12 +3,16 @@
 Use the final built executable unless a step explicitly mentions source. Record
 Windows version, display arrangement, each display's scaling, and actual results.
 Do not mark an item PASS just because an automated model test passes. See
-TEST_RESULTS.md for the checks performed in this development session.
+[TEST_RESULTS.md](TEST_RESULTS.md) for the actual release checks.
+The V1.1 package passed 110 native GUI checks, 31 real input checks and 17
+packaged checks on one Windows 11 display at 100%. Physical mixed-DPI,
+clean-machine/Windows 10 deployment, hand-operated IME and extended use remain
+NOT RUN. Use the published ZIP or the current release output below.
 
 ## A. Launch, tray, and two-press placement
 
 1. Exit any running instance using **Exit Mini Whiteboard** in the tray menu. Launch
-   `dist\windows-v11\Mini Whiteboard\Mini Whiteboard.exe`. Expect one tray icon, no board,
+   `dist\releases-v11\Mini Whiteboard\Mini Whiteboard.exe`. Expect one tray icon, no board,
    console, dashboard, or splash. Look in the hidden tray-icon area if necessary.
 2. Open Notepad and type a line to establish focus. Put the mouse over the desktop
    at a corner of the desired board. Press/release Ctrl+Alt+W once. Expect only a
