@@ -13,6 +13,8 @@ dependencies retain their original licenses.
 | Qt 6.11.2 | Widgets, rendering, image formats and platform integration | [Qt component notices](https://doc.qt.io/qt-6.11/licenses-used-in-qt.html); LGPLv3 with the applicable component notices |
 | PyObjC 12.2.2 core / frameworks | macOS native bridges | MIT, with notices for included software; original wheel license files are included in the Mac package |
 | PyInstaller 6.22.3 | Packaging tool and bootloader | [License and bootloader distribution exception](https://pyinstaller.org/en/stable/license.html) |
+| OpenSSL runtime libraries | Included with Python | Apache 2.0; the original upstream license is included |
+| libffi, Windows ABI-8 DLL | Python ctypes | MIT; the upstream notice is included; the DLL has no version resource |
 
 ## What the downloads contain
 

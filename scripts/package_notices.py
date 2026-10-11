@@ -4,6 +4,7 @@ from importlib import metadata
 import json
 from pathlib import Path
 import platform
+import ssl
 import sys
 from urllib.request import urlopen
 
@@ -30,9 +31,13 @@ def stage(project=PROJECT, destination=None):
         if source.is_file():
             if source.name.startswith('pyobjc-') and sys.platform != 'darwin':
                 continue
+            if source.name == 'libffi.txt' and sys.platform != 'win32':
+                continue
             add('upstream/' + source.name, source.read_bytes())
     required = {'qtbase-6.11.2.txt', 'qtsvg-6.11.2.txt', 'qtimageformats-6.11.2.txt',
-                'pyside-setup-6.11.2.txt', 'SOURCES.md'}
+                'pyside-setup-6.11.2.txt', 'SOURCES.md', 'openssl-3.txt'}
+    if sys.platform == 'win32':
+        required.add('libffi.txt')
     if sys.platform == 'darwin':
         required.add('pyobjc-12.2.2.txt')
     if not required.issubset({p.name for p in (project / 'assets' / 'licenses').glob('*')}):
@@ -78,6 +83,7 @@ def stage(project=PROJECT, destination=None):
                 raise RuntimeError('Refusing to remove a notice outside staging.')
             path.unlink()
     report = {'python': platform.python_version(), 'platform': sys.platform,
+              'runtime_libraries': {'OpenSSL': ssl.OPENSSL_VERSION},
               'packages': versions, 'files': sorted(files.values(), key=lambda item:item['path'])}
     (destination / 'MANIFEST.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     return report
