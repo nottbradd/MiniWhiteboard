@@ -25,6 +25,7 @@ sections below this update retain historical counts and artifacts.
 | Both Actions workflows | **PASSED — actionlint 1.7.12** | Windows tests and Mac build pipeline |
 | Dependency consistency and source compilation | PASSED | pip check and compileall |
 | Documentation file links | **PASSED — 94 targets** | All local targets in README, CONTRIBUTING and docs exist |
+| GitHub publication and public downloads | **PASSED — 8 asset digests verified** | [V1.1 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.1), published 03:44:49 UTC; tag points to `cf5330949ecd4ccf1a0c9d4cb9e63fc3bdceb926`; anonymous Windows/Mac/GIF links return HTTP 200 |
 | Placement GIF and screenshot | **PASSED — generated and visually inspected** | 29 frames, 7.52 s; actual app controller/renderer on a controlled desktop |
 | Previous Windows package preservation | PASSED | Existing `dist/windows-v11` executable and `build/WinMiniWhiteboardV1.1.zip` match their recorded hashes |
 

@@ -7,6 +7,11 @@ download links, the placement GIF and a screenshot.
 
 ## V1.1 publication
 
+[V1.1 is published](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.1).
+The release tag points to `cf5330949ecd4ccf1a0c9d4cb9e63fc3bdceb926`.
+All eight asset digests were compared with the local verified files. Anonymous
+checks of both app download links and the demo returned HTTP 200.
+
 The owner approved a **stable Windows release with a clearly labelled Mac
 preview**. The two app assets are `WinMiniWhiteboardV1.1.zip` and
 `MacMiniWhiteboardV1.1-Preview.zip`. The Mac preview label appears in the asset
