@@ -118,8 +118,17 @@ def main():
 
         set_cursor(130, 150)
         post_thread(thread, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
-        time.sleep(.3)
-        check("Packaged first event creates preview only", not board_windows())
+        # A cold launch can still be loading Qt when the message is posted.
+        # Keep the pointer at the first corner until the actual preview exists.
+        # Empty board enumeration alone would also pass before the event ran.
+        preview_ready = False
+        for _ in range(50):
+            boards = board_windows()
+            preview_ready = not boards and bool(visible)
+            if preview_ready or process.poll() is not None:
+                break
+            time.sleep(.1)
+        check("Packaged first event creates preview only", preview_ready, visible)
         set_cursor(630, 490)
         post_thread(thread, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
         for _ in range(30):
