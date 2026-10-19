@@ -154,7 +154,19 @@ def text_ink(text, size, layout_width=TEXT_DEFAULT_WIDTH):
                 outline = font.pathForGlyph(glyph)
                 result.addPath(QTransform.fromTranslate(origin.x()+pos.x(), origin.y()+pos.y()).map(outline))
         block = block.next()
-    return result
+    # CoreText outlines can contain coincident cubic segments. Combining a
+    # long wrapped run with an erasure can stall Qt's curve boolean clipper.
+    # Flatten only the hit/erasure geometry at 4x precision, retaining contour
+    # winding and holes. QTextDocument still paints the original shaped text.
+    # Qt's polygon conversion is bounded and avoids cubic/cubic intersections.
+    polygons = QPainterPath()
+    polygons.setFillRule(Qt.FillRule.WindingFill)
+    scale = QTransform.fromScale(4, 4)
+    unscale = QTransform.fromScale(.25, .25)
+    for contour in result.toSubpathPolygons(scale):
+        polygons.addPolygon(unscale.map(contour))
+        polygons.closeSubpath()
+    return polygons
 
 
 def local_ink(obj):

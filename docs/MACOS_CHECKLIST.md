@@ -4,7 +4,7 @@
 each interactive item on a real Mac. Keep OS, architecture, display setup,
 source revision/hash, signature and logs with results.
 
-[The October 11 release run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854)
+Historical V1.1 evidence: [the October 11 release run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854)
 passed 162 tests, Universal2 build/769 bundle checks, an eight-second packaged
 Cocoa startup check, and ditto ZIP extraction/revalidation. The package has 15
 verified notice files. Runner: macOS 14.8.9, arm64, Python 3.13.15.

@@ -272,14 +272,14 @@ the empty process it created; manually verify normal tray Exit with F5 above.
    Checkmarks/settings persist globally; document undo stays unchanged. Restore
    your preferred options after testing.
 5. Check New Whiteboard / Screenshot to Whiteboard / Whiteboards / shortcuts /
-   About / Exit. About must show Version 1.1 with no large settings UI.
+   About / Exit. About must show Version 1.2 with no large settings UI.
 
-## J. Version 1.1 screenshot and release
+## J. Version 1.2 screenshot and release
 
 1. From an ordinary app hold Ctrl+Alt+S, move, then release a known pattern.
    Expect exact captured pixels without preview dots, a board at the same region,
    locked screenshot and Draw ready. Annotate immediately. Unlock via context menu.
-2. Cancel with Escape before and during a drag. Switch S→W and W→S. No stale
+2. Cancel with Escape while holding or capture is pending. Test competing W/S holds. No stale
    overlay, held mouse capture or global Escape binding may remain. Verify W is
    also hold→move→release, including reverse corners and each release order.
 3. Capture on each display, across boundaries, left/above-primary coordinates,

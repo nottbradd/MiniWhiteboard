@@ -52,8 +52,8 @@ CONTAINMENT_TOLERANCE = .01
 DRAG_THRESHOLD = 3
 TOOL_KEYS = {"D": "Draw", "T": "Text", "S": "Shape", "A": "Select", "V": "Select", "E": "Eraser"}
 SHORTCUT_REFERENCE = f"""<b>Mini Whiteboard · Version {APP_VERSION}</b><br>
-Ctrl+Alt+W — first corner → dotted preview → press again<br>
-Ctrl+Alt+S — click, drag, release → screenshot board · Esc cancels<br><br>
+Ctrl+Alt+W — hold at first corner → move → release to place<br>
+Ctrl+Alt+S — hold → move → release for screenshot board · Esc cancels<br><br>
 <b>D</b> Draw · 1–5: 2 / 4 / 6 / 9 / 14 px<br>
 <b>T</b> Text · 1–3: 14 / 20 / 28 pt (finish editing first)<br>
 <b>S</b> Shapes · 1 Rectangle · 2 Rounded rectangle · 3 Ellipse<br>

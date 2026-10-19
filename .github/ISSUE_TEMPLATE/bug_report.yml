@@ -7,7 +7,7 @@ body:
     attributes:
       label: Environment
       description: OS/version, Mini Whiteboard version, source or packaged build, and display setup if relevant.
-      placeholder: Windows 11, V1.1 packaged build, one display at 125% scale
+      placeholder: Windows 11, V1.2 packaged build, one display at 125% scale
     validations:
       required: true
   - type: textarea

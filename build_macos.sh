@@ -15,7 +15,7 @@ export MINIWHITEBOARD_ARCH="${MINIWHITEBOARD_ARCH:-universal2}"
 mkdir -p verification build
 "$python_bin" -m scripts.package_notices
 "$python_bin" -m scripts.make_macos_icon
-QT_QPA_PLATFORM=offscreen "$python_bin" -m unittest discover -v > verification/macos-shared-tests.txt 2>&1
+QT_QPA_PLATFORM=offscreen "$python_bin" -m scripts.run_tests > verification/macos-shared-tests.txt 2>&1
 build_target() {
     "$python_bin" -m PyInstaller --noconfirm --distpath dist/macos-v12 --workpath "build/macos-v12-$MINIWHITEBOARD_ARCH" \
         'Mini Whiteboard.macos.spec' > "verification/macos-build-$MINIWHITEBOARD_ARCH.txt" 2>&1

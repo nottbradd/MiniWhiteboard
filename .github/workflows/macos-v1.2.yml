@@ -73,7 +73,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           set -o pipefail
-          "$MINIWHITEBOARD_PYTHON" -m unittest discover -v 2>&1 | tee verification/macos-ci-tests.txt
+          "$MINIWHITEBOARD_PYTHON" -m scripts.run_tests 2>&1 | tee verification/macos-ci-tests.txt
 
       - name: Build and validate the Mac app
         run: bash build_macos.sh

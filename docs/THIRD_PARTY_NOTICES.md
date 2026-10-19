@@ -41,7 +41,7 @@ The [dependency source guide](https://github.com/nottbradd/MiniWhiteboard/blob/m
 lists exact upstream source archives, their locally computed hashes, and how to
 rebuild or replace the dynamically loaded Qt/PySide libraries. The same guide
 is included at `licenses/upstream/SOURCES.md`. Corresponding source archives
-are attached to the [V1.1 GitHub Release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.1).
+are attached to the [V1.2 GitHub Release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2).
 
 The project's MIT source and PyInstaller build specifications are available in
 the repository and GitHub's source archives. No project license term prevents

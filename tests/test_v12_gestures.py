@@ -50,6 +50,17 @@ class HoldGestureTests(QtCase):
         self.assertIsNone(self.placement.session.owner)
         self.assertFalse(self.keys.escape)
 
+    def test_help_teaches_hold_release_for_both_shortcuts(self):
+        from mini_whiteboard.shortcuts import ShortcutPolicy
+        for policy in (ShortcutPolicy(), ShortcutPolicy(True), ShortcutPolicy(True, 'alternate')):
+            text = policy.help_html()
+            self.assertNotIn('press again', text)
+            self.assertNotIn('click, drag, release', text)
+            for trigger in ('W', 'S'):
+                instruction = next(line for line in text.splitlines() if line.startswith(policy.global_label(trigger)))
+                self.assertIn('hold', instruction)
+                self.assertIn('release', instruction)
+
     def test_initial_press_tracks_without_completing(self):
         self.begin()
         self.assertEqual(self.rects, [])

@@ -9,6 +9,7 @@ import time
 import sys
 
 import pefile
+from PySide6.QtGui import QGuiApplication
 from mini_whiteboard import windows
 from mini_whiteboard import APP_VERSION
 from mini_whiteboard.geometry import Rect
@@ -18,6 +19,7 @@ from .build_support import verify_release_files
 
 def main():
     windows.enable_dpi_awareness()
+    app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", type=Path, default=Path("dist/windows-v12/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
@@ -107,6 +109,7 @@ def main():
         post_thread = windows.bind(user32, "PostThreadMessageW", W.BOOL, W.DWORD, W.UINT, W.WPARAM, W.LPARAM)
         set_cursor = windows.bind(user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)
         title = windows.bind(user32, "GetWindowTextW", C.c_int, W.HWND, W.LPWSTR, C.c_int)
+        get_rect = windows.bind(user32, 'GetWindowRect', W.BOOL, W.HWND, C.POINTER(W.RECT))
 
         def board_windows():
             visible.clear()
@@ -120,26 +123,41 @@ def main():
                     found.append(handle)
             return found
 
+        def preview_windows():
+            board_windows()
+            previews = []
+            monitors = windows.monitors()
+            for handle in visible:
+                rect = W.RECT()
+                if get_rect(handle, C.byref(rect)):
+                    bounds = Rect(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top)
+                    if any(bounds == m.rect for m in monitors):
+                        previews.append(handle)
+            return previews
+
         helper = subprocess.Popen([sys.executable, '-m', 'scripts.focus_target'], stdout=subprocess.PIPE,
                                   text=True, creationflags=subprocess.CREATE_NO_WINDOW)
         identity = json.loads(helper.stdout.readline())
         foreground = windows.bind(user32, 'GetForegroundWindow', W.HWND)
-        user32.SetForegroundWindow(identity['hwnd'])
-        time.sleep(.2)
-        if foreground() != identity['hwnd']:
-            user32.SetWindowPos(identity['hwnd'], W.HWND(-1), 0, 0, 0, 0, 0x0053)
-            time.sleep(.4)
-            set_cursor(100, 130)
-            get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
-            owner = W.DWORD()
-            get_pid(get_at(W.POINT(*windows.cursor_position())), C.byref(owner))
-            check('Packaged external activation target is owned', owner.value == identity['pid'])
-            mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
-            mouse(2, 0, 0, 0, 0)
-            mouse(4, 0, 0, 0, 0)
+        def focus_helper():
+            user32.SetForegroundWindow(identity['hwnd'])
             time.sleep(.2)
-            user32.SetWindowPos(identity['hwnd'], W.HWND(-2), 0, 0, 0, 0, 0x0013)
-        check('Packaged test has external helper focus', foreground() == identity['hwnd'])
+            if foreground() != identity['hwnd']:
+                user32.SetWindowPos(identity['hwnd'], W.HWND(-1), 0, 0, 0, 0, 0x0053)
+                time.sleep(.4)
+                set_cursor(100, 130)
+                get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
+                owner = W.DWORD()
+                get_pid(get_at(W.POINT(*windows.cursor_position())), C.byref(owner))
+                check('Packaged external activation target is owned', owner.value == identity['pid'])
+                mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
+                mouse(2, 0, 0, 0, 0)
+                mouse(4, 0, 0, 0, 0)
+                time.sleep(.2)
+                user32.SetWindowPos(identity['hwnd'], W.HWND(-2), 0, 0, 0, 0, 0x0013)
+            check('Packaged test has external helper focus', foreground() == identity['hwnd'])
+
+        focus_helper()
         key_event = windows.bind(user32, 'keybd_event', None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
 
         def key(vk, up=False):
@@ -166,13 +184,13 @@ def main():
             return boards
 
         begin('W', (130,150))
-        check('Packaged hold starts preview without a board', not board_windows() and bool(visible))
+        check('Packaged hold starts preview without a board', not board_windows() and bool(preview_windows()))
         check('Packaged passive preview preserves external focus', foreground() == identity['hwnd'])
         set_cursor(630,490)
         for _ in range(30):
             key(ord('W'))
             time.sleep(.04)
-        check('Packaged long repeated hold cannot create a board', not board_windows() and bool(visible))
+        check('Packaged long repeated hold cannot create a board', not board_windows() and bool(preview_windows()))
         key(0x11, True)
         boards = wait_boards(1)
         check('Packaged modifier-first release creates one board', len(boards) == 1)
@@ -181,7 +199,7 @@ def main():
             key(ord('W'))
             time.sleep(.025)
         check('Packaged remaining held trigger does not create another preview', len(board_windows()) == 1
-              and len(visible) == 1)
+              and not preview_windows())
         release_all()
         actual_rect = W.RECT()
         get_rect = windows.bind(user32,'GetWindowRect',W.BOOL,W.HWND,C.POINTER(W.RECT))
@@ -202,7 +220,7 @@ def main():
         point = (round(paper.x+paper.width*.2),round(paper.y+paper.height*.3))
         end = (round(paper.x+paper.width*.7),round(paper.y+paper.height*.7))
         begin('S', point)
-        check('Packaged screenshot hold starts only a preview', len(board_windows()) == 1 and len(visible) > 1)
+        check('Packaged screenshot hold starts only a preview', len(board_windows()) == 1 and bool(preview_windows()))
         set_cursor(*end)
         time.sleep(.15)
         key(ord('S'), True)
@@ -214,8 +232,7 @@ def main():
             post(handle, 0x0010, 0, 0)
         time.sleep(.2)
         check('Packaged close preserves tray process', not board_windows() and process.poll() is None)
-        user32.SetForegroundWindow(identity['hwnd'])
-        time.sleep(.1)
+        focus_helper()
         # No text is typed here; a registered global shortcut is sent only while
         # the owned helper has focus. Abort if Windows denied foreground access.
         check('External helper restored before packaged cancellation', foreground() == identity['hwnd'])
@@ -226,11 +243,11 @@ def main():
         for _ in range(10):
             key(ord('S'))
             time.sleep(.03)
-        check('Packaged Escape while held removes preview and suppresses restart', not board_windows() and not visible)
+        check('Packaged Escape while held removes preview and suppresses restart', not board_windows() and not preview_windows())
         release_all()
         begin('W', (250,330))
         release_all()
-        check('Packaged too-small release cancels completely', not board_windows() and not visible)
+        check('Packaged too-small release cancels completely', not board_windows() and not preview_windows())
         begin('W', (130,150))
         set_cursor(630,490)
         release_all()

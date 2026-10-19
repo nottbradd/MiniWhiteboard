@@ -7,14 +7,14 @@ The sections headed V1.1 below are historical results. They are not V1.2 evidenc
 | Check | Actual result | Evidence/scope |
 |---|---|---|
 | Baseline before editing | PASSED: 162 discovered, 160 passed, 2 Mac-only skips, 4.935 s | Preserved source at 84c028d; Windows offscreen |
-| V1.2 automated suite | PASSED: 189 discovered, 187 passed, 2 Mac-only skips, 43.811 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
+| V1.2 automated suite | PASSED: 190 discovered, 188 passed, 2 Mac-only skips, 17.831 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
 | Windows native GUI/controller checks | PASSED: 111 checks | Owned test windows; one 1920x1080 display at 100%; v12-native-smoke.json |
 | Real Windows global input | PASSED: 45 checks | Owned external foreground app; W/S holds, 30 repeated key-downs, competing shortcuts, trigger/Control/Alt-first releases, held Escape, cleanup and no Shape activation from remaining S |
 | Wrapped text regressions | PASSED | Words/URLs/newlines, editing/commit/reopen layouts, edge insertion, tall caret, transforms/masks, cache geometry, clipboard/legacy rejection, duplication/history, viewport-only resize and editor input |
 | Existing performance workloads | COMPLETED | 21 general interaction workloads; image/clipboard workload; paired raster cache comparison; screenshot workload with blank, 1080p, 1440p and 4K sources |
 | Screenshot cache work | PASSED | 0 image decodes or background image paints during annotation workloads; one display-cache build per screenshot; 4K drawing median 3.844 ms (120 samples, offscreen) |
 | Workflows / dependencies / source compilation | PASSED | actionlint 1.7.12; pip check; compileall |
-| Windows V1.2 frozen app / ZIP | PENDING final gate | Separate dist/windows-v12 and build/releases-v1.2; V1.1 archives retained |
+| Windows V1.2 frozen app / ZIP | First gate PASSED: 25 packaged checks, 174 files, 17 notice files | Rebuild/recheck after final F1 and text geometry correction is required; separate V1.2 paths preserve V1.1 |
 | Mac V1.2 CI / ZIP | PENDING hosted build | macos-15 runner; deployment/Info.plist/runtime minimum remain 14.0; interactive acceptance NOT RUN |
 | GitHub v1.2 publication | PENDING required package/CI gates | New release only; preserve v1.1 |
 
@@ -39,6 +39,17 @@ activation recovered in the controlled packaged run.
 V1.2 ends on release, ignores repeated/competing activation, drains held trigger
 keys, rejects queued stale native messages and cancels invalid rectangles rather
 than waiting or restarting. The sustained input regression now passes.
+
+### Mac CI investigation
+
+[The first V1.2 attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39254372532)
+passed imports and earlier tests but stalled in the new wrapped, transformed,
+masked text regression. It was cancelled for diagnosis; it produced no release
+package. Glyph hit/erasure contours now use Qt's polygon conversion at 4x
+precision before boolean operations; QTextDocument still paints the shaped text.
+The full Mac suite and package gates must pass on the corrected source. The CI
+test runner now fails with a stack dump after five minutes rather than leaving
+an unresponsive native geometry call for the full 45-minute job timeout.
 
 ### Checks still NOT RUN
 
