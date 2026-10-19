@@ -1,6 +1,7 @@
 """One local layout width drives editor, glyphs, history and editable transfer."""
 from dataclasses import replace
 import json
+from unittest.mock import patch
 from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtTest import QTest
 from tests.qt_case import APP
@@ -23,6 +24,18 @@ def lines(document):
 
 
 class TextWrappingTests(CanvasCase):
+    def test_text_hit_tolerance_work_is_bounded_by_box_not_glyph_count(self):
+        obj = Text((20, 20), 'many wrapped glyph contours '*25, layout_width=160,
+                   erasures=(Erasure((35, 20), (35, 800), 7),))
+        original = rendering.stroked
+        def checked(path, width):
+            self.assertLess(path.elementCount(), 20, 'Hit tolerance expanded every glyph')
+            return original(path, width)
+        with patch.object(rendering, 'stroked', new=checked):
+            hit = rendering.hit_path(obj)
+        self.assertFalse(hit.contains(rendering.point((35, 40))))
+        self.assertGreater(hit.boundingRect().height(), 200)
+
     def test_editor_and_committed_layout_match_for_words_urls_and_newlines(self):
         for text in ('one two three four five six '*12, 'https://example.com/'+'a'*200,
                      'First paragraph wraps with words '*6+'\nSecond\n\nlast'):

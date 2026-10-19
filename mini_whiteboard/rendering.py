@@ -154,19 +154,7 @@ def text_ink(text, size, layout_width=TEXT_DEFAULT_WIDTH):
                 outline = font.pathForGlyph(glyph)
                 result.addPath(QTransform.fromTranslate(origin.x()+pos.x(), origin.y()+pos.y()).map(outline))
         block = block.next()
-    # CoreText outlines can contain coincident cubic segments. Combining a
-    # long wrapped run with an erasure can stall Qt's curve boolean clipper.
-    # Flatten only the hit/erasure geometry at 4x precision, retaining contour
-    # winding and holes. QTextDocument still paints the original shaped text.
-    # Qt's polygon conversion is bounded and avoids cubic/cubic intersections.
-    polygons = QPainterPath()
-    polygons.setFillRule(Qt.FillRule.WindingFill)
-    scale = QTransform.fromScale(4, 4)
-    unscale = QTransform.fromScale(.25, .25)
-    for contour in result.toSubpathPolygons(scale):
-        polygons.addPolygon(unscale.map(contour))
-        polygons.closeSubpath()
-    return polygons
+    return result
 
 
 def local_ink(obj):
@@ -257,12 +245,21 @@ def hit_path(obj, tolerance=5, interior=True):
     ink = visible_ink(obj)
     if ink.isEmpty():
         return ink
-    result = ink.united(stroked(ink, tolerance*2)) if tolerance else QPainterPath(ink)
     transform = qt_transform(obj.transform)
-    if interior:
-        if isinstance(obj, Text):
-            result = result.united(transform.map(object_path(obj)))
-        elif isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
+    if interior and isinstance(obj, Text):
+        # Text already permits textbox-interior selection. Expanding every
+        # glyph and boolean-unioning thousands of intersecting stroke contours
+        # can stall Qt on CoreText fonts. Use the box for this convenient hit
+        # area, preserving detailed glyphs for painted bounds and erasure.
+        box = object_path(obj).boundingRect().united(local_ink(obj).boundingRect())
+        result = QPainterPath()
+        result.addRect(box)
+        result = transform.map(result)
+        if tolerance:
+            result = result.united(stroked(result, tolerance*2))
+    else:
+        result = ink.united(stroked(ink, tolerance*2)) if tolerance else QPainterPath(ink)
+        if interior and isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
             result = result.united(transform.map(object_path(obj)))
     # Subtract AFTER inflating tolerance: erased holes must stay unselectable.
     if obj.clip is not None:

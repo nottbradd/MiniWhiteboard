@@ -157,8 +157,13 @@ def main():
         check("Single-instance mutex rejects duplicate", not duplicate.acquired)
         duplicate.close()
         check("No Qt callback exceptions", not errors, errors)
+        check("Native tracking timers are stopped before idle measurement",
+              not controller.hotkeys.hold.timer.isActive() and not controller.placement.timer.isActive()
+              and not controller.capture.tracking.isActive() and not controller.capture.timeout.isActive())
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QTest.qWait(250)  # Finish owned-window teardown before measuring idle.
         start_cpu, start_wall = time.process_time(), time.monotonic()
-        QTest.qWait(1000)
+        QTest.qWait(3000)
         cpu, wall = time.process_time()-start_cpu, time.monotonic()-start_wall
         check("Idle smoke CPU below 10% of one core", cpu/wall < .1, {"cpu_seconds": cpu, "wall_seconds": wall})
     finally:

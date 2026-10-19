@@ -7,7 +7,7 @@ The sections headed V1.1 below are historical results. They are not V1.2 evidenc
 | Check | Actual result | Evidence/scope |
 |---|---|---|
 | Baseline before editing | PASSED: 162 discovered, 160 passed, 2 Mac-only skips, 4.935 s | Preserved source at 84c028d; Windows offscreen |
-| V1.2 automated suite | PASSED: 190 discovered, 188 passed, 2 Mac-only skips, 17.831 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
+| V1.2 automated suite | PASSED: 191 discovered, 189 passed, 2 Mac-only skips, 5.673 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
 | Windows native GUI/controller checks | PASSED: 111 checks | Owned test windows; one 1920x1080 display at 100%; v12-native-smoke.json |
 | Real Windows global input | PASSED: 45 checks | Owned external foreground app; W/S holds, 30 repeated key-downs, competing shortcuts, trigger/Control/Alt-first releases, held Escape, cleanup and no Shape activation from remaining S |
 | Wrapped text regressions | PASSED | Words/URLs/newlines, editing/commit/reopen layouts, edge insertion, tall caret, transforms/masks, cache geometry, clipboard/legacy rejection, duplication/history, viewport-only resize and editor input |
@@ -45,11 +45,16 @@ than waiting or restarting. The sustained input regression now passes.
 [The first V1.2 attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39254372532)
 passed imports and earlier tests but stalled in the new wrapped, transformed,
 masked text regression. It was cancelled for diagnosis; it produced no release
-package. Glyph hit/erasure contours now use Qt's polygon conversion at 4x
-precision before boolean operations; QTextDocument still paints the shaped text.
-The full Mac suite and package gates must pass on the corrected source. The CI
-test runner now fails with a stack dump after five minutes rather than leaving
-an unresponsive native geometry call for the full 45-minute job timeout.
+package. The timed second run established the call site: `hit_path` was boolean-unioning
+all transformed glyphs with their thick tolerance contours. That work is
+unnecessary for convenient textbox-interior selection and stalled on the Mac
+font paths. The corrected hit area uses the textbox plus tolerance, then
+subtracts local erasures. Original shaped glyph outlines still drive painted
+bounds and erasure geometry; text rendering has not been flattened.
+
+The full Mac suite and bundle gates must pass on the correction. A regression
+also checks that hit tolerance work stays bounded as wrapped text grows. CI
+fails with a stack dump after five minutes if a native operation stalls.
 
 ### Checks still NOT RUN
 
