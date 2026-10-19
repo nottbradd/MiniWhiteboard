@@ -1,4 +1,4 @@
-# macOS 14+ acceptance checklist — Mini Whiteboard 1.1
+# macOS 14+ acceptance checklist — Mini Whiteboard 1.2
 
 **Interactive acceptance: NOT RUN.** Record PASSED, FAILED or NOT RUN for
 each interactive item on a real Mac. Keep OS, architecture, display setup,
@@ -36,7 +36,9 @@ QT_QPA_PLATFORM=offscreen .venv-macos/bin/python -m unittest discover -v
 - [ ] If registration fails or delivery is unreliable, record actual OS/error and
   do not claim global Escape works. Check menu-bar **Cancel placement / screenshot**
   as the least invasive available alternative. No Accessibility prompt, event tap,
-  keyboard polling or persistent foreground focus may be introduced silently.
+  permanent keyboard polling or persistent foreground focus may be introduced silently.
+  V1.2 temporarily samples Carbon hardware state during holds/release cleanup;
+  check that it stops when idle and requests no new permissions.
 - [ ] After the probe exits, Escape reaches the foreground app normally again.
 
 The source supports the temporary registration path provisionally; this native
@@ -58,16 +60,18 @@ permission. Source launch and the frozen bundle may have different TCC identitie
 repeat permission checks using the installed bundle.
 
 - [ ] One menu-bar icon, no board/dashboard/splash/Dock icon at startup.
-- [ ] Physical Control+Option+W: first press anchors; moving the pointer updates
-  translucent circular dots; release does nothing; holding does not confirm;
-  the next distinct press creates one board. Test all four directions and 160×100
-  minimum. External app retains focus until confirmation.
+- [ ] Physical Control+Option+W: hold anchors, move updates passive dotted
+  preview, release W or any required modifier creates exactly one board. No
+  initial board, second press, clicks or minimum hold time. Test four directions,
+  negative coordinates, minimum size cancellation, repeats and fresh recovery.
 - [ ] Test the persisted Command+Option+Shift+W/S preset, including conflict/retry.
   Check the default with VoiceOver settings; do not overwrite system bindings.
 - [ ] Cancel placement and screenshot selection with external focus. Confirm
   overlays/timers disappear and subsequent W starts at a fresh first corner.
-- [ ] Physical Control+Option+S uses click-drag-release, then creates one locked
-  screenshot background with Draw active. W remains a two-press interaction.
+- [ ] Physical Control+Option+S uses the same hold, move, release gesture and creates
+  one locked screenshot background with Draw active. Competing W/S holds are ignored.
+- [ ] Test trigger-first and each modifier-first release in both presets; remaining
+  held S must not activate Shape. Escape while held cancels without a restart.
 - [ ] Quit during each workflow; restart and verify registrations are available.
 
 ## 3. Windows, focus, Spaces and lifecycle
@@ -132,7 +136,7 @@ repeat permission checks using the installed bundle.
 
 ```bash
 bash build_macos.sh
-open 'dist/macos-v11/Mini Whiteboard.app'
+open 'dist/macos-v12/Mini Whiteboard.app'
 ```
 
 - [x] **CI VERIFIED for the October 1 artifact:** build first attempts Universal2. Read `verification/macos-build-universal2.txt`.
@@ -156,8 +160,8 @@ then notarise and staple before re-verifying/repackaging:
 ```bash
 MINIWHITEBOARD_SIGNING_IDENTITY='Developer ID Application: NAME (TEAMID)' bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
-xcrun notarytool submit build/MacMiniWhiteboardV1.1.zip --keychain-profile YOUR_PROFILE --wait
-xcrun stapler staple 'dist/macos-v11/Mini Whiteboard.app'
+xcrun notarytool submit build/releases-v1.2/MacMiniWhiteboardV1.2.zip --keychain-profile YOUR_PROFILE --wait
+xcrun stapler staple 'dist/macos-v12/Mini Whiteboard.app'
 .venv-macos/bin/python -m scripts.macos_package_check --architecture universal2
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
@@ -173,12 +177,21 @@ For local Mac packaging after bundle validation:
 
 ```bash
 .venv-macos/bin/python -m scripts.macos_package_release
-shasum -a 256 build/MacMiniWhiteboardV1.1.zip
+shasum -a 256 build/releases-v1.2/MacMiniWhiteboardV1.2.zip
 ```
 
 - [x] **CI VERIFIED for the October 1 artifact:** archive contains `Mini Whiteboard.app` at the root. `ditto` round-trip verifies
   hashes, executable modes, symlinks and code signature. Store the release JSON.
 - [ ] Transfer that ZIP unchanged to the Windows Desktop; do not extract/repack.
   Compare `Get-FileHash -Algorithm SHA256` with the Mac hash. Preserve the existing
-  Windows tester archive. Final Desktop files: `WinMiniWhiteboardV1.1.zip` and
-  `MacMiniWhiteboardV1.1.zip` as separate platform packages.
+  Windows tester archive. Final Desktop files: `WinMiniWhiteboardV1.2.zip` and
+  `MacMiniWhiteboardV1.2-Preview.zip as separate platform packages.
+
+## V1.2 wrapping and runner acceptance
+
+- [ ] Repeat wrapped editing/reopen, long URLs, newlines, caret visibility, font
+  presets, transforms, masks, clipboard, history and board resize checks from
+  [the Windows checklist](MANUAL_TESTING.md#v12-wrapped-text-acceptance).
+- [ ] Confirm deployment target/Info.plist/runtime minimum stay 14.0 when built
+  on the macos-15 runner. Record real OS/CPU; test macOS 14 and Intel on actual
+  hardware before claiming interactive behaviour was verified there.

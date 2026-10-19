@@ -17,6 +17,7 @@ class TextEditor(QTextEdit):
 
     def __init__(self, obj, parent):
         super().__init__(parent)
+        self.closing = False
         self.commit_timer = QTimer(self)
         self.commit_timer.setSingleShot(True)
         self.commit_timer.timeout.connect(self.commit_if_unfocused)
@@ -26,7 +27,9 @@ class TextEditor(QTextEdit):
                            f"border: 1px dashed {SELECTION}; padding: 0; }}")
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.layout_width = obj.layout_width
+        self.setLineWrapMode(QTextEdit.LineWrapMode.FixedPixelWidth)
+        self.setLineWrapColumnOrWidth(obj.layout_width)
         self.setTabChangesFocus(False)
         self.document().setDocumentMargin(2)
         from .shortcuts import ui_font_family
@@ -34,7 +37,7 @@ class TextEditor(QTextEdit):
         font.setPointSizeF(obj.size)
         self.setFont(font)
         option = self.document().defaultTextOption()
-        option.setWrapMode(QTextOption.WrapMode.NoWrap)
+        option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         self.document().setDefaultTextOption(option)
         self.setPlainText(obj.text)
         self.move(0, 0)
@@ -43,9 +46,9 @@ class TextEditor(QTextEdit):
         self.moveCursor(QTextCursor.MoveOperation.End)
 
     def fit_contents(self):
-        self.document().adjustSize()
+        self.document().setTextWidth(self.layout_width)
         size = self.document().size()
-        self.resize(max(60, math.ceil(size.width())+4), max(30, math.ceil(size.height())+4))
+        self.resize(self.layout_width+2, max(30, math.ceil(size.height())+2))
 
     def event(self, event):
         if event.type() == QEvent.Type.ShortcutOverride:
@@ -73,11 +76,11 @@ class TextEditor(QTextEdit):
         super().focusOutEvent(event)
         # A native context menu temporarily takes focus; returning from it must
         # not commit/destroy the editor underneath copy/paste actions.
-        if event.reason() != Qt.FocusReason.PopupFocusReason:
+        if not self.closing and event.reason() != Qt.FocusReason.PopupFocusReason:
             self.commit_timer.start(0)
 
     def commit_if_unfocused(self):
-        if self.isVisible() and not self.hasFocus():
+        if not self.closing and self.isVisible() and not self.hasFocus():
             self.committed.emit()
 
 
@@ -124,12 +127,23 @@ class EditorOverlay(QGraphicsView):
         self.proxy.setTransform(rendering.qt_transform(transform))
         self.setGeometry(canvas.rect())
         self.setSceneRect(QRectF(canvas.rect()))
+        editor.textChanged.connect(self.keep_caret_visible)
+        editor.cursorPositionChanged.connect(self.keep_caret_visible)
+
+    def keep_caret_visible(self):
+        # Only this temporary view pans. Committed artwork and board geometry
+        # remain unchanged, and no canvas scrollbar is introduced.
+        extent = self.proxy.mapRectToScene(self.proxy.boundingRect())
+        self.setSceneRect(QRectF(self.canvas.rect()).united(extent.adjusted(-12, -12, 12, 12)))
+        caret = self.proxy.mapRectToScene(QRectF(self.editor.cursorRect()))
+        self.ensureVisible(caret, 12, 12)
 
     def activate_editor(self):
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.scene().setFocus(Qt.FocusReason.MouseFocusReason)
         self.proxy.setFocus(Qt.FocusReason.MouseFocusReason)
         self.editor.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.keep_caret_visible()
 
     def owns_mouse_event(self, watched, event):
         if watched is self.editor or self.editor.isAncestorOf(watched):

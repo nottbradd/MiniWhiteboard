@@ -67,7 +67,7 @@ def main():
             from .topmost_check import run_topmost_checks
             run_topmost_checks(board, check)
             board.canvas.document.add(Text((30, 30), "Mini Whiteboard", 28))
-            board.canvas.document.add(Text((30, 90), "Press → move → press again", 14))
+            board.canvas.document.add(Text((30, 90), "Hold → move → release", 14))
             board.canvas.document.add(Shape("Rounded rectangle", (30, 140), (165, 225)))
             board.canvas.document.add(Shape("Arrow", (195, 180), (340, 180)))
             board.canvas.document.add(Stroke(((45, 250), (85, 235), (120, 260), (160, 240)), 4))
@@ -97,14 +97,14 @@ def main():
             run_polish_checks(board, check, artifacts)
             board.close()
             QTest.qWait(50)
-        # WM_HOTKEY goes through the real Qt native event filter (without
-        # synthesizing a user's key press in another application).
+        # Controller/overlay checks use direct gesture events. The separate
+        # hotkey_workflow_check exercises real external-focus native input.
         post = windows.bind(windows.user32, "PostThreadMessageW", W.BOOL,
                             W.DWORD, W.UINT, W.WPARAM, W.LPARAM)
         tid = windows.bind(windows.kernel32, "GetCurrentThreadId", W.DWORD)()
-        post(tid, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
+        controller.placement.press()
         QTest.qWait(100)
-        check("Native hotkey event starts preview", controller.placement.state.active)
+        check("Native windows show a controller-started preview", controller.placement.state.active)
         check("Native preview windows cover their physical monitors",
               all(windows.window_rect(o) == o.monitor.rect for o in controller.placement.overlays),
               [{"actual": vars(windows.window_rect(o)), "expected": vars(o.monitor.rect)} for o in controller.placement.overlays])
@@ -125,7 +125,7 @@ def main():
         # asserts its fixed requested coordinates without this settling step.
         QTest.qWait(80)
         first = windows.cursor_position()
-        post(tid, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
+        controller.placement.press()
         QTest.qWait(100)
         check("Native placement samples first cursor point", controller.placement.state.anchor == first,
               {"requested": requested_first, "before_hotkey": first,
@@ -142,9 +142,9 @@ def main():
               {"expected": vars(expected), "cursor": windows.cursor_position(),
                "last_point": controller.placement.last_point,
                "outlines": [vars(o.outline) if o.outline else None for o in controller.placement.overlays]})
-        post(tid, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
+        controller.placement.release()
         QTest.qWait(100)
-        check("Second native hotkey event creates matching paper",
+        check("Release creates matching paper",
               len(controller.boards) == 1 and bool(confirmed_rectangles) and
               controller.boards[0].physical_paper_rect() == confirmed_rectangles[-1],
               {"confirmed": vars(confirmed_rectangles[-1]) if confirmed_rectangles else None,

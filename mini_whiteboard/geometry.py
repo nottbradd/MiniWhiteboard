@@ -70,7 +70,7 @@ def constrained_end(a: Point, b: Point, kind: str, shift: bool,
 
 
 class PlacementState:
-    """First press sets anchor; only a later valid press returns a rectangle."""
+    """One hold owns an anchor; release always ends it, including invalid sizes."""
 
     def __init__(self):
         self.anchor: Point | None = None
@@ -79,14 +79,20 @@ class PlacementState:
     def active(self):
         return self.anchor is not None
 
-    def press(self, point: Point, scale: float = 1.0):
+    def begin(self, point: Point):
+        if self.anchor is not None:
+            return False
+        self.anchor = point
+        return True
+
+    def release(self, point: Point, scale: float = 1.0):
         if self.anchor is None:
-            self.anchor = point
-            return "started", None
+            return "idle", None
         rect = normalized(self.anchor, point)
-        if not large_enough(rect, scale):
-            return "too_small", rect
         self.anchor = None
+        if (not all(math.isfinite(v) for v in (rect.x, rect.y, rect.width, rect.height, scale))
+                or scale <= 0 or not large_enough(rect, scale)):
+            return "too_small", rect
         return "confirmed", rect
 
     def cancel(self):

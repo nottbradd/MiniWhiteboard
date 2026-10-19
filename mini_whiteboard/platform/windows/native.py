@@ -5,10 +5,12 @@ from ctypes import wintypes as W
 from dataclasses import dataclass
 import sys
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QPoint
 from PySide6.QtGui import QGuiApplication
 
 from ...geometry import Rect
+from ..base import HotkeyEvents
+from ..hold import HoldTracker
 
 IS_WINDOWS = sys.platform == "win32"
 WM_HOTKEY = 0x0312
@@ -16,6 +18,7 @@ MOD_NOREPEAT = 0x4000
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
 CAPTURE_HOTKEY = 0x4D03
+ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06)
 
 
 if IS_WINDOWS:
@@ -30,6 +33,7 @@ if IS_WINDOWS:
     bind(user32, "RegisterHotKey", W.BOOL, W.HWND, C.c_int, W.UINT, W.UINT)
     bind(user32, "UnregisterHotKey", W.BOOL, W.HWND, C.c_int)
     bind(user32, "GetCursorPos", W.BOOL, C.POINTER(W.POINT))
+    bind(user32, "GetAsyncKeyState", C.c_short, C.c_int)
     bind(user32, "GetWindowRect", W.BOOL, W.HWND, C.POINTER(W.RECT))
     bind(user32, "GetDpiForWindow", W.UINT, W.HWND)
     bind(user32, "SetWindowPos", W.BOOL, W.HWND, W.HWND,
@@ -38,6 +42,7 @@ if IS_WINDOWS:
     bind(user32, "SetProcessDpiAwarenessContext", W.BOOL, C.c_void_p)
     bind(kernel32, "CreateMutexW", W.HANDLE, C.c_void_p, W.BOOL, W.LPCWSTR)
     bind(kernel32, "CloseHandle", W.BOOL, W.HANDLE)
+    bind(kernel32, "GetTickCount", W.DWORD)
 
 
 def enable_dpi_awareness():
@@ -178,19 +183,27 @@ def dominant_monitor(rect, available=None):
     return max(available, key=lambda m: m.rect.intersection_area(rect))
 
 
-class HotkeyEvents(QObject):
-    create = Signal()
-    cancel = Signal()
-    capture = Signal()
-
-
 class NativeHotkeys(QAbstractNativeEventFilter):
     def __init__(self, app):
         super().__init__()
         self.app = app
         self.events = HotkeyEvents()
         self.registered = set()
+        self.hold = HoldTracker(app, self.events, self.sample)
+        self.last_activation = {}
+        self.last_release = {}
+        self.events.create_released.connect(lambda: self.record_release(CREATE_HOTKEY))
+        self.events.capture_released.connect(lambda: self.record_release(CAPTURE_HOTKEY))
         app.installNativeEventFilter(self)
+
+    def record_release(self, identifier):
+        self.last_release[identifier] = kernel32.GetTickCount()
+
+    def sample(self):
+        down = {identifier for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"))
+                if user32.GetAsyncKeyState(ord(key)) & 0x8000}
+        modifiers = all(user32.GetAsyncKeyState(key) & 0x8000 for key in (0x11, 0x12))
+        return down, down if modifiers else set(), bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
 
     def register(self, identifier, modifiers, key):
         if not IS_WINDOWS:
@@ -209,30 +222,46 @@ class NativeHotkeys(QAbstractNativeEventFilter):
             except OSError as error:
                 failures.append(f"Ctrl+Alt+{key}: {error}")
         if failures:
+            self.events.cancel.emit()
             raise OSError("\n".join(failures))
 
     def enable_escape(self):
-        self.register(ESCAPE_HOTKEY, 0, 0x1B)
+        # Consume Escape in every release order, including while Ctrl/Alt are
+        # still held. Bare Escape registration alone cannot consume Alt+Escape.
+        # Ctrl+Escape is reserved by Windows. The hold sampler covers that
+        # transitional state; only the available combinations are registered.
+        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 3)):
+            self.register(identifier, modifiers, 0x1B)
 
     def disable_escape(self):
-        if ESCAPE_HOTKEY in self.registered:
-            user32.UnregisterHotKey(None, ESCAPE_HOTKEY)
-            self.registered.remove(ESCAPE_HOTKEY)
+        for identifier in ESCAPE_VARIANTS:
+            if identifier in self.registered:
+                user32.UnregisterHotKey(None, identifier)
+                self.registered.remove(identifier)
 
     def nativeEventFilter(self, event_type, message):
         if IS_WINDOWS and bytes(event_type) in (b"windows_generic_MSG", b"windows_dispatcher_MSG"):
             msg = W.MSG.from_address(int(message))
             if msg.message == WM_HOTKEY and msg.wParam in self.registered:
-                if msg.wParam == CREATE_HOTKEY:
-                    self.events.create.emit()
-                elif msg.wParam == ESCAPE_HOTKEY:
+                if msg.wParam in ESCAPE_VARIANTS:
                     self.events.cancel.emit()
-                elif msg.wParam == CAPTURE_HOTKEY:
-                    self.events.capture.emit()
+                else:
+                    released = self.last_release.get(msg.wParam)
+                    # A delayed repeat already queued before completion cannot
+                    # become a fresh hold after the release latch has drained.
+                    if released is not None and not 0 < (msg.time-released) % (1 << 32) < (1 << 31):
+                        return True, 0
+                    # Qt may expose the same native message through two paths.
+                    stamp = (msg.time, msg.lParam)
+                    if self.last_activation.get(msg.wParam) != stamp:
+                        self.last_activation[msg.wParam] = stamp
+                        self.hold.activate(msg.wParam)
                 return True, 0
         return False, 0
 
     def close(self):
+        self.events.cancel.emit()
+        self.hold.close()
         for identifier in tuple(self.registered):
             user32.UnregisterHotKey(None, identifier)
         self.registered.clear()

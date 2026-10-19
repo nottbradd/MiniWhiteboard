@@ -1,3 +1,58 @@
+# Verification report - Mini Whiteboard Version 1.2
+
+## V1.2 candidate verification - 2026-10-19
+
+The sections headed V1.1 below are historical results. They are not V1.2 evidence.
+
+| Check | Actual result | Evidence/scope |
+|---|---|---|
+| Baseline before editing | PASSED: 162 discovered, 160 passed, 2 Mac-only skips, 4.935 s | Preserved source at 84c028d; Windows offscreen |
+| V1.2 automated suite | PASSED: 189 discovered, 187 passed, 2 Mac-only skips, 43.811 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
+| Windows native GUI/controller checks | PASSED: 111 checks | Owned test windows; one 1920x1080 display at 100%; v12-native-smoke.json |
+| Real Windows global input | PASSED: 45 checks | Owned external foreground app; W/S holds, 30 repeated key-downs, competing shortcuts, trigger/Control/Alt-first releases, held Escape, cleanup and no Shape activation from remaining S |
+| Wrapped text regressions | PASSED | Words/URLs/newlines, editing/commit/reopen layouts, edge insertion, tall caret, transforms/masks, cache geometry, clipboard/legacy rejection, duplication/history, viewport-only resize and editor input |
+| Existing performance workloads | COMPLETED | 21 general interaction workloads; image/clipboard workload; paired raster cache comparison; screenshot workload with blank, 1080p, 1440p and 4K sources |
+| Screenshot cache work | PASSED | 0 image decodes or background image paints during annotation workloads; one display-cache build per screenshot; 4K drawing median 3.844 ms (120 samples, offscreen) |
+| Workflows / dependencies / source compilation | PASSED | actionlint 1.7.12; pip check; compileall |
+| Windows V1.2 frozen app / ZIP | PENDING final gate | Separate dist/windows-v12 and build/releases-v1.2; V1.1 archives retained |
+| Mac V1.2 CI / ZIP | PENDING hosted build | macos-15 runner; deployment/Info.plist/runtime minimum remain 14.0; interactive acceptance NOT RUN |
+| GitHub v1.2 publication | PENDING required package/CI gates | New release only; preserve v1.1 |
+
+### Established V1.1 held-key defect
+
+Tested the actual published V1.1 executable (SHA-256
+`11e42743bd2bde4e5974b1dd09339aaff6812bf685d93a94ff9c0a7cd2450a01`)
+and current source. With an owned external application focused, a complete W
+hold plus twenty repeated key-down injections produced a board and another
+outline. The source trace recorded four create activations without an intervening
+trigger-key release: the later activations confirmed a board, started a new
+anchor and attempted an undersized confirmation.
+
+MOD_NOREPEAT was already registered. The established application cause was that
+all activations reached a two-press controller without a physical hold latch or
+release event; undersized confirmation deliberately retained its anchor. The
+old create_board error path could also restart placement after a rejected fit.
+The diagnostic does not establish why every user's keyboard delivers extra
+notifications. Permanent inability to recover was not reproduced: a later valid
+activation recovered in the controlled packaged run.
+
+V1.2 ends on release, ignores repeated/competing activation, drains held trigger
+keys, rejects queued stale native messages and cancels invalid rectangles rather
+than waiting or restarting. The sustained input regression now passes.
+
+### Checks still NOT RUN
+
+- Interactive Mac global shortcuts/releases, Escape, focus/menu/Spaces, Screen
+  Recording permission flow, real screenshot content and transformed editor use.
+- Execution on macOS 14 or Intel hardware; Universal2 validation is distinct.
+- Physical mixed-DPI/multi-monitor arrangements, Windows 10/clean-machine testing,
+  hand-operated IME/context menus and extended use. Automated owned-window focus,
+  controls/handle separation and transformed editor regressions were run on Windows.
+- Developer ID signing, notarization and stapling. Windows is unsigned and Mac
+  preview remains ad-hoc signed.
+
+## Historical V1.1 verification
+
 # Verification report — Mini Whiteboard Version 1.1
 
 ## V1.1 release verification — 2026-10-11

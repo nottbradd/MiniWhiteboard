@@ -6,8 +6,8 @@ without Accessibility must pass scripts.macos_escape_probe on actual hardware.
 import ctypes as C
 import sys
 
-from PySide6.QtCore import Signal
 from ..base import HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, ESCAPE_HOTKEY
+from ..hold import HoldTracker
 from ...shortcuts import ShortcutPolicy
 
 
@@ -41,6 +41,10 @@ class Carbon:
         self.unregister = bind("UnregisterEventHotKey", C.c_int32, C.c_void_p)
         self.remove = bind("RemoveEventHandler", C.c_int32, C.c_void_p)
         self.kind = bind("GetEventKind", C.c_uint32, C.c_void_p)
+        self.event_time = bind("GetEventTime", C.c_double, C.c_void_p)
+        self.clock = bind("GetCurrentEventTime", C.c_double)
+        self.modifiers = bind("GetCurrentKeyModifiers", C.c_uint32)
+        self.keys = bind("GetKeys", None, C.POINTER(C.c_uint32))
         self.parameter = bind("GetEventParameter", C.c_int32, C.c_void_p, C.c_uint32,
                               C.c_uint32, C.c_void_p, C.c_uint32, C.c_void_p, C.c_void_p)
         install = bind("InstallEventHandler", C.c_int32, C.c_void_p, self.callback_type,
@@ -63,7 +67,7 @@ class Carbon:
         if kind not in (5, 6):
             return -9874
         try:
-            self.deliver(identifier.id, kind == 5)
+            self.deliver(identifier.id, kind == 5, self.event_time(event))
         except Exception:
             sys.excepthook(*sys.exc_info())
         return 0
@@ -79,25 +83,48 @@ class Carbon:
     def discard(self, handle):
         self.unregister(handle)
 
+    def sample(self, required):
+        # Carbon hardware state works in the background without an event tap,
+        # Accessibility prompt, or Input Monitoring subscription.
+        keys = (C.c_uint32*4)()
+        self.keys(keys)
+        down = {identifier for identifier, code in ((CREATE_HOTKEY, 13), (CAPTURE_HOTKEY, 1))
+                if keys[code//32] & (1 << (code % 32))}
+        complete = self.modifiers() & required == required
+        return down, down if complete else set(), bool(keys[53//32] & (1 << (53 % 32)))
+
     def close(self):
         if self.handler:
             self.remove(self.handler)
             self.handler = None
 
 
-class MacHotkeyEvents(HotkeyEvents):
-    warning = Signal(str)
-
-
 class MacHotkeys:
     def __init__(self, app, preset="default", backend_factory=Carbon):
-        self.events = MacHotkeyEvents()
+        self.events = HotkeyEvents()
         self.preset = preset
         self.handles = {}
         self.down = set()
         self.backend_factory = backend_factory
         self.backend = None
         self.escape_available = None
+        self.hold = HoldTracker(app, self.events, self.sample)
+        self.last_activation = {}
+        self.press_time = {}
+        self.last_release = {}
+        self.events.create_released.connect(lambda: self.record_release(CREATE_HOTKEY))
+        self.events.capture_released.connect(lambda: self.record_release(CAPTURE_HOTKEY))
+
+    def record_release(self, identifier):
+        if self.backend is not None:
+            self.last_release[identifier] = max(self.last_release.get(identifier, 0), self.backend.clock())
+
+    @property
+    def modifiers(self):
+        return (1 << 8 | 1 << 9 | 1 << 11) if self.preset == "alternate" else (1 << 12 | 1 << 11)
+
+    def sample(self):
+        return self.backend.sample(self.modifiers)
 
     @property
     def registered(self):
@@ -107,19 +134,32 @@ class MacHotkeys:
         if self.backend is None:
             self.backend = self.backend_factory(self.deliver)
 
-    def deliver(self, identifier, pressed):
+    def deliver(self, identifier, pressed, stamp=None):
         if not pressed:
+            if stamp is not None and stamp < self.press_time.get(identifier, 0):
+                return
             self.down.discard(identifier)
+            if stamp is not None:
+                self.last_release[identifier] = max(stamp, self.last_release.get(identifier, 0))
+            self.hold.release(identifier)
             return
-        if identifier not in self.handles or identifier in self.down:
+        if identifier not in self.handles:
+            return
+        if stamp is not None:
+            if stamp <= max(self.last_activation.get(identifier, -1), self.last_release.get(identifier, -1)):
+                return
+            self.last_activation[identifier] = self.press_time[identifier] = stamp
+        if identifier != ESCAPE_HOTKEY:
+            self.hold.activate(identifier)
+            return
+        if identifier in self.down:
             return
         self.down.add(identifier)
-        {CREATE_HOTKEY: self.events.create, CAPTURE_HOTKEY: self.events.capture,
-         ESCAPE_HOTKEY: self.events.cancel}[identifier].emit()
+        self.events.cancel.emit()
 
     def start(self):
         self._ensure_backend()
-        modifiers = (1 << 8 | 1 << 9 | 1 << 11) if self.preset == "alternate" else (1 << 12 | 1 << 11)
+        modifiers = self.modifiers
         failures = []
         for identifier, key, label in ((CREATE_HOTKEY, 13, "W"), (CAPTURE_HOTKEY, 1, "S")):
             if identifier in self.handles:
@@ -129,6 +169,7 @@ class MacHotkeys:
             except OSError as error:
                 failures.append(f"{ShortcutPolicy(True, self.preset).global_label(label)}: {error}")
         if failures:
+            self.events.cancel.emit()
             raise OSError("; ".join(failures))
 
     def enable_escape(self):
@@ -162,6 +203,8 @@ class MacHotkeys:
         self.preset = preset
 
     def close(self):
+        self.events.cancel.emit()
+        self.hold.close()
         for identifier in tuple(self.handles):
             self._unregister(identifier)
         if self.backend is not None:

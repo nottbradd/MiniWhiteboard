@@ -5,6 +5,7 @@ from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRegion
 from PySide6.QtWidgets import QWidget
 
 from .platform import get_platform
+from .gestures import CreationSession
 from .geometry import PlacementState, normalized, local_point
 from .settings import (PREVIEW_INTERVAL_MS, PREVIEW_DOT_DIAMETER, PREVIEW_DOT_GAP,
                        PREVIEW_DOT_OPACITY, PREVIEW_SHADOW_OPACITY, PREVIEW_SHADOW_SPREAD,
@@ -103,48 +104,57 @@ class PlacementController(QObject):
         self.state = PlacementState()
         self.overlays = []
         self.last_point = None
-        self.confirmation_anchor = None
-        self.before_start = None
+        self.session = CreationSession()
         self.timer = QTimer(self)
         self.timer.setInterval(PREVIEW_INTERVAL_MS)
         self.timer.timeout.connect(self.track)
         hotkeys.events.create.connect(self.press)
+        hotkeys.events.create_released.connect(self.release)
         hotkeys.events.cancel.connect(self.cancel)
 
     def press(self):
+        if self.session.owner is not None:
+            return
+        try:
+            self.start_at(self.desktop.cursor_position())
+        except Exception as error:
+            self.cancel()
+            self.message.emit(f"Placement could not start: {error}")
+
+    def release(self):
+        if self.session.owner != "board" or not self.state.active:
+            return
         try:
             point = self.desktop.cursor_position()
-            if not self.state.active:
-                self.start_at(point)
-                return
             rect = normalized(self.state.anchor, point)
             scale = self.desktop.placement_scale(rect)
-            anchor = self.state.anchor
-            status, rect = self.state.press(point, scale)
-            if status == "too_small":
-                self.message.emit(f"Choose at least 160 × 100 logical pixels. Move the cursor and press {self.platform.shortcuts.global_label('W')} again.")
-                return
+            status, rect = self.state.release(point, scale)
             self.cancel()
-            self.confirmation_anchor = anchor
+            if status == "too_small":
+                self.message.emit("Selection cancelled. Choose at least 160 × 100 logical pixels.")
+                return
             self.confirmed.emit(rect)
         except Exception as error:
             self.cancel()
             self.message.emit(f"Placement could not start or finish: {error}")
 
     def start_at(self, point):
-        if self.before_start is not None:
-            self.before_start()
-        self.hotkeys.enable_escape()
-        self.state.anchor = point
-        # Append incrementally so a failure on a later display can clean up all
-        # windows already created by this interaction.
-        for monitor in self.desktop.displays():
-            self.overlays.append(PreviewOverlay(monitor, platform=self.platform))
-        for overlay in self.overlays:
-            overlay.show()
-        self.last_point = None
-        self.track()
-        self.timer.start()
+        if not self.session.claim("board"):
+            return
+        try:
+            self.state.begin(point)
+            self.hotkeys.enable_escape()
+            for monitor in self.desktop.displays():
+                self.overlays.append(PreviewOverlay(monitor, platform=self.platform))
+            for overlay in self.overlays:
+                overlay.show()
+            self.last_point = None
+            self.track()
+            if self.state.active:
+                self.timer.start()
+        except Exception:
+            self.cancel()
+            raise
 
     def track(self):
         if not self.state.active:
@@ -156,14 +166,19 @@ class PlacementController(QObject):
                 for overlay in self.overlays:
                     overlay.set_outline(rect)
                 self.last_point = point
-        except OSError as error:
+        except Exception as error:
             self.cancel()
             self.message.emit(str(error))
 
     def cancel(self):
         self.timer.stop()
         self.state.cancel()
-        self.hotkeys.disable_escape()
+        if self.session.owner == "board":
+            self.session.finish("board")
+            try:
+                self.hotkeys.disable_escape()
+            except Exception as error:
+                self.message.emit(f"Placement cleanup: {error}")
         for overlay in self.overlays:
             overlay.hide()
             overlay.close()

@@ -360,6 +360,7 @@ class Canvas(EditingActions, QWidget):
         if self.editor is None:
             return
         editor, overlay = self.editor, self.editor_overlay
+        editor.closing = True
         obj = replace(self.editing_object, text=editor.toPlainText())
         self.editor = self.editor_overlay = self.editing_object = None
         QApplication.instance().removeEventFilter(self)
@@ -474,7 +475,10 @@ class Canvas(EditingActions, QWidget):
                 self.start_gesture("marquee")
                 self.marquee_add = shift
         elif self.tool == "Text":
-            self.begin_editing(hit if isinstance(hit, Text) else Text(self.start, size=FONT_SIZES[self.font_key], color=self.active_color))
+            from .settings import TEXT_MARGIN, TEXT_MIN_WIDTH, TEXT_MAX_WIDTH
+            width = min(TEXT_MAX_WIDTH, max(TEXT_MIN_WIDTH, round(self.width()-self.start[0]-TEXT_MARGIN)))
+            self.begin_editing(hit if isinstance(hit, Text) else Text(self.start,
+                               size=FONT_SIZES[self.font_key], color=self.active_color, layout_width=width))
         elif isinstance(hit, Text) and self.tool != "Eraser":
             self.set_selection({hit.id})
             self.start_gesture("text_click")

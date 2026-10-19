@@ -15,8 +15,11 @@ CAPTURE_HOTKEY = 0x4D03
 
 class HotkeyEvents(QObject):
     create = Signal()
+    create_released = Signal()
     cancel = Signal()
     capture = Signal()
+    capture_released = Signal()
+    warning = Signal(str)
 
 
 @dataclass(frozen=True)

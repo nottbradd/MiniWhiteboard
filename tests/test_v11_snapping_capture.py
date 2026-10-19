@@ -141,12 +141,11 @@ class CaptureTests(QtCase):
         hotkeys = FakeNativeHotkeys(APP)
         placement = PlacementController(hotkeys)
         capture = ScreenshotController(hotkeys,placement)
-        placement.before_start = capture.cancel
         self.addCleanup(placement.cancel)
         self.addCleanup(capture.cancel)
         return hotkeys,placement,capture
 
-    def test_capture_click_drag_normalizes_then_hides_before_reading_pixels(self):
+    def test_capture_hold_release_normalizes_then_hides_before_reading_pixels(self):
         _,placement,capture = self.controllers()
         capture.start()
         self.assertTrue(capture.active)
@@ -160,6 +159,7 @@ class CaptureTests(QtCase):
             return sample_image(300,220)
         with patch('mini_whiteboard.windows.capture_rect',side_effect=read):
             capture.finish((100,80))
+            APP.processEvents()
             APP.processEvents()
         self.assertEqual(captures[0][0],Rect(100,80,300,220))
         self.assertFalse(capture.active)
@@ -179,22 +179,23 @@ class CaptureTests(QtCase):
             APP.processEvents()
             self.assertFalse(read.called)
 
-    def test_switching_workflows_preserves_two_press_placement(self):
+    def test_competing_workflows_leave_one_owner(self):
         hotkeys,placement,capture = self.controllers()
         capture.start()
-        with patch('mini_whiteboard.windows.cursor_position',return_value=(100,100)):
-            hotkeys.events.create.emit()
-        self.assertFalse(capture.active)
-        self.assertEqual(placement.state.anchor,(100,100))
+        hotkeys.events.create.emit()
+        self.assertTrue(capture.active)
+        self.assertFalse(placement.state.active)
+        capture.cancel()
         rects = []
         placement.confirmed.connect(rects.append)
-        with patch('mini_whiteboard.windows.cursor_position',return_value=(500,400)):
+        with patch('mini_whiteboard.windows.cursor_position',return_value=(100,100)):
             hotkeys.events.create.emit()
-        self.assertEqual(rects,[Rect(100,100,400,300)])
-        placement.start_at((100,100))
         hotkeys.events.capture.emit()
-        self.assertFalse(placement.state.active)
-        self.assertTrue(capture.active)
+        self.assertFalse(capture.active)
+        self.assertTrue(placement.state.active)
+        with patch('mini_whiteboard.windows.cursor_position',return_value=(500,400)):
+            hotkeys.events.create_released.emit()
+        self.assertEqual(rects,[Rect(100,100,400,300)])
 
     def test_capture_failure_is_reported_and_overlay_is_removed(self):
         _,_,capture = self.controllers()
@@ -204,6 +205,7 @@ class CaptureTests(QtCase):
         capture.anchor = (100,100)
         with patch('mini_whiteboard.windows.capture_rect',side_effect=OSError('unavailable')):
             capture.finish((500,400))
+            APP.processEvents()
             APP.processEvents()
         self.assertFalse(capture.active)
         self.assertIn('unavailable',messages[-1])

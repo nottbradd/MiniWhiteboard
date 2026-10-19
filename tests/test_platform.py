@@ -26,7 +26,6 @@ class PlatformTests(QtCase):
         keys = self.platform.create_hotkeys(APP)
         placement = PlacementController(keys, platform=self.platform)
         capture = ScreenshotController(keys, placement)
-        placement.before_start = capture.cancel
         self.addCleanup(placement.cancel)
         self.addCleanup(capture.cancel)
         return keys, placement, capture
@@ -37,7 +36,7 @@ class PlatformTests(QtCase):
         placement.confirmed.connect(confirmed.append)
         keys.events.create.emit()
         self.platform.desktop.cursor = (200, 140)
-        keys.events.create.emit()
+        keys.events.create_released.emit()
         self.assertEqual(confirmed, [Rect(40, 40, 160, 100)])
         self.assertFalse(placement.timer.isActive())
 
@@ -60,6 +59,8 @@ class PlatformTests(QtCase):
         self.assertFalse(capture.overlays)
         old = self.platform.capture.requests[-1]
         placement.start_at((20, 20))
+        self.assertTrue(capture.pending)  # The pending capture retains ownership.
+        capture.cancel()
         self.assertFalse(capture.pending)
         old[1](QImage(8, 8, QImage.Format.Format_RGB32))
         old[2](OSError("late failure"))
@@ -69,6 +70,7 @@ class PlatformTests(QtCase):
         capture.finish((500, 400))
         APP.processEvents()
         self.platform.capture.requests[-1][1](QImage(8, 8, QImage.Format.Format_RGB32))
+        APP.processEvents()
         self.assertEqual(len(images), 1)
         self.assertFalse(capture.active)
         self.assertFalse(keys.escape)
@@ -80,6 +82,9 @@ class PlatformTests(QtCase):
         capture.permission_required.connect(errors.append)
         capture.captured.connect(lambda *args: images.append(args))
         capture.start()
+        self.platform.desktop.cursor = (500, 400)
+        capture.release()
+        APP.processEvents()
         self.assertEqual(errors, ["denied"])
         self.assertFalse(capture.active)
         self.assertFalse(images)
@@ -160,6 +165,14 @@ class FakeCarbon:
         self.active = {}
         self.fail = set()
         self.closed = False
+        self.down = set()
+        self.modifiers_held = True
+
+    def sample(self, required):
+        return self.down.copy(), self.down.copy() if self.modifiers_held else set()
+
+    def clock(self):
+        return 0
 
     def add(self, identifier, key, modifiers):
         if identifier in self.fail:
@@ -183,21 +196,24 @@ class MacHotkeyTests(QtCase):
         self.keys.start()
         self.addCleanup(self.keys.close)
 
-    def test_release_and_repeat_never_confirm_placement(self):
+    def test_release_confirms_once_and_repeat_is_ignored(self):
         platform = fake_platform()
         placement = PlacementController(self.keys, platform=platform)
         self.addCleanup(placement.cancel)
         rectangles = []
         placement.confirmed.connect(rectangles.append)
+        self.keys.backend.down.add(CREATE_HOTKEY)
         self.keys.deliver(CREATE_HOTKEY, True)
         platform.desktop.cursor = (540, 340)
         self.keys.deliver(CREATE_HOTKEY, True)
-        self.keys.deliver(CREATE_HOTKEY, False)
         self.assertEqual(rectangles, [])
-        self.keys.deliver(CREATE_HOTKEY, True)
+        self.keys.deliver(CREATE_HOTKEY, False)
         self.assertEqual(rectangles, [Rect(40, 40, 500, 300)])
         self.keys.deliver(CREATE_HOTKEY, True)
         self.assertFalse(placement.state.active)
+        self.keys.backend.down.clear()
+        self.keys.hold.poll()
+        self.assertFalse(self.keys.hold.timer.isActive())
 
     def test_presets_registration_retry_and_cleanup(self):
         native = self.keys.backend

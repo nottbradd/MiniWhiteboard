@@ -62,7 +62,6 @@ class WhiteboardApplication:
         self.placement.confirmed.connect(self.create_board)
         self.placement.message.connect(self.notify)
         self.capture = ScreenshotController(self.hotkeys, self.placement)
-        self.placement.before_start = self.capture.cancel
         self.capture.captured.connect(self.create_screenshot_board)
         self.capture.message.connect(self.notify)
         self.capture.permission_required.connect(self.capture_permission_error)
@@ -73,8 +72,21 @@ class WhiteboardApplication:
         except OSError as error:
             QTimer.singleShot(0, lambda detail=str(error): self.hotkey_error(detail))
         app.aboutToQuit.connect(self.cleanup)
-        app.screenRemoved.connect(lambda _screen: self.placement.cancel())
-        app.screenRemoved.connect(lambda _screen: self.capture.cancel())
+        app.screenRemoved.connect(self.displays_changed)
+        app.screenAdded.connect(self.watch_screen)
+        for screen in app.screens():
+            self.watch_screen(screen)
+
+    def displays_changed(self, *_args):
+        if self.exiting:
+            return
+        self.placement.cancel()
+        self.capture.cancel()
+
+    def watch_screen(self, screen):
+        self.displays_changed()
+        screen.geometryChanged.connect(self.displays_changed)
+        screen.logicalDotsPerInchChanged.connect(self.displays_changed)
 
     def hotkey_error(self, detail):
         QMessageBox.warning(None, APP_NAME,
@@ -122,12 +134,6 @@ class WhiteboardApplication:
             board.close()
             board.deleteLater()
             self.notify(str(error))
-            if isinstance(error, ValueError) and self.placement.confirmation_anchor is not None:
-                try:
-                    self.placement.start_at(self.placement.confirmation_anchor)
-                except OSError as retry_error:
-                    self.placement.cancel()
-                    self.notify(str(retry_error))
             return
         self.next_number += 1
         board.deleted.connect(self.delete_board)

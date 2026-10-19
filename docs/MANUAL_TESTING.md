@@ -1,4 +1,4 @@
-# Manual Windows testing checklist — Version 1.1
+# Manual Windows testing checklist — Version 1.2
 
 Use the final built executable unless a step explicitly mentions source. Record
 Windows version, display arrangement, each display's scaling, and actual results.
@@ -9,30 +9,25 @@ packaged checks on one Windows 11 display at 100%. Physical mixed-DPI,
 clean-machine/Windows 10 deployment, hand-operated IME and extended use remain
 NOT RUN. Use the published ZIP or the current release output below.
 
-## A. Launch, tray, and two-press placement
+## A. Launch, tray, and hold/release placement
 
 1. Exit any running instance using **Exit Mini Whiteboard** in the tray menu. Launch
-   `dist\releases-v11\Mini Whiteboard\Mini Whiteboard.exe`. Expect one tray icon, no board,
+   `dist\windows-v12\Mini Whiteboard\Mini Whiteboard.exe`. Expect one tray icon, no board,
    console, dashboard, or splash. Look in the hidden tray-icon area if necessary.
-2. Open Notepad and type a line to establish focus. Put the mouse over the desktop
-   at a corner of the desired board. Press/release Ctrl+Alt+W once. Expect only a
-   outline of small round white dots; no white rectangle. Notepad must retain focus.
-3. Hold Ctrl+Alt+W for two seconds on a fresh placement. Expect no board until a
-   second distinct press. Release all keys and move the mouse without pressing
-   any button. Expect the first corner to stay fixed and the outline to follow.
-4. While moving, inspect over light and dark windows. Expect a visible outline and
-   a transparent desktop both inside and outside it. Press Ctrl+Alt+W again.
-   Expect exactly one board at the preview bounds, ready to receive D/T/S/A/V/E.
-5. Repeat first-to-second movement right/down, left/down, right/up, left/up.
-   Repeat with the cursor exactly where it started: no board should be created.
-6. Make a selection smaller than 160 × 100 logical pixels. Expect a subtle tray
-   message, no preset-size substitute, and continued placement with the same
-   first corner. Move farther and press Ctrl+Alt+W to confirm successfully.
-7. Start placement over an existing board, then press Escape while another app
-   still has focus. Expect every preview to disappear; existing boards and
-   unfinished text remain unchanged. Press Escape again in Notepad: the app must
-   no longer capture it globally.
-8. Create three boards. Each new two-press sequence must preserve the others.
+2. Focus a disposable Notepad document. Point at the first corner and hold
+   Ctrl+Alt+W. Expect a dotted transparent preview, no board and no focus change.
+3. Move while holding for several seconds. Repeated key-downs cannot confirm,
+   restart or change the first corner. Competing S is ignored.
+4. Release W first, then repeat releasing Control first and Alt first. Each
+   hold creates one focused board at the sampled bounds. Remaining held S/W
+   must not become tools. A fresh physical hold works after the keys drain.
+5. Test four directions and negative desktop coordinates. A stationary release
+   cancels completely with brief feedback and leaves no waiting outline.
+6. Select less than 160 x 100 logical pixels. Expect cancellation; a fresh hold
+   immediately starts a new selection that can complete normally.
+7. Escape while held cancels, including with another app focused. Held repeats
+   cannot restart it. Repeat menu cancellation, display changes and app exit.
+8. Create three boards using separate holds. Each preserves the other boards.
 9. During placement click a harmless button in a test application through the
    preview. Expect it to receive the click. Cancel and repeat clicks inside and
    outside the former outline. Expect no invisible overlay interception.
@@ -281,12 +276,12 @@ the empty process it created; manually verify normal tray Exit with F5 above.
 
 ## J. Version 1.1 screenshot and release
 
-1. From an ordinary app press Ctrl+Alt+S, click-drag-release a known pattern.
+1. From an ordinary app hold Ctrl+Alt+S, move, then release a known pattern.
    Expect exact captured pixels without preview dots, a board at the same region,
    locked screenshot and Draw ready. Annotate immediately. Unlock via context menu.
 2. Cancel with Escape before and during a drag. Switch S→W and W→S. No stale
    overlay, held mouse capture or global Escape binding may remain. Verify W is
-   still press→move→press, including reverse corners and release/repeat behaviour.
+   also hold→move→release, including reverse corners and each release order.
 3. Capture on each display, across boundaries, left/above-primary coordinates,
    100/125/150/175/200% scaling and mixed-DPI arrangements. Check output pixels,
    placement and proportional fitting. Try a region near minimum board dimensions.
@@ -323,3 +318,14 @@ the empty process it created; manually verify normal tray Exit with F5 above.
    win. Start drawing inside, then drag over the edge: the tool keeps its gesture.
 7. Retest the extracted executable and desktop ZIP. Version stays 1.1; check the
    executable SHA-256 against the current release manifest to distinguish builds.
+
+## V1.2 wrapped text acceptance
+
+- [ ] Insert near the left/right edges; verify wrapping, the 8 px margin and
+  24 px minimum, long URLs, Enter newlines and unchanged plain text.
+- [ ] Commit/reopen: line breaks match. Tall content keeps the caret visible in
+  the temporary editor, preserves every character and never resizes the board.
+- [ ] Test 14/20/28 pt presets, rotated/masked text, proportional group scaling,
+  copy/paste/duplicate, editor/document undo, and erasure on later wrapped lines.
+- [ ] Board resize preserves committed width/content/history, including offscreen text.
+- [ ] A V E 12345, arrows, clipboard, Delete/Backspace remain owned by the editor.

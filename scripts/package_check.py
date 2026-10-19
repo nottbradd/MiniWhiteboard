@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import time
+import sys
 
 import pefile
 from mini_whiteboard import windows
@@ -18,7 +19,7 @@ from .build_support import verify_release_files
 def main():
     windows.enable_dpi_awareness()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v11/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v12/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     executable = args.executable.resolve()
     results = []
@@ -39,7 +40,7 @@ def main():
         for entry in group:
             for table in getattr(entry, 'StringTable', ()):
                 version_strings.update(table.entries)
-    check('Executable product and file metadata are Version 1.1',
+    check('Executable product and file metadata are Version 1.2',
           version_strings.get(b'ProductVersion') == APP_VERSION.encode()
           and version_strings.get(b'FileVersion') == APP_VERSION.encode(),
           {key.decode(): value.decode() for key,value in version_strings.items()})
@@ -54,7 +55,7 @@ def main():
                     data = language.data.struct
                     manifests.append(pe.get_data(data.OffsetToData, data.Size).decode("utf-8", errors="replace"))
     check("Embedded manifest is PerMonitorV2 and asInvoker",
-          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.1.0.0"' in text for text in manifests))
+          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.2.0.0"' in text for text in manifests))
     initial = windows.SingleInstance()
     if not initial.acquired:
         initial.close()
@@ -62,6 +63,9 @@ def main():
     initial.close()
     process = subprocess.Popen([str(executable)], creationflags=subprocess.CREATE_NO_WINDOW)
     saved_cursor = windows.cursor_position()
+    helper = None
+    pressed = set()
+    previous = windows.bind(windows.user32, "GetForegroundWindow", W.HWND)()
     try:
         acquired = True
         for _ in range(50):
@@ -116,29 +120,69 @@ def main():
                     found.append(handle)
             return found
 
-        set_cursor(130, 150)
-        post_thread(thread, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
-        # A cold launch can still be loading Qt when the message is posted.
-        # Keep the pointer at the first corner until the actual preview exists.
-        # Empty board enumeration alone would also pass before the event ran.
-        preview_ready = False
-        for _ in range(50):
-            boards = board_windows()
-            preview_ready = not boards and bool(visible)
-            if preview_ready or process.poll() is not None:
-                break
-            time.sleep(.1)
-        check("Packaged first event creates preview only", preview_ready, visible)
-        set_cursor(630, 490)
-        post_thread(thread, windows.WM_HOTKEY, windows.CREATE_HOTKEY, 0)
+        helper = subprocess.Popen([sys.executable, '-m', 'scripts.focus_target'], stdout=subprocess.PIPE,
+                                  text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        identity = json.loads(helper.stdout.readline())
+        foreground = windows.bind(user32, 'GetForegroundWindow', W.HWND)
+        user32.SetForegroundWindow(identity['hwnd'])
+        time.sleep(.2)
+        if foreground() != identity['hwnd']:
+            user32.SetWindowPos(identity['hwnd'], W.HWND(-1), 0, 0, 0, 0, 0x0053)
+            time.sleep(.4)
+            set_cursor(100, 130)
+            get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
+            owner = W.DWORD()
+            get_pid(get_at(W.POINT(*windows.cursor_position())), C.byref(owner))
+            check('Packaged external activation target is owned', owner.value == identity['pid'])
+            mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
+            mouse(2, 0, 0, 0, 0)
+            mouse(4, 0, 0, 0, 0)
+            time.sleep(.2)
+            user32.SetWindowPos(identity['hwnd'], W.HWND(-2), 0, 0, 0, 0, 0x0013)
+        check('Packaged test has external helper focus', foreground() == identity['hwnd'])
+        key_event = windows.bind(user32, 'keybd_event', None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
+
+        def key(vk, up=False):
+            key_event(vk, 0, 2 if up else 0, 0)
+            pressed.discard(vk) if up else pressed.add(vk)
+
+        def begin(trigger, point):
+            set_cursor(*point)
+            for vk in (0x11, 0x12, ord(trigger)):
+                key(vk)
+            time.sleep(.2)
+
+        def release_all():
+            for vk in tuple(pressed):
+                key(vk, True)
+            time.sleep(.15)
+
+        def wait_boards(count):
+            for _ in range(40):
+                boards = board_windows()
+                if len(boards) == count or process.poll() is not None:
+                    return boards
+                time.sleep(.1)
+            return boards
+
+        begin('W', (130,150))
+        check('Packaged hold starts preview without a board', not board_windows() and bool(visible))
+        check('Packaged passive preview preserves external focus', foreground() == identity['hwnd'])
+        set_cursor(630,490)
         for _ in range(30):
-            time.sleep(.1)
-            boards = board_windows()
-            if boards or process.poll() is not None:
-                break
-        check("Packaged second event creates a board with bundled canvas/shadow", len(boards) == 1, boards)
-        post = windows.bind(user32, "PostMessageW", W.BOOL, W.HWND, W.UINT, W.WPARAM, W.LPARAM)
-        time.sleep(.25)
+            key(ord('W'))
+            time.sleep(.04)
+        check('Packaged long repeated hold cannot create a board', not board_windows() and bool(visible))
+        key(0x11, True)
+        boards = wait_boards(1)
+        check('Packaged modifier-first release creates one board', len(boards) == 1)
+        key(0x12, True)
+        for _ in range(8):
+            key(ord('W'))
+            time.sleep(.025)
+        check('Packaged remaining held trigger does not create another preview', len(board_windows()) == 1
+              and len(visible) == 1)
+        release_all()
         actual_rect = W.RECT()
         get_rect = windows.bind(user32,'GetWindowRect',W.BOOL,W.HWND,C.POINTER(W.RECT))
         if not get_rect(boards[0],C.byref(actual_rect)):
@@ -148,57 +192,61 @@ def main():
         paper = Rect(actual_rect.left+shadow,actual_rect.top+shadow,
                      actual_rect.right-actual_rect.left-2*shadow,
                      actual_rect.bottom-actual_rect.top-2*shadow)
+        check('Packaged paper matches hold rectangle', paper == Rect(130,150,500,340), vars(paper))
         surface = windows.capture_rect(paper)
         width,height = surface.width(),surface.height()
         pixels = [surface.pixelColor(x,y).name() for x,y in
                   ((width//2,0),(0,height//2),(width-1,height//2),(width//2,height-1))]
         check('Packaged blank board has top line and no side or bottom outlines',
-              pixels[0]==BORDER and all(p=='#ffffff' for p in pixels[1:]),
-              {'pixels':pixels,'window_rect':[actual_rect.left,actual_rect.top,actual_rect.right,actual_rect.bottom]})
-        post_thread(thread, windows.WM_HOTKEY, windows.CAPTURE_HOTKEY, 0)
-        time.sleep(.3)
-        board_windows()  # Refresh all visible windows owned by the packaged process.
-        overlays = []
-        for handle in visible:
-            rect = W.RECT()
-            if get_rect(handle,C.byref(rect)) and rect.right-rect.left > 1000:
-                overlays.append(handle)
-        check('Packaged capture overlay exists above the owned blank board', bool(overlays))
+              pixels[0]==BORDER and all(p=='#ffffff' for p in pixels[1:]), pixels)
         point = (round(paper.x+paper.width*.2),round(paper.y+paper.height*.3))
         end = (round(paper.x+paper.width*.7),round(paper.y+paper.height*.7))
-        set_cursor(*point)
-        get_at = windows.bind(user32,'WindowFromPoint',W.HWND,W.POINT)
-        check('Packaged screenshot drag starts on its owned overlay',
-              windows.cursor_position()==point and get_at(W.POINT(*point)) in overlays,
-              {'target':point,'cursor':windows.cursor_position(),
-               'window':get_at(W.POINT(*point)),'overlays':overlays})
-        mouse = windows.bind(user32,'mouse_event',None,W.DWORD,W.DWORD,W.DWORD,W.DWORD,C.c_size_t)
-        mouse(0x0002,0,0,0,0)
-        try:
-            time.sleep(.1)
-            set_cursor(*end)
-            if windows.cursor_position()!=end:
-                raise RuntimeError('Pointer moved during the owned capture test')
-        finally:
-            mouse(0x0004,0,0,0,0)
-        time.sleep(.4)
-        boards = board_windows()
-        check('Packaged capture creates an image board using bundled background-cache module',len(boards)==2 and process.poll() is None)
+        begin('S', point)
+        check('Packaged screenshot hold starts only a preview', len(board_windows()) == 1 and len(visible) > 1)
+        set_cursor(*end)
+        time.sleep(.15)
+        key(ord('S'), True)
+        boards = wait_boards(2)
+        release_all()
+        check('Packaged screenshot release creates image board without mouse input', len(boards) == 2 and process.poll() is None)
+        post = windows.bind(user32, 'PostMessageW', W.BOOL, W.HWND, W.UINT, W.WPARAM, W.LPARAM)
         for handle in boards:
             post(handle, 0x0010, 0, 0)
         time.sleep(.2)
-        check("Packaged board close leaves tray process running", not board_windows() and process.poll() is None)
-        post_thread(thread, windows.WM_HOTKEY, windows.CAPTURE_HOTKEY, 0)
-        time.sleep(.3)
-        check('Packaged screenshot shortcut creates selection overlay only', not board_windows() and bool(visible))
-        post_thread(thread, windows.WM_HOTKEY, windows.ESCAPE_HOTKEY, 0)
-        time.sleep(.2)
-        check('Packaged screenshot Escape removes overlay and keeps tray alive', not board_windows() and not visible and process.poll() is None)
+        check('Packaged close preserves tray process', not board_windows() and process.poll() is None)
+        user32.SetForegroundWindow(identity['hwnd'])
+        time.sleep(.1)
+        # No text is typed here; a registered global shortcut is sent only while
+        # the owned helper has focus. Abort if Windows denied foreground access.
+        check('External helper restored before packaged cancellation', foreground() == identity['hwnd'])
+        begin('S', (250,330))
+        key(0x1b)
+        time.sleep(.1)
+        key(0x1b, True)
+        for _ in range(10):
+            key(ord('S'))
+            time.sleep(.03)
+        check('Packaged Escape while held removes preview and suppresses restart', not board_windows() and not visible)
+        release_all()
+        begin('W', (250,330))
+        release_all()
+        check('Packaged too-small release cancels completely', not board_windows() and not visible)
+        begin('W', (130,150))
+        set_cursor(630,490)
+        release_all()
+        check('Packaged fresh hold recovers after cancellation', len(wait_boards(1)) == 1)
     finally:
         # This test created the process without boards; terminate only that
         # exact subprocess. Normal application exit is via its tray action.
+        for vk in tuple(pressed):
+            key_event(vk, 0, 2, 0)
         process.terminate()
         process.wait(timeout=10)
+        if helper is not None:
+            helper.terminate()
+            helper.wait(timeout=10)
+        if previous:
+            windows.user32.SetForegroundWindow(previous)
         windows.bind(windows.user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)(*saved_cursor)
         Path(".test-artifacts").mkdir(exist_ok=True)
         Path(".test-artifacts/package-check.json").write_text(json.dumps(results, indent=2), encoding="utf-8")

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def main():
-    print("## Mini Whiteboard 1.1 macOS tester build\n")
+    print("## Mini Whiteboard 1.2 macOS tester build\n")
     print("| Check | Actual result |\n|---|---|")
     for label, filename in (("Mac imports", "macos-import-smoke.json"),
                             ("App bundle", "macos-package-check.json"),
@@ -17,12 +17,12 @@ def main():
     print(f"\nBundle architecture: `{report['architecture']}`.\n")
     print(f"ZIP SHA-256: `{report['sha256']}`.\n")
     print("The complete unittest logs are in the verification artifact. This is a tester/beta build.")
-    print("\nInteractive Mac acceptance: **NOT RUN**. Global keys, two-press cursor placement, "
+    print("\nInteractive Mac acceptance: **NOT RUN**. Global keys, hold/release cursor placement, "
           "Escape with another app focused, menu mouse interaction, always-on-top, permission "
           "prompts, screenshot selection, Spaces, Mission Control, Stage Manager, real Retina "
           "and physical multi-monitor behaviour remain on docs/MACOS_CHECKLIST.md.")
-    print("\nDownload **MacMiniWhiteboardV1.1** below. Extract GitHub's outer artifact archive "
-          "to obtain **MacMiniWhiteboardV1.1.zip**; transfer that inner ZIP unchanged.")
+    print("\nDownload **MacMiniWhiteboardV1.2** below. Extract GitHub's outer artifact archive "
+          "to obtain **MacMiniWhiteboardV1.2.zip**; transfer that inner ZIP unchanged.")
 
 
 if __name__ == "__main__":

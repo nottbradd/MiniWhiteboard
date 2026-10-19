@@ -4,7 +4,7 @@ Start with the [main README](../README.md) for downloads, setup and shortcuts.
 
 | Guide | What it covers |
 |---|---|
-| [Release notes](RELEASE_NOTES.md) | V1.1 Windows release and Mac preview, downloads and verification |
+| [Release notes](RELEASE_NOTES.md) | V1.2 Windows release and Mac preview, downloads and verification |
 | [Specification](SPEC.md) | Application behaviour and requirements |
 | [Implementation plan](PLAN.md) | Approved design and implementation history |
 | [Test results](TEST_RESULTS.md) | Actual automated, native and packaging results |
@@ -23,7 +23,7 @@ project license stays at [LICENSE](../LICENSE).
 
 The [placement GIF](media/placement.gif) and [board screenshot](media/whiteboard.png)
 are rendered from the actual application on a controlled desktop. No personal
-desktop content is captured. The demo drives the real two-press placement
+desktop content is captured. The demo drives the real hold/release placement
 controller and verifies that only the second press creates a board. Physical
 Windows hotkeys are verified separately by the native workflow check.
 

@@ -4,6 +4,7 @@ import ctypes
 import importlib
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -27,7 +28,8 @@ def build_environment():
         versions["Qt"] = "not installed yet"
     result = dict(macOS=platform.mac_ver()[0], cpu=platform.machine(),
                   python=sys.version, python_platform=sysconfig.get_platform(),
-                  packages=versions)
+                  packages=versions, source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                  runner_os=os.environ.get('RUNNER_OS'), runner_arch=os.environ.get('RUNNER_ARCH'))
     if sys.platform == "darwin":
         result["python_binary"] = subprocess.check_output(
             ["/usr/bin/file", "-b", str(Path(sys.executable).resolve())], text=True).strip()
@@ -62,8 +64,16 @@ def run_smoke():
         raise RuntimeError("ScreenCaptureKit still-image API is unavailable.")
     carbon = ctypes.CDLL("/System/Library/Frameworks/Carbon.framework/Carbon")
     for name in ("RegisterEventHotKey", "UnregisterEventHotKey", "InstallEventHandler",
-                 "RemoveEventHandler", "GetEventDispatcherTarget", "GetEventParameter"):
+                 "RemoveEventHandler", "GetEventDispatcherTarget", "GetEventParameter",
+                 "GetKeys", "GetCurrentKeyModifiers", "GetEventTime", "GetCurrentEventTime"):
         getattr(carbon, name)
+    # Validate availability/callability without registering keys or printing
+    # keyboard state. This does not prove interactive delivery or TCC behaviour.
+    carbon.GetKeys.argtypes = [ctypes.POINTER(ctypes.c_uint32)]
+    carbon.GetKeys.restype = None
+    carbon.GetKeys((ctypes.c_uint32*4)())
+    carbon.GetCurrentKeyModifiers.restype = ctypes.c_uint32
+    carbon.GetCurrentKeyModifiers()
     return dict(imports=list(modules), platform=selected.name, windows_modules=unwanted,
                 startup_before_application="PASSED", carbon_symbols="PASSED",
                 screen_capture_api="PASSED", permission_requests="none")

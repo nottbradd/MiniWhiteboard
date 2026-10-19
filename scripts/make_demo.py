@@ -79,7 +79,7 @@ def main():
         p.drawRoundedRect(QRectF(806,38,100,30),15,15)
         p.setFont(QFont('Segoe UI',10,QFont.Weight.Bold))
         p.setPen(QColor('#162e32'))
-        p.drawText(QRectF(806,38,100,30),Qt.AlignmentFlag.AlignCenter,'VERSION 1.1')
+        p.drawText(QRectF(806,38,100,30),Qt.AlignmentFlag.AlignCenter,'VERSION 1.2')
         for overlay in controller.placement.overlays:
             p.drawPixmap(0,0,overlay.grab())
         for board in controller.boards:
@@ -116,20 +116,20 @@ def main():
         frame('1  Point at the first corner.',anchor,900)
         controller.hotkeys.events.create.emit()
         assert controller.placement.state.active and not controller.boards
-        frame('2  Press once to start.',anchor,850,True)
+        frame('2  Hold the shortcut to start.',anchor,850,True)
         for i in range(1,25):
             t=i/24
             eased=t*t*(3-2*t)
             point=(round(anchor[0]+(end[0]-anchor[0])*eased),round(anchor[1]+(end[1]-anchor[1])*eased))
             platform.desktop.cursor=point
             controller.placement.track()
-            frame('3  Move to the opposite corner.',point)
-        frame('4  Press again to place your board.',end,850,True)
-        controller.hotkeys.events.create.emit()
+            frame('3  Keep holding and move.',point,keys=True)
+        frame('4  Release to place your board.',end,850,True)
+        controller.hotkeys.events.create_released.emit()
         assert len(controller.boards)==1 and not controller.placement.state.active
         frame('Your board is ready.',end,800)
         canvas=controller.boards[0].canvas
-        objects=(Text((36,30),'Make room for an idea.',28),
+        objects=(Text((36,30),'Make room for an idea.',28,layout_width=610),
                  Text((38,88),'Sketch. Type. Annotate.',18,color='#6b7c8c'),
                  Shape('Rounded rectangle',(36,157),(206,234),3,color='#2878d0'),
                  Text((59,176),'Start here',18,color='#2878d0'),
@@ -145,7 +145,7 @@ def main():
         if not args.frames_only:
             encode(directory,media/'placement.gif')
         print(json.dumps({'frames':len(records),'milliseconds':sum(r['duration'] for r in records),
-                          'controller_two_press':'PASSED','user_screen_content':'not captured'}))
+                          'controller_hold_release':'PASSED','user_screen_content':'not captured'}))
     finally:
         controller.cleanup()
         app.processEvents()

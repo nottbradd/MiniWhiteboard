@@ -8,9 +8,11 @@ def rebuild_menu(controller):
     c, menu = controller, controller.menu
     menu.clear()
     menu.addAction(f"Mini Whiteboard {APP_VERSION}").setEnabled(False)
-    menu.addAction("New Whiteboard", c.placement.press)
-    menu.addAction("Screenshot to Whiteboard", c.capture.start)
-    if c.platform.shortcuts.mac and (c.placement.state.active or c.capture.active):
+    for label, key in (("New Whiteboard", "W"), ("Screenshot to Whiteboard", "S")):
+        shortcut = c.platform.shortcuts.global_label(key)
+        menu.addAction(f"{label} · hold {shortcut}",
+                       lambda checked=False, s=shortcut: c.notify(f"Point at the first corner, hold {s}, move, then release."))
+    if c.placement.state.active or c.capture.active:
         def cancel():
             c.placement.cancel()
             c.capture.cancel()

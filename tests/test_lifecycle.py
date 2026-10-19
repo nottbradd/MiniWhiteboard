@@ -35,7 +35,7 @@ class LifecycleTests(QtCase):
         self.assertTrue(placement.state.active)
         self.assertEqual(placement.state.anchor, (50, 50))
         with patch("mini_whiteboard.windows.cursor_position", return_value=(400, 250)):
-            placement.press()
+            placement.release()
         self.assertEqual(confirmed, [Rect(50, 50, 350, 200)])
         self.assertEqual(placement.overlays, [])
         self.assertFalse(placement.timer.isActive())

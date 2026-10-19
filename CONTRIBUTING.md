@@ -14,7 +14,8 @@ do not need a real desktop.
 
 Keep these behaviours covered when making changes:
 
-- Board placement takes exactly two distinct presses of the global W shortcut.
+- Board and screenshot creation each use one hold, pointer movement, then release.
+  Releasing any required key ends the gesture; repeated activations cannot restart it.
 - Tool keys work only in the active canvas. A text editor owns its typing,
   clipboard commands and undo while it is active.
 - A gesture commits one document action; cancellation adds no history entry.

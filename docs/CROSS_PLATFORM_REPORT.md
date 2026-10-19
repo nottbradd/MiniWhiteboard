@@ -1,3 +1,19 @@
+# Mini Whiteboard V1.2 cross-platform update
+
+V1.2 shares hold/move/release ownership and wrapped text layout across platforms.
+Windows retains RegisterHotKey/MOD_NOREPEAT plus a temporary native release latch;
+macOS retains Carbon registration and release events, with temporary hardware
+state checks for modifier-first release and remaining trigger cleanup. Neither
+adapter introduces idle tracking or a new permission request.
+
+Mac CI now uses the standard free macos-15 runner. Deployment, bundle and runtime
+minimum remain macOS 14.0. Universal2 validation and the genuine-architecture-only
+fallback remain unchanged. Actual OS/CPU/Python/build revision and CI results are
+in [TEST_RESULTS.md](TEST_RESULTS.md). Interactive Mac acceptance, macOS 14 and
+Intel execution remain NOT RUN until observed on real hardware.
+
+## Historical V1.1 report
+
 # Mini Whiteboard 1.1 — cross-platform implementation report
 
 ## Release publication update — 2026-10-11

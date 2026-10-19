@@ -1,4 +1,4 @@
-"""Opt-in real Windows keyboard test using an owned external focus target.
+"""Opt-in real Windows hold/release keyboard test using an owned external focus target.
 
 Temporarily moves the cursor and sends Ctrl+Alt+W/Escape. Never types into an
 unowned window; aborts if the foreground window is unexpected. Restores cursor
@@ -35,6 +35,8 @@ def main():
     set_cursor = windows.bind(user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)
     key_event = windows.bind(user32, "keybd_event", None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
     controller = WhiteboardApplication(app, SnapPreferences())
+    messages = []
+    controller.placement.message.connect(messages.append)
     confirmed_rectangles = []
     controller.placement.confirmed.connect(confirmed_rectangles.append)
     helper = QProcess()
@@ -134,99 +136,135 @@ def main():
         focus_target()
         base = windows.monitors()[0].rect
         a, b = (round(base.x+130), round(base.y+150)), (round(base.x+630), round(base.y+490))
-        set_cursor(*a)
-        press_creation(release=False)
-        check("First real key press starts placement only", controller.placement.state.anchor == a and not controller.boards,
-              {"anchor": controller.placement.state.anchor, "expected": a,
-               "cursor": windows.cursor_position(), "boards": len(controller.boards),
-               "registered": list(controller.hotkeys.registered), "errors": errors})
-        check("Preview does not steal external focus", foreground() == helper_id)
-        key(ord("W"))  # repeated key-down without a key-up
-        QTest.qWait(100)
-        check("MOD_NOREPEAT prevents held shortcut confirmation", controller.placement.state.active and not controller.boards)
-        for vk in (ord("W"), 0x12, 0x11):
-            key(vk, True)
-        QTest.qWait(100)
-        check("Releasing shortcut does not confirm", controller.placement.state.active and not controller.boards)
+
+        def begin(trigger, point):
+            set_cursor(*point)
+            for vk in (0x11, 0x12, ord(trigger)):
+                key(vk)
+            QTest.qWait(100)
+
+        def release_all():
+            for vk in tuple(pressed):
+                key(vk, True)
+            QTest.qWait(80)
+
+        def idle(label):
+            check(label, not controller.placement.overlays and not controller.capture.overlays
+                  and not controller.placement.timer.isActive() and not controller.capture.tracking.isActive()
+                  and not controller.hotkeys.hold.timer.isActive() and not controller.hotkeys.hold.blocked
+                  and controller.placement.session.owner is None)
+
+        begin('W', a)
+        check('Hold starts placement without a board', controller.placement.state.anchor == a and not controller.boards, {"anchor":controller.placement.state.anchor,"messages":messages,"registered":list(controller.hotkeys.registered)})
+        check('Passive preview preserves external focus', foreground() == helper_id)
         set_cursor(*b)
         QTest.qWait(100)
         expected = normalized(a, controller.placement.last_point)
-        check("First anchor stays fixed as cursor moves", controller.placement.state.anchor == a)
-        check("Preview follows cursor", all(o.outline == expected for o in controller.placement.overlays),
-              {"expected": vars(expected), "cursor": windows.cursor_position(),
-               "last_point": controller.placement.last_point,
-               "outlines": [vars(o.outline) if o.outline else None for o in controller.placement.overlays], "errors": errors})
+        check('Held preview follows pointer with fixed anchor', all(o.outline == expected for o in controller.placement.overlays))
         overlay = controller.placement.overlays[0]
         image = overlay.grab().toImage()
-        check("Preview interior remains transparent", image.pixelColor(a[0]-round(base.x)+20, a[1]-round(base.y)+20).alpha() == 0)
-        focus_target()
-        press_creation()
-        check("Second distinct key press creates exactly one board", len(controller.boards) == 1 and not controller.placement.state.active)
-        board = controller.boards[0]
-        QTest.qWait(150)
-        check("Finished paper matches confirmation bounds", board.physical_paper_rect() == confirmed_rectangles[-1])
-        check("Confirmed board receives keyboard focus", board.canvas.hasFocus())
-        check("Confirmation removes preview and tracking timer", not controller.placement.overlays and not controller.placement.timer.isActive())
-        board.minimize_to_tray()
-        focus_target()
-        set_cursor(*b)
-        press_creation()
-        # An undersized confirmation preserves the first corner.
-        set_cursor(b[0]-20, b[1]-20)
-        press_creation()
-        check("Undersized confirmation retains placement and first corner", controller.placement.state.anchor == b and len(controller.boards) == 1)
-        set_cursor(*a)
-        press_creation()
-        check("Reverse direction creates a second independent board", len(controller.boards) == 2 and controller.boards[1].physical_paper_rect() == confirmed_rectangles[-1])
-        controller.boards[1].minimize_to_tray()
-        focus_target()
-        press_creation()
-        key(0x1B)
-        key(0x1B, True)
+        check('Preview interior remains transparent', image.pixelColor(a[0]-round(base.x)+20, a[1]-round(base.y)+20).alpha() == 0)
+        for _ in range(30):
+            key(ord('W'))
+            QTest.qWait(40)
+        check('Thirty repeated key-downs cannot confirm or restart', controller.placement.state.active and not controller.boards)
+        key(ord('S'))
         QTest.qWait(100)
-        check("Real Escape cancels with external application focused", not controller.placement.state.active and len(controller.boards) == 2)
-        check("Escape leaves external focus intact", foreground() == helper_id)
-        press_capture()
-        check('Real Ctrl+Alt+S enters screenshot selection without a board', controller.capture.active and len(controller.boards) == 2)
-        check('Screenshot selection keeps the external application focused', foreground() == helper_id)
+        check('Competing capture is ignored during W hold', not controller.capture.active and controller.placement.state.active)
+        key(ord('W'), True)
+        QTest.qWait(100)
+        check('Trigger-first release creates exactly one board', len(controller.boards) == 1 and not controller.placement.state.active)
+        board = controller.boards[-1]
+        check('Release paper matches sampled bounds', board.physical_paper_rect() == confirmed_rectangles[-1])
+        check('Completed board gets canvas focus', board.canvas.hasFocus())
+        key(0x11, True)
+        key(0x12, True)
+        for _ in range(5):
+            key(ord('S'))
+            QTest.qWait(25)
+        check('Competing held S cannot switch focused board to Shape', board.canvas.tool == 'Draw')
+        release_all()
+        idle('Completion drains keys and removes every preview/timer')
+        board.minimize_to_tray()
+
+        for modifier, name in ((0x11, 'Control'), (0x12, 'Alt')):
+            focus_target()
+            count = len(controller.boards)
+            begin('W', b)
+            set_cursor(*a)
+            QTest.qWait(40)
+            key(modifier, True)
+            QTest.qWait(100)
+            check(name+'-first release finishes reverse placement once', len(controller.boards) == count+1
+                  and controller.boards[-1].physical_paper_rect() == confirmed_rectangles[-1])
+            for _ in range(5):
+                key(ord('W'))
+                QTest.qWait(25)
+            check(name+'-first held repeats leave no new outline', not controller.placement.state.active and len(controller.boards) == count+1)
+            release_all()
+            idle(name+'-first release cleanup is idle')
+            controller.boards[-1].minimize_to_tray()
+
+        focus_target()
+        count = len(controller.boards)
+        begin('W', a)
         key(0x1B)
+        QTest.qWait(60)
         key(0x1B, True)
-        QTest.qWait(80)
-        check('Real Escape cancels screenshot selection', not controller.capture.active and len(controller.boards) == 2)
-        expected_pixel = windows.capture_rect(Rect(250,330,250,140)).pixelColor(100,50).name()
-        press_capture()
+        check('Escape cancels while Control Alt W remain held externally', not controller.placement.state.active and foreground() == helper_id, {'placement':controller.placement.state.active,'foreground':foreground(),'helper':helper_id,'hold':controller.hotkeys.hold.active,'blocked':list(controller.hotkeys.hold.blocked),'errors':errors})
+        for _ in range(10):
+            key(ord('W'))
+            QTest.qWait(30)
+        check('Cancelled held repeats never restart', not controller.placement.state.active and len(controller.boards) == count)
+        release_all()
+        idle('Cancelled hold cleanup is idle')
+        begin('W', a)
+        key(ord('W'), True)
+        QTest.qWait(60)
+        check('Immediate zero-area release cancels without waiting', not controller.placement.state.active and len(controller.boards) == count)
+        release_all()
+        idle('Too-small release cleanup is idle')
+
+        focus_target()
         start, end = (250,330), (500,470)
+        expected_pixel = windows.capture_rect(Rect(250,330,250,140)).pixelColor(100,50).name()
+        begin('S', start)
+        check('S hold anchors at shortcut activation without capture', controller.capture.anchor == start and len(controller.boards) == count)
+        check('Screenshot preview preserves external focus', foreground() == helper_id)
         get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
-        check('Screenshot click target belongs to our capture overlay',
-              get_at(W.POINT(*start)) in {int(o.winId()) for o in controller.capture.overlays})
-        mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
-        set_cursor(*start)
-        mouse(0x0002,0,0,0,0)
-        mouse_down = True
-        QTest.qWait(80)
-        check('Real screenshot mouse press records physical first corner', controller.capture.anchor == start,
-              controller.capture.anchor)
+        check('Screenshot preview is mouse transparent', get_at(W.POINT(*start)) not in {int(o.winId()) for o in controller.capture.overlays})
         set_cursor(*end)
         QTest.qWait(80)
-        mouse(0x0004,0,0,0,0)
-        mouse_down = False
-        QTest.qWait(180)
-        check('Real screenshot mouse release creates exactly one image board', len(controller.boards) == 3 and not controller.capture.active)
+        check('Screenshot preview tracks while held', all(o.outline == Rect(250,330,250,140) for o in controller.capture.overlays))
+        key(0x11, True)
+        QTest.qWait(250)
+        check('S modifier-first release captures without any mouse input', len(controller.boards) == count+1 and not controller.capture.active)
         captured = controller.boards[-1].canvas.document.objects[0]
-        check('Real screenshot preserves physical size and starts locked', isinstance(captured,ImageObject)
-              and captured.locked and captured.pixel_size == (250,140))
-        captured_pixel = images.decoded(captured.png).pixelColor(100,50).name()
-        check('Real screenshot reads the disposable helper blank paper', captured_pixel == expected_pixel,
-              {'expected': expected_pixel, 'captured': captured_pixel})
+        check('Captured image starts locked at physical size', isinstance(captured, ImageObject) and captured.locked and captured.pixel_size == (250,140))
+        check('Captured pixels exclude preview', images.decoded(captured.png).pixelColor(100,50).name() == expected_pixel)
+        key(0x12, True)
+        for _ in range(8):
+            key(ord('S'))
+            QTest.qWait(25)
+        check('Remaining capture S cannot activate the Shape tool', controller.boards[-1].canvas.tool == 'Draw')
+        release_all()
+        idle('Screenshot completion cleanup is idle')
         controller.boards[-1].minimize_to_tray()
         focus_target()
-        press_creation()
-        check('Ctrl+Alt+W still starts first-corner placement after screenshot', controller.placement.state.active
-              and len(controller.boards) == 3 and not controller.capture.active)
+        begin('S', a)
         key(0x1B)
+        QTest.qWait(60)
         key(0x1B, True)
-        QTest.qWait(80)
-        check("No callback exceptions", not errors, errors)
+        check('Escape cancels an S hold before capture', not controller.capture.active)
+        release_all()
+        idle('Screenshot cancellation cleanup is idle')
+        begin('W', a)
+        set_cursor(*b)
+        QTest.qWait(30)
+        release_all()
+        check('Fresh W works immediately after cancelled capture', len(controller.boards) == count+2)
+        idle('Final gesture leaves no tracking resources')
+        check('No callback exceptions', not errors, errors)
     finally:
         if mouse_down:
             windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)(0x0004,0,0,0,0)

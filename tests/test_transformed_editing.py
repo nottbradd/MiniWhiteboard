@@ -107,7 +107,7 @@ class TransformedEditingTests(CanvasCase):
         QTest.mouseClick(overlay.viewport(), Qt.MouseButton.LeftButton, pos=inside)
         APP.processEvents()
         self.assertIsNotNone(self.canvas.editor)
-        QTest.mouseClick(overlay.viewport(), Qt.MouseButton.LeftButton, pos=QPoint(550, 350))
+        QTest.mouseClick(overlay.viewport(), Qt.MouseButton.LeftButton, pos=QPoint(10, 10))
         APP.processEvents()
         self.assertIsNone(self.canvas.editor)
         self.assertTrue(self.canvas.hasFocus())

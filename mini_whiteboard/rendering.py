@@ -12,7 +12,7 @@ from PySide6.QtGui import (QAbstractTextDocumentLayout, QColor, QFont, QPainterP
 from .document import Shape, Stroke, Text, ImageObject
 from .geometry import normalized
 from .settings import (INK, SELECTION, HANDLE_DIAMETER, HANDLE_HIT_RADIUS,
-                       ROTATION_HANDLE_DISTANCE, CONTAINMENT_TOLERANCE)
+                       ROTATION_HANDLE_DISTANCE, CONTAINMENT_TOLERANCE, TEXT_DEFAULT_WIDTH)
 from .transforms import SelectionFrame, IDENTITY
 
 
@@ -39,7 +39,7 @@ def clip_path(clip):
 
 
 @lru_cache(maxsize=256)
-def text_document(text, size):
+def text_document(text, size, layout_width=TEXT_DEFAULT_WIDTH):
     document = QTextDocument()
     document.setDocumentMargin(2)
     from .shortcuts import ui_font_family
@@ -47,10 +47,10 @@ def text_document(text, size):
     font.setPointSizeF(size)
     document.setDefaultFont(font)
     option = QTextOption()
-    option.setWrapMode(QTextOption.WrapMode.NoWrap)
+    option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
     document.setDefaultTextOption(option)
     document.setPlainText(text)
-    document.adjustSize()
+    document.setTextWidth(layout_width)
     return document
 
 
@@ -124,7 +124,7 @@ def arrowhead(obj):
 
 
 def text_bounds(obj):
-    size = text_document(obj.text, obj.size).size()
+    size = text_document(obj.text, obj.size, obj.layout_width).size()
     return QRectF(*obj.position, max(20, size.width()), max(20, size.height()))
 
 
@@ -137,8 +137,8 @@ def stroked(path, width):
 
 
 @lru_cache(maxsize=256)
-def text_ink(text, size):
-    document = text_document(text, size)
+def text_ink(text, size, layout_width=TEXT_DEFAULT_WIDTH):
+    document = text_document(text, size, layout_width)
     document.documentLayout().documentSize()
     result = QPainterPath()
     result.setFillRule(Qt.FillRule.WindingFill)
@@ -164,7 +164,7 @@ def local_ink(obj):
 @lru_cache(maxsize=512)
 def _local_ink(obj):
     if isinstance(obj, Text):
-        ink = QTransform.fromTranslate(*obj.position).map(text_ink(obj.text, obj.size))
+        ink = QTransform.fromTranslate(*obj.position).map(text_ink(obj.text, obj.size, obj.layout_width))
     elif isinstance(obj, ImageObject):
         ink = object_path(obj)
     else:
@@ -306,7 +306,7 @@ def _paint_data(obj):
     from .images import decoded
     return PaintData(object_path(obj), local_ink(replace(obj, clip=None)), remaining_local(obj),
                      _paint_clip(obj) if obj.erasures or obj.clip is not None else None,
-                     text_document(obj.text, obj.size) if isinstance(obj, Text) else None,
+                     text_document(obj.text, obj.size, obj.layout_width) if isinstance(obj, Text) else None,
                      decoded(obj.png) if isinstance(obj, ImageObject) else None)
 
 

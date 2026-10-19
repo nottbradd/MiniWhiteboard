@@ -1,4 +1,4 @@
-name: macOS V1.1
+name: macOS V1.2
 
 on:
   workflow_dispatch:
@@ -14,19 +14,19 @@ on:
       - 'requirements*.txt'
       - 'build_macos.sh'
       - 'Mini Whiteboard.macos.spec'
-      - '.github/workflows/macos-v1.1.yml'
+      - '.github/workflows/macos-v1.2.yml'
       - '.gitattributes'
 
 permissions:
   contents: read
 
 concurrency:
-  group: macos-v11-${{ github.ref }}
+  group: macos-v12-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     defaults:
       run:
@@ -95,8 +95,8 @@ jobs:
       - name: Upload the verified tester ZIP
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: MacMiniWhiteboardV1.1
-          path: build/MacMiniWhiteboardV1.1.zip
+          name: MacMiniWhiteboardV1.2
+          path: build/releases-v1.2/MacMiniWhiteboardV1.2.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -105,7 +105,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: macos-v1.1-verification
+          name: macos-v1.2-verification
           path: verification/
           if-no-files-found: warn
           retention-days: 30

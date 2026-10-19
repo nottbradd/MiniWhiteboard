@@ -1,3 +1,28 @@
+# Approved Mini Whiteboard V1.2 implementation plan
+
+## V1.2 - 2026-10-19
+
+1. Reproduce V1.1 using its preserved executable and current source. Keep exact
+   hashes and observations; do not assume MOD_NOREPEAT alone prevents activation.
+2. Add shared preview ownership and native hold/release latches. Replace W/S
+   confirmation with hold/move/release; drain remaining trigger keys and clean all
+   cancellation paths. Preserve queued cancellable capture and native boundaries.
+3. Store validated local text width; share wrapping across editor/layout/glyph
+   paths, preserve clipboard/history/transforms/masks, follow the caret in the
+   temporary editor, and protect exclusive editor input.
+4. Update version/resources/default paths/demo/docs. Move the one Mac workflow
+   to macos-15, keep minimum support 14.0 and all pinned-action validation gates.
+5. Run the full suite, native external-focus Windows holds, frozen Windows app,
+   existing performance workloads and fresh Mac CI. Inspect packages/notices/hashes.
+6. Commit/push, verify checks, publish v1.2 stable Windows plus labelled Mac preview.
+   Keep v1.1 intact and record unperformed interactive/hardware acceptance.
+
+Implementation and actual evidence are recorded in [TEST_RESULTS.md](TEST_RESULTS.md).
+The earlier plans below are historical; their two-press/click-drag instructions
+are superseded by V1.2.
+
+## Historical plans
+
 # Approved implementation plan
 
 ## V1.1 release and repository polish — approved 2026-10-11

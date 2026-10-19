@@ -1,30 +1,29 @@
 # Mini Whiteboard
 
 [![Windows tests](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml)
-[![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.1.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.1.yml)
+[![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.2.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.2.yml)
 
-A small desktop whiteboard you place with two keyboard presses. Draw, type, paste
-images and annotate screenshots without a permanent toolbar. Version **1.1** uses
+Place a small desktop whiteboard by holding a shortcut, moving the pointer and
+releasing. Draw, type, paste images and annotate screenshots without a permanent toolbar. Version **1.2** uses
 PySide6, with a Windows tray icon and a macOS menu-bar item. Launch opens no board.
 
-## Download V1.1
+## Download V1.2
 
 | Download | Status | How to open it |
 |---|---|---|
-| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.1/WinMiniWhiteboardV1.1.zip) | Stable; Windows 10/11, 64-bit | Extract the ZIP, open **Mini Whiteboard**, then run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.1/MacMiniWhiteboardV1.1-Preview.zip) | Preview; macOS 14+ | Extract on a Mac, move **Mini Whiteboard.app** to Applications, then open it. |
+| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/WinMiniWhiteboardV1.2.zip) | Stable; Windows 10/11, 64-bit | Extract the ZIP, open **Mini Whiteboard**, then run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/MacMiniWhiteboardV1.2-Preview.zip) | Preview; macOS 14+ | Extract on a Mac, move **Mini Whiteboard.app** to Applications, then open it. |
 
-Both downloads include Python and Qt. See the [V1.1 release notes and checksums](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.1).
+Both downloads include Python and Qt. See the [V1.2 release notes and checksums](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2).
 
 The Mac preview has passed automated build, bundle, startup and archive checks.
 Interactive Mac testing is still outstanding. It is ad-hoc signed; if macOS
 blocks a trusted download, follow [Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
 
-![Two presses place a whiteboard](docs/media/placement.gif)
+![Hold, move and release to place a whiteboard](docs/media/placement.gif)
 
 The demo uses the real app controller and renderer on a controlled desktop.
-Point at one corner, press the shortcut, move to the opposite corner and press
-again. The dotted outline becomes a board.
+Point at one corner, hold the shortcut, move to the opposite corner and release. The dotted outline becomes a board.
 
 <details>
 <summary>See a board with drawing, shapes and text</summary>
@@ -35,9 +34,9 @@ again. The dotted outline becomes a board.
 
 ## Features
 
-- Exactly two presses to place a board: **Ctrl+Alt+W** on Windows or
+- Hold, move and release to place a board: **Ctrl+Alt+W** on Windows or
   **Control+Option+W** on macOS.
-- Freehand drawing, seven shapes, multiline text and a temporary colour palette.
+- Freehand drawing, seven shapes, wrapped multiline text and a temporary colour palette.
 - Multiple selection, shared movement/scaling/rotation, Smart Guides and optional
   Grid Snap.
 - Circular partial erasure and a whole-stroke eraser.
@@ -54,11 +53,11 @@ no accounts, network service or telemetry.
 | Platform | Support and evidence |
 |---|---|
 | Windows 10/11, x64 | Native input, capture, lifecycle and packaged-app checks passed on Windows 11. Physical mixed-DPI and clean-machine deployment remain untested. |
-| macOS 14+, preview | [The October 11 CI run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/38108550854) passed 162 tests, built and validated a Universal2 app, passed a limited packaged startup check and verified the ZIP round-trip. Interactive acceptance remains **NOT RUN**. |
+| macOS 14+, preview | The V1.2 workflow uses a free `macos-15` runner. Its actual results and build revision are recorded in [TEST_RESULTS.md](docs/TEST_RESULTS.md); interactive acceptance remains **NOT RUN**. |
 | Linux | Unsupported. |
 
-The observed Mac runner used macOS 14.8.9 on arm64 with Python 3.13.15. Universal2
-binary validation does not prove execution on Intel. See
+The application deployment target and runtime minimum remain **macOS 14.0**.
+Universal2 validation does not prove execution on Intel or macOS 14. See
 [TEST_RESULTS.md](docs/TEST_RESULTS.md) for actual results and both platform checklists
 for the remaining GUI/hardware checks.
 
@@ -96,14 +95,17 @@ running; choose **Exit Mini Whiteboard** or **Quit Mini Whiteboard** to exit.
 
 ## Place a board
 
-1. Point at the first corner and press the global W shortcut, then release it.
-2. Move the pointer to the opposite corner. A dotted outline previews the board.
-3. Press the same shortcut again. The rectangle becomes a focused board.
+1. Point at the first corner and hold the global W shortcut.
+2. Keep holding and move the pointer to the opposite corner. A dotted outline previews the board.
+3. Release W **or any required modifier**. The rectangle becomes a focused board.
 
-Placement supports every drag direction. Mouse clicks and key release do not
-confirm it. A rectangle smaller than 160 × 100 logical pixels leaves placement
-active so you can enlarge it. Escape cancels. A held key cannot create repeated
-boards.
+Use S with the same hold, move and release gesture to capture a screenshot board.
+No clicks, second press or minimum hold time are needed. Either workflow supports
+all four directions and negative desktop coordinates. A board smaller than
+160 × 100 logical pixels, or a screenshot smaller than 4 × 4 desktop units,
+cancels completely with brief feedback. Escape or the tray/menu cancellation
+clears the preview. Held repeats cannot create more boards or switch tools.
+The menu's creation entries show these shortcut instructions.
 
 ## Tools and shortcuts
 
@@ -134,8 +136,8 @@ and text edits. New drawing over an erased region remains visible.
 
 | Action | Windows | macOS |
 |---|---|---|
-| Place a board | Ctrl+Alt+W twice | Control+Option+W twice |
-| Screenshot region | Ctrl+Alt+S, drag and release | Control+Option+S, drag and release |
+| Place a board | Hold Ctrl+Alt+W, move, release | Hold Control+Option+W, move, release |
+| Screenshot region | Hold Ctrl+Alt+S, move, release | Hold Control+Option+S, move, release |
 | Copy / cut / paste / duplicate | Ctrl+C / X / V / D | Command+C / X / V / D |
 | Select all | Ctrl+A | Command+A |
 | Undo / redo | Ctrl+Z / Ctrl+Shift+Z | Command+Z / Command+Shift+Z |
@@ -145,6 +147,13 @@ and text edits. New drawing over an erased region remains visible.
 While a textbox is active, its editor owns typing, clipboard commands and undo.
 Letters, numbers, arrows, Delete and Backspace never switch canvas tools during
 editing. Clicking outside commits text. Board undo resumes after editing ends.
+
+New text wraps to the space from its insertion point to the right edge, with an
+8 px margin and a 24 px minimum. Words wrap naturally; long URLs can break within
+a word. Soft wraps leave plain text unchanged; Enter inserts a real newline.
+Editing, committed rendering and reopening share the stored local width.
+Moving, transforming or resizing the board preserves that width. The temporary
+editor follows the caret for tall content; all text survives outside the viewport.
 
 The canvas context menu offers locking, unlocking and front/back ordering. The
 tray/menu-bar **Snap & Guides** menu controls Smart Guides and Grid Snap. On Mac,
@@ -164,7 +173,7 @@ Remove-Item Env:QT_QPA_PLATFORM
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-The Windows build targets `dist/windows-v11/Mini Whiteboard/`. Keep the complete
+The Windows build targets `dist/windows-v12/Mini Whiteboard/`. Keep the complete
 output folder together when testing it.
 
 Mac builds require Xcode Command Line Tools:
@@ -182,7 +191,7 @@ verifies the archive after extraction. Keep the finished Mac ZIP unchanged when
 transferring it through Windows.
 
 [Windows CI](.github/workflows/windows-tests.yml) runs automated tests on code/config
-pushes and pull requests to main. [Mac CI](.github/workflows/macos-v1.1.yml) runs the full
+pushes and pull requests to main. [Mac CI](.github/workflows/macos-v1.2.yml) runs the full
 build/validation pipeline for relevant main pushes or manual dispatches.
 Generated logs under `verification/` are ignored; CI reports are downloadable
 Actions artifacts.

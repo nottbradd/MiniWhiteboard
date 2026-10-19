@@ -76,8 +76,8 @@ class MacPackagingTests(unittest.TestCase):
     def bundle_fixture(self, root):
         bundle = root/"Mini Whiteboard.app"
         (bundle/"Contents/MacOS").mkdir(parents=True)
-        info = {"CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": "1.1",
-                "CFBundleVersion": "1.1", "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
+        info = {"CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": "1.2",
+                "CFBundleVersion": "1.2", "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
                 "CFBundleExecutable": "Mini Whiteboard", "NSScreenCaptureUsageDescription": "Capture a region"}
         (bundle/"Contents/Info.plist").write_bytes(plistlib.dumps(info))
         executable = bundle/"Contents/MacOS/Mini Whiteboard"

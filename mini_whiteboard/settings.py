@@ -27,6 +27,8 @@ PREVIEW_SHADOW_SPREAD = 1.25
 PREVIEW_SHADOW_OFFSET = .65
 PEN_SIZES = {1: 2, 2: 4, 3: 6, 4: 9, 5: 14}
 FONT_SIZES = {1: 14, 2: 20, 3: 28}
+TEXT_MARGIN = 8
+TEXT_MIN_WIDTH, TEXT_DEFAULT_WIDTH, TEXT_MAX_WIDTH = 24, 320, 100_000
 SHAPES = {1: "Rectangle", 2: "Rounded rectangle", 3: "Ellipse",
           4: "Line", 5: "Arrow", 6: "Triangle", 7: "Diamond"}
 ERASER_SIZES = {1: 8, 2: 16, 3: 32, 4: 64}
@@ -77,7 +79,8 @@ Ctrl+Z — undo · Ctrl+Y / Ctrl+Shift+Z — redo<br>
 Delete / Backspace — delete all selected objects (one undo)<br>
 Esc — cancel interaction / clear selection · F1 — toggle this reference<br><br>
 <b>Editing text</b><br>
-Tool letters, C and numbers type normally. Enter adds a new line.<br>
+Text wraps to its stored width. Tool letters, C and numbers type normally.<br>
+Enter adds a real new line; soft wraps leave the text unchanged.<br>
 Ctrl+Enter / Esc / click outside — finish editing.<br>
 Double-click text to edit. Text undo stays inside the editor.<br><br>
 Drag the empty top edge to move; edges/corners to resize the board.<br>

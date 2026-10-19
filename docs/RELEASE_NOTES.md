@@ -1,3 +1,48 @@
+# Mini Whiteboard V1.2
+
+**Windows release with a clearly labelled Mac preview.** Place a board or capture
+an area using one hold, pointer movement and release.
+
+## Downloads
+
+- [WinMiniWhiteboardV1.2.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/WinMiniWhiteboardV1.2.zip)
+- [MacMiniWhiteboardV1.2-Preview.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/MacMiniWhiteboardV1.2-Preview.zip)
+- [SHA256SUMS.txt](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/SHA256SUMS.txt)
+
+Windows: extract the ZIP and run Mini Whiteboard.exe inside its folder. Keep
+_internal with the executable. Mac: extract on a Mac, move Mini Whiteboard.app
+to Applications and open it. Both packages include Python and Qt.
+
+## Changes
+
+- Windows Ctrl+Alt+W/S: point at the first corner, hold, move and release W/S
+  or any required modifier. W creates a board; S creates a locked screenshot
+  board ready to draw. No initial board, second press or mouse click/drag.
+- Mac uses Control+Option+W/S or the existing Command+Option+Shift+W/S preset.
+- Repeated key-downs cannot confirm/restart a hold. Competing shortcuts share
+  one owner; Escape/menu cancellation and invalid rectangles clear previews.
+  Remaining held keys cannot switch the newly focused board's tool.
+- Text wraps naturally to a stored local width based on available space, with
+  character fallback for URLs. Editing/committed/reopened layouts match. Enter
+  keeps real newlines; resizing the board preserves text and its wrapping width.
+- Mac CI now builds on macos-15 while minimum app support stays macOS 14.0.
+  Universal2 intent, architecture checks and packaging gates remain intact.
+- Placement GIF and help now demonstrate hold, move, release.
+
+## Verification and limits
+
+Actual V1.2 counts, native checks, build environments and source revision are in
+[the verification report](https://github.com/nottbradd/MiniWhiteboard/blob/main/docs/TEST_RESULTS.md).
+Release publication is gated on current Windows package checks and successful
+Mac CI. Interactive Mac acceptance, Intel/macOS 14 execution, physical mixed-DPI
+and clean-machine deployment remain NOT RUN. Windows is unsigned; Mac preview
+is ad-hoc signed and has not been notarized. No paid runner or spending change.
+
+See the bundled dependency notices and matching Qt/PySide/PyObjC source assets.
+The previous v1.1 release and assets remain available.
+
+## Historical V1.1 release notes
+
 # Mini Whiteboard V1.1
 
 **Stable Windows release with a Mac preview.** Place a small whiteboard anywhere

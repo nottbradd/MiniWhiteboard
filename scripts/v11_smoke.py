@@ -142,20 +142,19 @@ def run_v11_checks(controller, check, artifacts):
               image.size().width() == 240 and image.height() == 140
               and image.pixelColor(10,10).name() == '#3179b5', image.pixelColor(10,10).name())
         check('Native screenshot hotkey is registered', windows.CAPTURE_HOTKEY in controller.hotkeys.registered)
+        set_cursor = windows.bind(windows.user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)
+        set_cursor(340, 290)
         controller.capture.start()
         QTest.qWait(100)
         overlay = next(o for o in controller.capture.overlays if o.monitor.rect.intersection_area(sample) > 0)
         check('Native screenshot overlay covers physical display', windows.window_rect(overlay) == overlay.monitor.rect)
-        set_cursor = windows.bind(windows.user32, 'SetCursorPos', W.BOOL, C.c_int, C.c_int)
-        set_cursor(340, 290)
-        QTest.mousePress(overlay, Qt.MouseButton.LeftButton, pos=overlay.mapFromGlobal(QPoint(340,290)))
         set_cursor(580, 430)
-        QTest.mouseMove(overlay, overlay.mapFromGlobal(QPoint(580,430)))
-        QTest.mouseRelease(overlay, Qt.MouseButton.LeftButton, pos=overlay.mapFromGlobal(QPoint(580,430)))
+        controller.capture.track()
+        controller.capture.release()
         QTest.qWait(200)
         screenshot_board = controller.boards[-1]
         screenshot = screenshot_board.canvas.document.objects[0]
-        check('Native click-drag screenshot creates locked source image ready to draw', screenshot.locked
+        check('Native hold-release screenshot creates locked source image ready to draw', screenshot.locked
               and screenshot.pixel_size == (240,140) and screenshot_board.canvas.tool == 'Draw')
         check('Native screenshot hides overlay before capturing unmodified pixels',
               not controller.capture.active and images.decoded(screenshot.png).pixelColor(10,10).name() == '#3179b5')

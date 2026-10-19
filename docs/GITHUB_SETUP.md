@@ -27,12 +27,12 @@ The short [sharing draft](SHARING.md) is prepared for the owner to publish.
 
 ## Run the workflows
 
-Choose **Actions → macOS V1.1 → Run workflow**, select **main**, then run it.
+Choose **Actions → macOS V1.2 → Run workflow**, select **main**, then run it.
 Relevant source/build/test or dependency-notice pushes to main also trigger it.
 **Windows tests** runs on code/config main pushes, pull requests to main and
 manual dispatches. It tests the source without rebuilding the Windows release.
 
-The Mac job uses `macos-14`, Python 3.13 and pinned GitHub actions. It checks
+The Mac job uses `macos-15`, Python 3.13 and pinned GitHub actions. It checks
 imports and platform selection, runs the full suite, stages dependency notices,
 builds the app, validates the bundle, briefly launches its owned app process,
 and creates and round-trips a ZIP with `ditto`. Checks cover metadata, frozen
@@ -41,32 +41,32 @@ login session is available, startup is explicitly NOT RUN. Universal2 is the
 default; a real architecture mismatch on an arm64 host is required before an
 arm64 fallback. Windows binaries fail Mac bundle validation.
 
-**Runner availability:** GitHub has announced October 2026 interruptions and
-November 2 retirement for `macos-14`. See [the runner notice](https://github.com/actions/runner-images/issues/13518).
-When changing runners, rerun the pipeline and record its actual OS and
-architecture. The application's minimum deployment target remains macOS 14.0.
+**Runner and support:** V1.2 builds on `macos-15`; the deployment target,
+Info.plist minimum and runtime check stay at macOS **14.0**. Record the actual
+runner OS/CPU/Python/source revision from its artifacts. No paid runner or
+spending change is needed. A build on 15 does not prove execution on 14 or Intel.
 
 ## Obtain the Mac build artifact
 
-Open a successful run and download **MacMiniWhiteboardV1.1** under **Artifacts**.
+Open a successful run and download **MacMiniWhiteboardV1.2** under **Artifacts**.
 Extract GitHub's outer archive to obtain the already-created inner file:
 
 ```text
-MacMiniWhiteboardV1.1.zip
+MacMiniWhiteboardV1.2.zip
 └── Mini Whiteboard.app
 ```
 
 Transfer that inner ZIP unchanged. Renaming it to
-`MacMiniWhiteboardV1.1-Preview.zip` for publication does not change its bytes.
+`MacMiniWhiteboardV1.2-Preview.zip` for publication does not change its bytes.
 Extract on macOS to preserve permissions and symlinks. Download
-**macos-v1.1-verification** from the same run for environment, test, build,
+**macos-v1.2-verification** from the same run for environment, test, build,
 bundle, startup and archive reports. Actions artifacts are retained for 30 days;
 GitHub Release downloads are separate assets.
 
 Compare the inner archive with its Mac builder's report before uploading:
 
 ```powershell
-Get-FileHash -LiteralPath .\MacMiniWhiteboardV1.1-Preview.zip -Algorithm SHA256
+Get-FileHash -LiteralPath .\MacMiniWhiteboardV1.2-Preview.zip -Algorithm SHA256
 ```
 
 The inner ZIP hash differs from the outer Actions artifact digest. Publish only

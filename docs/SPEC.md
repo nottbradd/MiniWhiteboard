@@ -1,3 +1,53 @@
+# Mini Whiteboard specification - Version 1.2
+
+## V1.2 governing requirements - 2026-10-19
+
+This section supersedes the historical two-press placement and mouse-drag
+screenshot rules retained below. Other drawing, selection, window and native
+capture requirements remain in force.
+
+- Windows: hold Ctrl+Alt+W for a board or Ctrl+Alt+S for a screenshot, move the
+  pointer, then release the trigger or any required modifier. Mac defaults are
+  Control+Option+W/S; the alternate is Command+Option+Shift+W/S.
+- Anchor on complete shortcut activation. Preview is nonactivating, dotted,
+  mouse-transparent and supports four directions/negative desktop coordinates.
+  No result on press, no clicks/second press/minimum hold duration.
+- One native hold latch and one shared creation owner. Repeats/duplicates cannot
+  confirm/restart; competing shortcuts are ignored. Pending capture retains
+  ownership. Cancellation drains held triggers before fresh activation; remaining
+  S/W cannot become canvas/editor input when a completed board gains focus.
+- Release always ends selection. Below 160x100 logical units for a board, or
+  4x4 desktop units for capture, cancel fully with brief feedback. Retain native
+  physical/logical placement, capture size/fit checks and locked background cache.
+- Native adapters detect release with external focus. Windows samples only the
+  registered keys during an active hold/necessary release cleanup, every 8 ms;
+  idle has no tracking timer. Carbon hotkey release plus temporary hardware state
+  sampling handles Mac modifier release without new TCC permission requests.
+- Escape (including held shortcut modifiers), menu cancel, exit, display changes,
+  errors and permission interruption clear previews and tracking. Native trigger
+  latches drain after cancellation. Capture uses generation checks, queued GUI
+  delivery, native timeout plus a 20-second controller timeout and overlay exclusion.
+- Text stores validated integral local logical `layout_width`, 24..100000 units.
+  New width is board-right minus insertion x minus 8, clamped to those limits.
+  Missing legacy clipboard width defaults to 320; explicit invalid/nonfinite,
+  boolean or unreasonable values fail. Layout caches include width.
+- Editor, committed painting and glyph outlines share word wrapping with character
+  fallback. Soft wraps do not modify plain text; Enter inserts a real newline.
+  Text retains width, masks, identity and content through edits/transforms/clipboard/
+  duplication/history. Board resize changes only the viewport. A temporary editor
+  view follows the caret for tall text; no permanent scrollbars or board resizing.
+- Editor focus owns ordinary tool keys, clipboard, arrows, delete/backspace and
+  undo. Ctrl+Enter / Command+Return, Escape and outside click still finish editing.
+- Build V1.2 in separate staging directories. Mac CI uses free `macos-15`; deployment
+  target, Info.plist and runtime minimum remain 14.0. Keep official action pins,
+  Universal2 intent/fallback policy and all existing validation gates.
+- Publish new v1.2 assets: WinMiniWhiteboardV1.2.zip and
+  MacMiniWhiteboardV1.2-Preview.zip, checksums, notices and dependency source.
+  Preserve v1.1. Transfer the Mac-created ZIP unchanged. Native interactive Mac,
+  Intel/macOS 14 execution and unavailable hardware checks remain NOT RUN.
+
+## Historical V1.1 specification
+
 # Mini Whiteboard specification — Version 1.1
 
 Updated 2026-10-11 for release publication; Version 1.1 is retained.

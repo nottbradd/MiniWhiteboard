@@ -5,10 +5,11 @@ window never mutates this model. No Qt types are needed to test document state.
 """
 from dataclasses import dataclass, field, replace
 from uuid import uuid4
+import math
 
 from .geometry import Point
 from .transforms import Affine, Erasure, PaintClip, IDENTITY, translation
-from .settings import INK
+from .settings import INK, TEXT_MIN_WIDTH, TEXT_DEFAULT_WIDTH, TEXT_MAX_WIDTH
 
 
 def new_id():
@@ -52,6 +53,15 @@ class Text:
     clip: PaintClip | None = None
     color: str = INK
     locked: bool = False
+    layout_width: float = TEXT_DEFAULT_WIDTH
+
+    def __post_init__(self):
+        width = self.layout_width
+        if (isinstance(width, bool) or not isinstance(width, (int, float))
+                or not math.isfinite(width) or not TEXT_MIN_WIDTH <= width <= TEXT_MAX_WIDTH):
+            raise ValueError("Invalid text layout width")
+        # QTextEdit's fixed pixel wrap width is integral in local logical units.
+        object.__setattr__(self, "layout_width", round(width))
 
 
 @dataclass(frozen=True)
