@@ -4,10 +4,11 @@ Use the final built executable unless a step explicitly mentions source. Record
 Windows version, display arrangement, each display's scaling, and actual results.
 Do not mark an item PASS just because an automated model test passes. See
 [TEST_RESULTS.md](TEST_RESULTS.md) for the actual release checks.
-The V1.1 package passed 110 native GUI checks, 31 real input checks and 17
-packaged checks on one Windows 11 display at 100%. Physical mixed-DPI,
-clean-machine/Windows 10 deployment, hand-operated IME and extended use remain
-NOT RUN. Use the published ZIP or the current release output below.
+The V1.2 source passed 112 native GUI/controller checks, 45 external-focus real
+input checks and 3 native wrapped-editor tests; the frozen app passed 25 checks.
+Environment: Windows 11 build 26200, one 1920x1080 display at 100%. Physical
+mixed-DPI, clean-machine/Windows 10 deployment, hand-operated IME/context menus
+and extended use remain NOT RUN. Use the published ZIP or output below.
 
 ## A. Launch, tray, and hold/release placement
 

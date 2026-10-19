@@ -1,5 +1,10 @@
 # Mini Whiteboard specification - Version 1.2
 
+V1.2 delivery is complete. Release source 08b3893 and the actual Windows/Mac
+checks, package hashes and remaining NOT RUN acceptance are recorded in
+[TEST_RESULTS.md](TEST_RESULTS.md). The [v1.2 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2)
+contains the verified Windows ZIP and labelled Mac preview.
+
 ## V1.2 governing requirements - 2026-10-19
 
 This section supersedes the historical two-press placement and mouse-drag

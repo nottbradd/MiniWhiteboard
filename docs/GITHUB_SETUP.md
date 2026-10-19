@@ -1,5 +1,15 @@
 # GitHub repository, builds and releases
 
+## V1.2 publication
+
+[V1.2 is published](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2)
+from source 08b3893, with successful [Windows checks](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527582)
+and [Mac build/verification](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611).
+The nine assets include verified Windows/Mac packages, checksums, dependency
+notices and exact source archives. Both public app downloads were rehashed.
+V1.1 and its eight assets are preserved. The repository stays public; no spending
+or paid runner was enabled. Mac interactive acceptance remains NOT RUN.
+
 The public repository is [nottbradd/MiniWhiteboard](https://github.com/nottbradd/MiniWhiteboard).
 Its About description and topics identify the app, Python/PySide6, Windows and
 Mac support. The homepage points to the latest release. The main README includes

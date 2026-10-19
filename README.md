@@ -53,11 +53,12 @@ no accounts, network service or telemetry.
 | Platform | Support and evidence |
 |---|---|
 | Windows 10/11, x64 | Native input, capture, lifecycle and packaged-app checks passed on Windows 11. Physical mixed-DPI and clean-machine deployment remain untested. |
-| macOS 14+, preview | The V1.2 workflow uses a free `macos-15` runner. Its actual results and build revision are recorded in [TEST_RESULTS.md](docs/TEST_RESULTS.md); interactive acceptance remains **NOT RUN**. |
+| macOS 14+, preview | [V1.2 CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611) passed 191 tests and verified a Universal2 bundle, startup and ZIP round-trip on macOS 15.7.9 arm64. Interactive acceptance remains **NOT RUN**. |
 | Linux | Unsupported. |
 
 The application deployment target and runtime minimum remain **macOS 14.0**.
-Universal2 validation does not prove execution on Intel or macOS 14. See
+The observed builder used Universal2 Python 3.13.15. Universal2 validation does
+not prove execution on Intel or macOS 14. See
 [TEST_RESULTS.md](docs/TEST_RESULTS.md) for actual results and both platform checklists
 for the remaining GUI/hardware checks.
 

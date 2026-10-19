@@ -1,5 +1,13 @@
 # Approved Mini Whiteboard V1.2 implementation plan
 
+## Delivery complete - 2026-10-20
+
+[V1.2 is published](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2).
+Application source is 08b3893; Windows and Mac CI both passed on that revision.
+Windows native/frozen checks, Universal2 Mac validation and both public ZIP hashes
+are recorded in [TEST_RESULTS.md](TEST_RESULTS.md). Mac interactive/hardware
+acceptance remains NOT RUN. V1.1, repository visibility and spending are unchanged.
+
 ## V1.2 - 2026-10-19
 
 1. Reproduce V1.1 using its preserved executable and current source. Keep exact

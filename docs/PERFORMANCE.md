@@ -1,3 +1,32 @@
+# Interaction performance - Mini Whiteboard 1.2
+
+## V1.2 regression workload - 2026-10-20
+
+Actual current source, Windows 11 build 26200 / Python 3.12.14 x64, Qt/PySide6
+6.11.2. Offscreen GUI-thread timings measure event/painting work, not display FPS.
+Repeated the 21 general cases, 28 screenshot cases (blank, 1080p, 1440p and 4K),
+image/clipboard work and paired raster comparison. Screenshot cases use 60 frames
+x 2 repeats, with 20 strokes, 20 shapes and 10 text objects.
+
+| Operation with a 4K screenshot | Median event ms | p95 ms |
+|---|---:|---:|
+| draw | 1.548 | 2.748 |
+| circular_erase | 0.881 | 1.181 |
+| whole_stroke_erase | 0.307 | 0.574 |
+| marquee | 0.674 | 1.333 |
+| move_10 | 2.687 | 3.548 |
+| resize_10 | 2.96 | 3.709 |
+| rotate_10 | 3.42 | 4.207 |
+
+Every screenshot case built its display cache once. Annotation work decoded or
+painted the source background zero times. Detailed numbers are in the ignored
+`verification/v12-*-performance` logs/JSON. Wrapped text hit testing now builds
+its convenient textbox area directly; it avoids a Mac Qt stall from expanding
+and unioning every glyph contour. Exact glyph geometry still drives bounds and
+erasure. A regression bounds hit tolerance work independently of glyph count.
+
+## Historical V1.1 measurements
+
 # Interaction performance — Mini Whiteboard 1.1
 
 ## Cross-platform regression workload — 2026-10-01

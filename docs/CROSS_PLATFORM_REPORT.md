@@ -12,6 +12,15 @@ fallback remain unchanged. Actual OS/CPU/Python/build revision and CI results ar
 in [TEST_RESULTS.md](TEST_RESULTS.md). Interactive Mac acceptance, macOS 14 and
 Intel execution remain NOT RUN until observed on real hardware.
 
+## Completed V1.2 verification
+
+[Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611) passed
+191 tests and Universal2 bundle/startup/archive checks on macOS 15.7.9 arm64,
+Universal2 Python 3.13.15, source 08b3893. The Windows build passed 191 discovered
+with 2 Mac-only skips; 112 native, 45 real-input and 25 frozen-app checks passed.
+The Mac-created archive transferred unchanged. Package hashes and explicit
+unperformed acceptance are in [TEST_RESULTS.md](TEST_RESULTS.md).
+
 ## Historical V1.1 report
 
 # Mini Whiteboard 1.1 — cross-platform implementation report

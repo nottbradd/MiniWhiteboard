@@ -1,5 +1,12 @@
 # macOS 14+ acceptance checklist — Mini Whiteboard 1.2
 
+[V1.2 CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611)
+passed 191 tests, 769 Universal2 bundle checks, eight-second Cocoa startup and
+375-entry ditto ZIP extraction/revalidation. Actual environment: macOS 15.7.9,
+arm64, Universal2 Python 3.13.15, source 08b3893. Minimum app support remains 14.0.
+The unchanged inner ZIP is published as MacMiniWhiteboardV1.2-Preview.zip.
+These automated checks do not complete the interactive checklist below.
+
 **Interactive acceptance: NOT RUN.** Record PASSED, FAILED or NOT RUN for
 each interactive item on a real Mac. Keep OS, architecture, display setup,
 source revision/hash, signature and logs with results.

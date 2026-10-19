@@ -1,71 +1,98 @@
 # Verification report - Mini Whiteboard Version 1.2
 
-## V1.2 candidate verification - 2026-10-19
+## V1.2 release verification - 2026-10-20 (Australia/Sydney)
 
-The sections headed V1.1 below are historical results. They are not V1.2 evidence.
+Release source: **08b3893be06755c59b9fcd56970b94f9a160419a**.
+Published 2026-10-19 13:08:50 UTC; GitHub release ID 417301872.
+This later documentation receipt records the completed checks; application code
+and the verified release source are unchanged.
+[V1.2 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2):
+verified Windows app and a clearly labelled Mac preview. V1.1 and all its assets
+remain intact. The sections below the V1.2 report retain historical V1.1 evidence.
 
-| Check | Actual result | Evidence/scope |
+| Check | Actual result | Scope/evidence |
 |---|---|---|
-| Baseline before editing | PASSED: 162 discovered, 160 passed, 2 Mac-only skips, 4.935 s | Preserved source at 84c028d; Windows offscreen |
-| V1.2 automated suite | PASSED: 191 discovered, 189 passed, 2 Mac-only skips, 5.673 s | Windows 11 build 26200, Python 3.12.14 x64; final build gate reruns the current source |
-| Windows native GUI/controller checks | PASSED: 111 checks | Owned test windows; one 1920x1080 display at 100%; v12-native-smoke.json |
-| Real Windows global input | PASSED: 45 checks | Owned external foreground app; W/S holds, 30 repeated key-downs, competing shortcuts, trigger/Control/Alt-first releases, held Escape, cleanup and no Shape activation from remaining S |
-| Wrapped text regressions | PASSED | Words/URLs/newlines, editing/commit/reopen layouts, edge insertion, tall caret, transforms/masks, cache geometry, clipboard/legacy rejection, duplication/history, viewport-only resize and editor input |
-| Existing performance workloads | COMPLETED | 21 general interaction workloads; image/clipboard workload; paired raster cache comparison; screenshot workload with blank, 1080p, 1440p and 4K sources |
-| Screenshot cache work | PASSED | 0 image decodes or background image paints during annotation workloads; one display-cache build per screenshot; 4K drawing median 3.844 ms (120 samples, offscreen) |
-| Workflows / dependencies / source compilation | PASSED | actionlint 1.7.12; pip check; compileall |
-| Windows V1.2 frozen app / ZIP | First gate PASSED: 25 packaged checks, 174 files, 17 notice files | Rebuild/recheck after final F1 and text geometry correction is required; separate V1.2 paths preserve V1.1 |
-| Mac V1.2 CI / ZIP | PENDING hosted build | macos-15 runner; deployment/Info.plist/runtime minimum remain 14.0; interactive acceptance NOT RUN |
-| GitHub v1.2 publication | PENDING required package/CI gates | New release only; preserve v1.1 |
+| Baseline before editing | PASSED: 162 discovered, 160 passed, 2 Mac-only skips, 4.935 s | Clean source at 84c028d |
+| Windows final build gate | PASSED: 191 discovered, 189 passed, 2 Mac-only skips, 5.648 s | Windows 11 build 26200, Python 3.12.14 x64; v12-build.txt |
+| Hosted Windows suite | PASSED: 191 discovered, 189 passed, 2 skips, 5.358 s | [Windows run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527582); Windows Server 2025, Python 3.12.10 x64 |
+| Windows native GUI/controller checks | PASSED: 112 checks | Owned windows, one 1920x1080 display at 100%; final idle CPU 0.015625 s / 3.016 s; all tracking timers stopped |
+| Windows external-focus real input | PASSED: 45 checks | Owned foreground helper; W/S holds, sustained repeats, competing shortcuts, trigger/Control/Alt-first release, held Escape, recovery, screenshot pixels and remaining S suppression |
+| Native Windows wrapped editor | PASSED: 3 tests, 0.936 s | Native Windows Qt backend, DPR 1; edit/commit/reopen, tall caret, exclusive editor input/undo |
+| Final frozen Windows app | PASSED: 25 checks | Metadata 1.2, notices, startup/mutex, sustained physical holds, passive preview/focus, release placement/capture, cancellation/recovery |
+| Windows ZIP | PASSED: 174 files, 37,781,414 bytes | Every CRC and SHA-256 matches the verified distribution; 17 verified dependency notice files |
+| Mac hosted tests | PASSED: 191 tests, 9.471 s; repeated before build, 8.825 s | [Mac run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611), exact release source above |
+| Mac actual environment | PASSED | macOS 15.7.9 arm64; Universal2 Python 3.13.15; Qt/PySide6 6.11.2, PyInstaller 6.22.3, PyObjC 12.2.2 |
+| Mac Universal2 bundle | PASSED: 769 checks | Metadata/minimum 14.0, frozen imports, Mach-O/linkage, signatures, symlinks, unused product/Windows exclusion; no fallback used |
+| Limited Mac packaged startup | PASSED: 8 s, Cocoa termination, exit 0 | Immediate startup-failure detection only; interactive GUI NOT RUN |
+| Mac ditto ZIP/extraction | PASSED: 375 entries, 56,424,554 bytes | Complete files/modes/symlinks round-trip and extracted-app validation; 15 verified notice files |
+| Mac artifact transfer | PASSED | Both Actions artifact digests match; Mac-created inner ZIP unchanged through Windows; app never extracted/recompressed here |
+| Existing performance workloads | COMPLETED | 21 general cases, 28 screenshot cases, image/clipboard work and paired raster cache comparison; offscreen timings, not display FPS |
+| Screenshot background cache | PASSED | 0 source decodes/paints during annotation; one display cache build per screenshot; 4K draw median 1.548 ms, p95 2.748 ms over 120 samples |
+| Workflow/dependency/source checks | PASSED | actionlint 1.7.12, pip check, compileall; local documentation links checked |
+| Placement demo | PASSED | 29 frames / 7.52 s; actual app/controller on controlled desktop; hold/release shown, PNG frames visually inspected |
+| Release assets/public downloads | PASSED: all 9 uploaded digests matched; 9 asset links and tagged demo return HTTP 200 | Both public app ZIPs downloaded anonymously and rehashed; latest release/tag source confirmed; v1.1 preserved |
 
-### Established V1.1 held-key defect
+### Package hashes
 
-Tested the actual published V1.1 executable (SHA-256
-`11e42743bd2bde4e5974b1dd09339aaff6812bf685d93a94ff9c0a7cd2450a01`)
-and current source. With an owned external application focused, a complete W
-hold plus twenty repeated key-down injections produced a board and another
-outline. The source trace recorded four create activations without an intervening
-trigger-key release: the later activations confirmed a board, started a new
-anchor and attempted an undersized confirmation.
+| Asset | SHA-256 |
+|---|---|
+| WinMiniWhiteboardV1.2.zip | `ced6df9c1fce90fa62bf24f7b0b1b1e1f079ddd61da1ae3082755ced97fc65d8` |
+| MacMiniWhiteboardV1.2-Preview.zip | `35a0937ddf393b3d8c25305a4cca3258ba292cacb7cd0381d00be9881ffd2d40` |
+| Windows executable | `60a2ef8ddc01209ba95c4ca849c5de05e56b6d9c0e15ed177ad824960de04ff5` |
 
-MOD_NOREPEAT was already registered. The established application cause was that
-all activations reached a two-press controller without a physical hold latch or
-release event; undersized confirmation deliberately retained its anchor. The
-old create_board error path could also restart placement after a rejected fit.
-The diagnostic does not establish why every user's keyboard delivers extra
-notifications. Permanent inability to recover was not reproduced: a later valid
-activation recovered in the controlled packaged run.
+Other asset hashes are in the release's SHA256SUMS.txt. Local candidates remain
+under `build/releases-v1.2/`; Windows distribution is `dist/windows-v12/`.
+The Mac app was built in `dist/macos-v12/` on the runner.
 
-V1.2 ends on release, ignores repeated/competing activation, drains held trigger
-keys, rejects queued stale native messages and cancels invalid rectangles rather
-than waiting or restarting. The sustained input regression now passes.
+### Held-key defect: established reproduction and cause
 
-### Mac CI investigation
+Tested the actual published V1.1 executable, SHA-256
+`11e42743bd2bde4e5974b1dd09339aaff6812bf685d93a94ff9c0a7cd2450a01`,
+and its current source. With an owned external app focused, holding W with twenty
+repeated key-down injections produced a board plus a renewed outline. The source
+trace recorded four create activations without trigger release: confirmation,
+new anchor and undersized confirmation reached the two-press controller.
 
-[The first V1.2 attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39254372532)
-passed imports and earlier tests but stalled in the new wrapped, transformed,
-masked text regression. It was cancelled for diagnosis; it produced no release
-package. The timed second run established the call site: `hit_path` was boolean-unioning
-all transformed glyphs with their thick tolerance contours. That work is
-unnecessary for convenient textbox-interior selection and stalled on the Mac
-font paths. The corrected hit area uses the textbox plus tolerance, then
-subtracts local erasures. Original shaped glyph outlines still drive painted
-bounds and erasure geometry; text rendering has not been flattened.
+MOD_NOREPEAT was already present. The established application cause was accepting
+extra activations without a physical hold latch or release signal, retaining
+undersized anchors, and restarting placement after a rejected native fit. The
+controlled packaged diagnostic recovered on later valid input; permanent inability
+to recover was not reproduced. The diagnostic does not establish why every user's
+physical keyboard delivers extra notifications.
 
-The full Mac suite and bundle gates must pass on the correction. A regression
-also checks that hit tolerance work stays bounded as wrapped text grows. CI
-fails with a stack dump after five minutes if a native operation stalls.
+V1.2 uses native hold/release latching, one preview owner, repeat/queued-stale
+rejection, remaining-trigger suppression and complete invalid-selection cancellation.
+Sustained input now passes against source and the final executable.
 
-### Checks still NOT RUN
+### Mac text regression and verification history
 
-- Interactive Mac global shortcuts/releases, Escape, focus/menu/Spaces, Screen
-  Recording permission flow, real screenshot content and transformed editor use.
-- Execution on macOS 14 or Intel hardware; Universal2 validation is distinct.
-- Physical mixed-DPI/multi-monitor arrangements, Windows 10/clean-machine testing,
-  hand-operated IME/context menus and extended use. Automated owned-window focus,
-  controls/handle separation and transformed editor regressions were run on Windows.
-- Developer ID signing, notarization and stapling. Windows is unsigned and Mac
-  preview remains ad-hoc signed.
+[The first attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39254372532)
+was cancelled after the new wrapped/masked text test stalled. The
+[second run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39255471676)
+failed with a timed stack dump at `hit_path`: it was boolean-unioning every glyph
+with thick tolerance contours. Polygonizing glyphs did not resolve that and was
+removed. The fix builds the already-supported textbox-interior hit area directly,
+adds tolerance and subtracts erasures afterward. Exact shaped glyph outlines still
+drive painted bounds/erasure, and text rendering stays unchanged. A bounded-work
+regression and the full final Mac suite pass. No validation was skipped or weakened.
+
+An early Windows one-second idle probe included owned-window teardown and narrowly
+exceeded 10% CPU. The final check first verifies stopped timers, drains deferred
+widget deletion, then measures three settled seconds at the same 10% threshold;
+it passed at about 0.52% of one core.
+
+### Explicit NOT RUN acceptance
+
+- Interactive Mac physical global keys/release orders/Escape, focus/menu use,
+  Screen Recording permission flow/content capture, transformed editor usability,
+  Spaces/Mission Control/Stage Manager and extended use.
+- Execution on macOS 14 or Intel hardware. macOS 15 arm64 execution and Universal2
+  structural validation do not establish either of those environments.
+- Physical mixed-DPI/multi-monitor/Retina arrangements; Windows 10 and clean-machine
+  deployment; hand-operated IME/context menus and long sessions. Windows scripted
+  handle/control separation, transformed editor focus and native capture were run.
+- Developer ID signing/notarization/stapling. Windows remains unsigned; Mac is an
+  ad-hoc signed preview. No paid runner, spending, visibility or permission change.
 
 ## Historical V1.1 verification
 
