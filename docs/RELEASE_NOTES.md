@@ -24,33 +24,52 @@ Windows bug-fix release with a clearly labelled macOS 14+ preview.
 
 ### Verification
 
-The reported loop was reproduced with native Windows mouse input before the fix.
-Additional reproduced defects: stale editor signals closing a replacement session,
-whitespace drafts entering history, existing cleared text staying invisible,
-non-Text dismissal starting canvas work, rotation-handle activation during text
-continuation, palette click replay, embedded menu lifetime/focus loss, and
-Escape remaining latched after idle.
+Release source: [e1d976c5c2ea389fe6b339f15d88442bd34815fe](https://github.com/nottbradd/MiniWhiteboard/commit/e1d976c5c2ea389fe6b339f15d88442bd34815fe).
+Published [20 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2.1).
 
-Local Windows 11 build 26200, Python 3.12.14 x64, Qt/PySide6 6.11.2:
-**213 discovered, 211 passed, two Mac-only skips**. Twenty-two new regressions cover
-overlay press/release, blank/whitespace history, existing deletion/undo, rapid and
-double clicks, old callbacks, popup input, controls/other targets, transformed
-panned editing and lifecycle. The Windows native suite passed 111 checks,
-external-focus hold/release checks passed 49, and the dedicated native textbox audit passed 18 (including the exact
-loop, whitespace, repeated cycles, menu focus, palette dismissal and deletion/undo).
-The final executable passed 34 packaged checks, including native textbox
-dismissal/continuation, cleared-text undo and palette dismissal. Its 174-file ZIP
-passed CRC/every-file SHA-256 validation; all 17 dependency notice hashes passed.
-String version is 1.2.1; numeric Windows/manifest version is 1.2.1.0.
-The 28 screenshot workloads retained one cache build and no source painting or
-decoding during annotation. Documentation/source-archive links, workflow lint,
-compilation and dependency consistency passed. Hosted Mac/Windows CI and public
-asset verification are pending.
+The loop was reproduced with native Windows input: the outside press finished
+the editor and then reached the active Text tool. The patch gives that press one
+owner. Additional reproduced fixes cover whitespace/history, invisible cleared
+text, stale sessions, unintended drawing/transforms, embedded menu lifetime/focus,
+palette click replay and Escape rearming after idle.
 
-**NOT RUN:** interactive Mac acceptance; macOS 14 and Intel execution; physical
-mixed-DPI/multi-monitor arrangements; Windows 10/clean-machine deployment;
-hand-operated IME and prolonged use. Mac remains a preview. Scripted native input
-does not establish a full hand-operated acceptance pass.
+| Check | Actual result |
+|---|---|
+| Windows build gate | 213 discovered: 211 passed, two Mac-only skips, 6.343 s; Windows 11 build 26200, Python 3.12.14 x64 |
+| Windows native regressions | 111 GUI/controller checks; 49 external-focus W/S checks; 18 native textbox checks; eight supplementary assertions for clicks in an owned separate application |
+| Final Windows executable | 34 packaged checks, including native blank dismissal, continued typing, deletion/undo/redo and palette dismissal |
+| Windows ZIP/notices | 174 files, every CRC/file SHA-256 verified; 17 notice hashes; strings 1.2.1, numeric/manifest 1.2.1.0 |
+| [Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39388714120) | 211 passed, two skips, 6.771 s; Windows Server 2025, Python 3.12.10 x64 |
+| [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39388714069) | 213 passed, 13.697 s; repeated before build, 8.579 s |
+| Mac builder | macOS 15.7.9 arm64; Universal2 Python 3.13.15; Qt/PySide6 6.11.2, PyInstaller 6.22.3, PyObjC 12.2.2 |
+| Mac bundle/startup | Universal2, 769 checks; eight-second Cocoa startup/normal exit 0; deployment/runtime/plist minimum 14.0 |
+| Mac ZIP/notices | 375 entries; ditto extraction plus full file/mode/symlink/bundle revalidation; 15 notice hashes; Mac-created ZIP transferred unchanged |
+| Other checks | 28 screenshot workloads retain cache invariants; workflow lint, compilation, dependencies and 31 documentation/source-archive links passed |
+| Publication | Nine uploaded asset digests match; all public asset links and tagged demo return HTTP 200; both app downloads and checksums rehashed anonymously |
+
+Twenty-two new regressions cover visible overlay press/release, blank/whitespace
+history, exact existing-text deletion/undo, rapid/double clicks, stale callbacks,
+popup input, controls/other targets, transformed/panned editing and lifecycle.
+Native checks used one 1920×1080 display at 100%. Screenshot timings measure
+GUI-thread work; they do not certify display FPS.
+
+**NOT RUN:** interactive Mac shortcuts/Escape, focus/menu/Spaces, Screen Recording
+permission/capture and Retina/multi-monitor acceptance; macOS 14 and Intel
+execution; physical mixed-DPI Windows arrangements, Windows 10/clean deployment,
+hand-operated IME/RTL/emoji, handle/editor ergonomics and prolonged use.
+Mac remains a preview. Universal2 inspection does not establish Intel execution.
+
+### Downloads and SHA-256
+
+| Package | Bytes | SHA-256 |
+|---|---:|---|
+| [WinMiniWhiteboardV1.2.1.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/WinMiniWhiteboardV1.2.1.zip) | 37,783,789 | `7e876fe8786596fe9d95072ce2111bb88a4f96330e9750541ac4316ebbce5f55` |
+| [MacMiniWhiteboardV1.2.1-Preview.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/MacMiniWhiteboardV1.2.1-Preview.zip) | 56,427,689 | `54b8fe6f2db52bfc1938679fbdc26539a454888f7963d5d43d165c63ab9bc1cb` |
+
+[Checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/SHA256SUMS.txt)
+cover both apps, the separate notice ZIP and five exact dependency source archives.
+Both apps retain license texts and source/rebuild information. Earlier assets and
+repository visibility are unchanged.
 
 [Testing guide](TESTING.md) · [Dependency notices](THIRD_PARTY_NOTICES.md)
 
