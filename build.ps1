@@ -1,11 +1,13 @@
 param([string]$Python = "$PSScriptRoot\.venv\Scripts\python.exe",
-      [string]$DistPath = 'dist\windows-v12')
+      [string]$DistPath = 'dist\windows-v121')
 $ErrorActionPreference = 'Stop'
 Push-Location -LiteralPath $PSScriptRoot
 try {
     if (-not (Test-Path -LiteralPath $Python)) {
-        throw 'Create .venv and install requirements-dev.txt first. See README.md.'
+        throw 'Create .venv and install requirements-dev.txt first. See CONTRIBUTING.md.'
     }
+    & $Python -m scripts.check_documentation
+    if ($LASTEXITCODE -ne 0) { throw 'Documentation links failed.' }
     & $Python -m scripts.package_notices
     if ($LASTEXITCODE -ne 0) { throw 'License notice staging failed.' }
     & $Python -m scripts.make_icon
@@ -31,7 +33,7 @@ try {
         }
         Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
     }
-    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v12'
+    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v121'
     if (Test-Path -LiteralPath $buildWorkOutput) {
         $resolvedBuildWork = (Resolve-Path -LiteralPath $buildWorkOutput).Path
         if (-not $resolvedBuildWork.StartsWith($workspaceRoot, [StringComparison]::OrdinalIgnoreCase)) {

@@ -1,74 +1,139 @@
 # Contributing to Mini Whiteboard
 
-Bug reports, documentation improvements and focused changes are welcome. Use
-the [README](README.md) to set up a Windows or macOS development environment.
-Linux is currently unsupported.
+Focused fixes, documentation improvements and reproducible bug reports are welcome.
+Use the [README](README.md) for product behaviour and downloads. Linux is unsupported.
 
-## Before changing the app
+## Development setup
 
-Read [SPEC.md](docs/SPEC.md) for current behaviour and [PLAN.md](docs/PLAN.md) for the
-design decisions. Shared drawing, documents and tools belong in the shared
-modules. Native behaviour belongs in `mini_whiteboard/platform/windows/` or
-`mini_whiteboard/platform/macos/`. Tests use fake platform services when they
-do not need a real desktop.
+Clone the repository and run commands from its root.
 
-Keep these behaviours covered when making changes:
+### Windows
 
-- Board and screenshot creation each use one hold, pointer movement, then release.
-  Releasing any required key ends the gesture; repeated activations cannot restart it.
-- Tool keys work only in the active canvas. A text editor owns its typing,
-  clipboard commands and undo while it is active.
-- A gesture commits one document action; cancellation adds no history entry.
-- Closing the last board leaves the tray/menu-bar utility running.
-- Documents remain session-only; saved preferences stay separate from them.
-
-## Validation
-
-Install the development requirements, then run the full automated suite:
+Use 64-bit Python 3.12 on Windows 10/11:
 
 ```powershell
-# Windows, from the project directory
+py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-$env:QT_QPA_PLATFORM = 'offscreen'
-.\.venv\Scripts\python.exe -m unittest discover -v
+.\.venv\Scripts\python.exe -m mini_whiteboard
 ```
+
+### macOS
+
+Use the standard python.org universal2 Python 3.13 on macOS 14+.
+The build also needs Xcode Command Line Tools.
 
 ```bash
-# macOS, from the project directory
+python3.13 -m venv .venv-macos
 .venv-macos/bin/python -m pip install -r requirements-dev.txt -r requirements-macos.txt
-QT_QPA_PLATFORM=offscreen .venv-macos/bin/python -m unittest discover -v
+.venv-macos/bin/python -m mini_whiteboard
 ```
 
-Add focused regression coverage when changing behaviour. Documentation-only
-changes do not need new tests. The Windows tests workflow runs for code/config pull requests
-to `main`; the macOS build workflow runs for relevant pushes to `main` and manual
-dispatches.
+The small `main.py` launcher also works. Source and frozen Mac applications may
+have different Screen Recording permission identities.
 
-Use [MANUAL_TESTING.md](docs/MANUAL_TESTING.md) and
-[MACOS_CHECKLIST.md](docs/MACOS_CHECKLIST.md) for native acceptance. Native scripts can
-operate windows, hotkeys, the clipboard and screen capture on your desktop; run
-them deliberately in a suitable test session. Report the OS, display setup and
-checks actually performed. Mark unperformed GUI/hardware checks **NOT RUN**.
-Offscreen tests cannot prove native focus, permissions or physical display behaviour.
+## Architecture essentials
 
-## Pull requests and reports
+| Area | Responsibility |
+|---|---|
+| `app.py`, `board.py` | Tray/menu lifetime, board registry, frameless windows and controls |
+| `platform/` | Narrow Runtime, Desktop, Hotkeys and Capture services; Windows and Mac adapters |
+| `gestures.py`, `placement.py`, `screenshot.py` | One creation owner, passive previews, release completion, cancellation and asynchronous capture |
+| `document.py`, `transforms.py` | Immutable objects, stable IDs/order, affine transforms, local masks and before/after history |
+| `canvas.py`, `text_editor.py` | Tool gestures, selection, focus routing and transformed plain-text editing |
+| `rendering.py`, `scene.py`, `background.py` | Shaped text/painted geometry, cached bounds, sparse previews, dirty painting and screenshot display cache |
+| `editing_actions.py`, `clipboard.py`, `snapping.py` | Shared commands, validated editable MIME and alignment |
+| `tests/`, `scripts/` | Portable regressions, opt-in native checks and package validation |
 
-Keep changes focused and describe their resulting behaviour. Include validation
-results and remaining limitations in the pull request. For a bug, include the OS,
-app version, whether you used source or a packaged build, and reproducible steps.
+Shared tools and document logic belong outside native adapters. Portable tests
+inject fake services; native scripts use owned windows and processes.
 
-Generated environments, builds, ZIPs and verification output are ignored. Keep
-credentials, private screenshots and machine-specific paths out of commits and
-public reports. Verification logs belong in local output or Actions artifacts;
-the repository documents their results.
+Keep these invariants covered:
 
-For a suspected security issue, use GitHub's private vulnerability reporting if
-it is enabled. Otherwise ask the maintainer for a private reporting channel
-without posting exploit details or credentials in a public issue.
+- Creation is hold → move → release, with no result on press. Releasing any
+  required key ends the gesture. Repeats, competing shortcuts and stale callbacks
+  cannot create a second result. Tracking stops after held keys drain.
+- Native desktop units cross explicit boundaries: physical pixels on Windows,
+  points on Mac. Do not scale global origins as local coordinates.
+- Ordinary tool keys require an active board, canvas focus and no editor.
+  The real QTextEdit owns ShortcutOverride, typing, clipboard and editor undo.
+  Finish callbacks belong to one session. Embedded popup menus retain the editor.
+- A new blank/whitespace draft changes no document history or redo branch.
+  Clearing existing text is one deletion. Canvas dismissal consumes that press;
+  meaningful Text-mode continuation is routed once using viewport/global coordinates.
+- One gesture commits one document action. Escape restores the captured state.
+  Selection and previews stay outside history. Object identity, original image
+  bytes, masks, text width and stacking survive transforms/undo.
+- Bounds include surviving artwork outside the viewport. Text uses shaped glyph
+  outlines for ink; its convenient box hit area has bounded tolerance work.
+  Masks are subtracted after hit tolerance.
+- Annotation work reuses the original locked screenshot's display cache at
+  viewport × DPR. It must not decode/resample source pixels per pointer event.
+- Last-board close leaves the utility running. Documents remain session-only;
+  only guide/grid/shortcut preferences persist.
 
-## License
+## Tests and builds
 
-Contributions to this project's own source and assets are provided under the
-[MIT license](LICENSE). Preserve applicable notices when adding third-party
-material. Dependencies retain their own terms; see
-[THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+Windows:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.run_tests
+.\.venv\Scripts\python.exe -m scripts.check_documentation
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+.\.venv\Scripts\python.exe -m scripts.package_check
+.\.venv\Scripts\python.exe -m scripts.package_release
+```
+
+Output: `dist/windows-v121/Mini Whiteboard/` and
+`build/releases-v1.2.1/WinMiniWhiteboardV1.2.1.zip`. Keep the entire runtime folder.
+
+Mac:
+
+```bash
+QT_QPA_PLATFORM=offscreen .venv-macos/bin/python -m scripts.run_tests
+.venv-macos/bin/python -m scripts.check_documentation
+bash build_macos.sh
+.venv-macos/bin/python -m scripts.macos_startup_check
+.venv-macos/bin/python -m scripts.macos_package_release
+```
+
+Output: `dist/macos-v121/Mini Whiteboard.app` and
+`build/releases-v1.2.1/MacMiniWhiteboardV1.2.1.zip`. Rename the ZIP with
+`-Preview` for public preview downloads without changing its bytes.
+
+The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
+only after a genuine dependency architecture mismatch on Apple Silicon. Validation
+checks every Mach-O slice, linkage, signatures, symlinks, metadata and notice hash.
+Packaging uses ditto, extracts on Mac and fully revalidates. Transfer that finished
+ZIP unchanged through other operating systems.
+
+[Windows CI](.github/workflows/windows-tests.yml) runs source tests.
+[Mac CI](.github/workflows/macos-build.yml) runs tests, build, limited startup and
+archive validation on the standard macos-15 runner. Relevant main pushes or a
+manual Actions dispatch start the Mac job. Its reports are Actions artifacts;
+automated startup does not establish interactive Mac acceptance.
+
+`APP_VERSION` is the application version. Generate Windows resources with
+`scripts.make_version`; patch versions have four numeric Windows components
+(for example 1.2.1.0). Keep Mac plist versions, defaults, download names and checks
+consistent. Use a fresh versioned staging directory to preserve earlier packages.
+
+Both build scripts stage dependency notices before packaging; package checkers
+verify their manifest. See [dependency sources and rebuilding](assets/licenses/SOURCES.md).
+Mac signing defaults to ad-hoc; `MINIWHITEBOARD_SIGNING_IDENTITY` accepts an existing
+Developer ID identity. Notarization/stapling require separate verification.
+
+## Contributions and reports
+
+Add a regression that reproduces a behaviour change through the relevant input
+route. Documentation-only edits do not need new tests. Use
+[the testing guide](docs/TESTING.md) for native acceptance and troubleshooting.
+Report actual results, OS/display setup and remaining **NOT RUN** items.
+
+Keep credentials, private screenshots and personal paths out of commits.
+Environments, build outputs, archives and verification logs are ignored; store
+detailed local evidence there or in Actions artifacts. Release notes summarize
+actual checks. For suspected security issues, use private vulnerability reporting
+if available, or request a private channel without posting exploit details publicly.
+
+Contributions to the project's own code/assets use [MIT](LICENSE).
+Preserve attribution and dependency terms in [third-party notices](docs/THIRD_PARTY_NOTICES.md).

@@ -68,7 +68,7 @@ def stage(project=PROJECT, destination=None):
             source = Path(dist.locate_file(entry))
             if source.is_file():
                 add('packages/' + name + '/' + relative.name, source.read_bytes())
-    readme = ('Mini Whiteboard 1.1 dependency notices\n\n'
+    readme = ('Mini Whiteboard dependency notices\n\n'
               'The app source is MIT licensed. Qt/PySide libraries are dynamically loaded.\n'
               'See THIRD_PARTY_NOTICES.md and upstream/SOURCES.md for versioned source access\n'
               'and instructions for replacing/rebuilding those libraries.\n'

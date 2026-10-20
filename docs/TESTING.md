@@ -1,0 +1,166 @@
+# Testing and troubleshooting
+
+Use the packaged release for acceptance checks. Record the app version/source
+revision, OS, architecture, display scales and whether input was native or
+Qt-delivered. Mark each unperformed check **NOT RUN**. Current results belong in
+[release notes](RELEASE_NOTES.md); build/setup commands are in
+[CONTRIBUTING](../CONTRIBUTING.md).
+
+## Automated and native checks
+
+The portable suite uses Qt offscreen and fake platform services.
+`scripts.run_tests` runs the complete suite with a 300-second diagnostic watchdog.
+It does not establish native focus, global shortcuts, permissions or display behaviour.
+
+Windows desktop checks deliberately operate owned windows, the cursor, clipboard
+and capture. Exit an existing Mini Whiteboard instance before running them:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.native_smoke
+.\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
+.\.venv\Scripts\python.exe -m scripts.text_input_check
+.\.venv\Scripts\python.exe -m scripts.package_check
+```
+
+The hotkey and text checks use native Windows input. The general native smoke
+also uses Qt-directed events. Tests abort when ownership/focus cannot be established;
+an aborted check is not a pass. They restore the cursor/foreground and close only
+owned test processes. Reports are under ignored `.test-artifacts/` and `verification/`.
+
+On a Mac, run deliberately in an interactive session:
+
+```bash
+.venv-macos/bin/python -m scripts.macos_escape_probe
+.venv-macos/bin/python -m scripts.macos_native_smoke
+.venv-macos/bin/python -m scripts.macos_native_smoke --capture
+```
+
+The Escape probe needs another application focused and Accessibility already off.
+A pass requires an observed external-focus Escape event, with permission state
+and PID recorded. The native smoke uses owned Qt events; physical global input
+still needs the checks below. Capture can request Screen Recording permission.
+
+## Interaction acceptance
+
+### Creation and cancellation
+
+- From an ordinary foreground application, hold W's global shortcut, move and
+  release. No initial board/focus change; exactly one focused board on release.
+  Repeat all four directions, trigger-first and each modifier-first release.
+- Hold with repeats, press competing W/S, cancel with held Escape, then release.
+  No restart or remaining W/S typing/tool switch. After idle, cancel another hold
+  with Escape again. Menu cancel, display changes and exit remove previews/timers.
+- Test undersized/stationary release, then a fresh valid gesture immediately.
+  Board minimum is 160 × 100 logical pixels; capture minimum is 4 × 4 desktop units.
+- Preview dots remain visible over bright/dark backgrounds and let normal
+  desktop clicks through. Final paper matches preview; shadow may extend outside.
+- Mac: test both shortcut presets and conflict/retry without overwriting system
+  bindings. Check bare external-focus Escape separately; menu cancellation is
+  available if delivery is unreliable.
+
+### Text and popup input
+
+- T → click → leave blank → click outside → release/move → allow queued focus
+  events to settle. No editor/replacement/object/selection/history remains.
+  Repeat with spaces/tabs/newlines, rapid clicks and double-clicks. The next
+  separate click immediately starts one editor; redo survives a discarded draft.
+- Clear existing text to whitespace, finish and undo/redo. Exact text, width,
+  transforms, masks, colour and order return. Meaningful whitespace is preserved.
+- Commit nonempty text and start/edit the next textbox in Text mode with one
+  outside click. Dismissing into Draw/Shape/Eraser/Select must not start an action.
+- Check Escape and Ctrl+Enter / Command+Return, repeated finish callbacks, outside
+  controls, another board and a disposable other app. Each clicked target acts once.
+- Right-click inside the real editor. Copy/paste and dismiss its menu without
+  losing the edit or starting canvas work. Repeat canvas menus and the colour
+  popup. Check popup dismissal near board edges and after a tool change.
+- Type **Today is day 123**, **A V E 12345 C D S T**, and **1234554321**.
+  Check selection/caret, arrows, clipboard, Backspace/Delete, editor undo/redo and
+  document undo after commit. Tool keys must not intercept typing.
+- Test wrapped/tall text, long URLs, explicit newlines, 14/20/28 pt presets,
+  rotated/scaled/masked text and hit coordinates after the editor pans to the caret.
+  Reopen without rewrapping; board resize preserves text width and offscreen content.
+- Resize, minimize/restore, close and quit while editing. No orphan overlay,
+  stale callback, mouse grab or document preview should remain.
+
+### Tools, history and windows
+
+- Check all drawing widths and shapes, creation constraints and line/arrow endpoints.
+  A/V topmost selection, Shift membership and four-direction full-containment
+  marquees use complete surviving bounds, including artwork outside the viewport.
+- Move a mixed group; test all anchored resize handles, proportional text/images,
+  non-mirroring and Shift 15° rotation. Escape restores the original snapshot.
+- Sweep both erasers rapidly over strokes, outlines, arrowheads, text and images.
+  Cuts follow transforms; new drawing crosses old cuts. Whole-stroke mode removes
+  every surviving fragment of one original freehand gesture, ignoring shapes/text.
+  Check 5/5/5/1/5/4 and independent per-board mode/size memory.
+- Copy/cut/paste/duplicate mixed masked selections; check independent IDs,
+  stacking, offsets, locking/unlocking, ordering, colours and undo/redo.
+  Try external image apps, browser images/screenshots and local file drops.
+- Smart Guides/Grid Snap, Alt/Option bypass and preferences work independently
+  of document history. Every committed drag is one action; empty edits add none.
+- Handles win over window resize targets. Test all eight invisible window
+  resize directions and the narrow top drag strip. Controls stay usable above
+  passive tool visuals; shadows/rounded cutouts pass input to the desktop.
+- Minimize retains contents/history; restore returns the same board and focus.
+  Closing the last board keeps the tray/menu alive; Exit/Quit clears all resources.
+  Launch twice: one owner. Observe idle CPU for at least 60 seconds.
+
+## Platform and hardware acceptance
+
+- Windows: actual 100/125/150/175/200% scaling, negative X/Y monitors, mixed-DPI
+  seams, moving/resizing across displays and disconnect during creation/capture.
+  Test Windows 10 and clean deployment without Python as a standard user.
+- Mac: real arm64 and Intel execution, macOS 14 execution, menu-bar/accessory
+  lifetime, ordinary-app floating without focus theft, Spaces, Mission Control,
+  Stage Manager and full-screen limitations. Do not infer these from bundle slices.
+- Mac Screen Recording: fresh prompt, deny/grant/revoke/restart, System Settings
+  route and frozen-app identity. No microphone/Accessibility permission for capture.
+  Validate asymmetric crops, orientation, colours and absence of preview/cursor.
+- Retina/non-Retina, mixed scales, cross-display crops and desktop gaps.
+  Cache dimensions equal viewport × DPR once; original screenshot pixels survive.
+- Inspect IME, RTL, emoji, context-menu ergonomics, transformed editor focus,
+  handle usability and long sessions with large images/history.
+- Test downloaded/quarantined packages using normal OS security flows.
+  Windows is unsigned; the Mac preview is ad-hoc signed and not notarized.
+
+Interactive Mac acceptance, macOS 14 execution and Intel execution remain
+**NOT RUN** unless a release explicitly supplies new observed evidence.
+Physical mixed-DPI and clean-machine Windows acceptance are also outstanding.
+
+## Performance diagnostics
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.performance_check --frames 16 --output verification/performance.json
+.\.venv\Scripts\python.exe -m scripts.screenshot_performance --frames 60 --repeats 2 --output verification/screenshot-performance.json
+.\.venv\Scripts\python.exe -m scripts.raster_cache_check
+.\.venv\Scripts\python.exe -m scripts.v11_performance
+```
+
+Mac can run the screenshot workload with `--native`. Use its venv interpreter.
+Fixtures cover 10/100/500 mixed objects and blank/1080p/1440p/4K screenshots.
+Record input-event median/p95, paint area, selected count and cache counters.
+These timings measure GUI-thread work, not display FPS or a universal speedup.
+Annotation work should build one screenshot cache and perform no source decode
+or source-background painting per sample. Preserve original image identity/history.
+
+## Troubleshooting
+
+- **No board at launch:** find the tray/menu icon and use the global shortcut.
+  Hidden Windows tray icons can conceal it.
+- **Shortcut unavailable:** close another owner or choose Retry global shortcut.
+  On Mac try the alternate preset. Check normal tool keys only with canvas focus.
+- **Capture denied/empty:** check Screen Recording permission on Mac and relaunch
+  if requested. Protected/secure desktop content may be unavailable.
+- **Windows app missing libraries:** extract and retain the whole runtime folder,
+  including `_internal`; do not run an isolated executable.
+- **Mac startup blocked:** use [Apple's supported Open Anyway process](https://support.apple.com/en-au/102445)
+  only for a trusted copy. Do not disable Gatekeeper globally.
+- **Mac archive changed after transfer:** obtain the already-created inner ZIP
+  from Actions or Releases. Transfer it byte-for-byte; do not extract/repack on Windows.
+- **A native check fails:** keep its report and include OS, version, display setup
+  and reproducible steps in a bug report. Remove private content before sharing.
+
+The one Mac workflow uses the standard macos-15 runner, minimum target 14.0,
+Universal2 intent and conditional architecture fallback. Actions artifacts contain
+environment, tests, bundle, limited startup and ditto round-trip reports.
+Packaging validates dependency notices independently on each builder.

@@ -4,7 +4,7 @@ The [MIT license](https://github.com/nottbradd/MiniWhiteboard/blob/main/LICENSE)
 covers Mini Whiteboard's own source and assets. Python, Qt, PySide6 and the other
 dependencies retain their original licenses.
 
-## Dependencies used by Version 1.2
+## Dependencies used by Version 1.2.1
 
 | Software | Use | Upstream license information |
 |---|---|---|
@@ -19,7 +19,7 @@ dependencies retain their original licenses.
 ## What the downloads contain
 
 Each app includes a `licenses` directory. On Windows it is under `_internal`;
-on Mac it is inside the app's Contents directory. Its `MANIFEST.json` records
+on Mac it is under `Contents/Resources`. Its `MANIFEST.json` records
 the builder's Python version, package versions and SHA-256 of every notice file.
 Packaging verifies these hashes before making an archive.
 
@@ -41,7 +41,7 @@ The [dependency source guide](https://github.com/nottbradd/MiniWhiteboard/blob/m
 lists exact upstream source archives, their locally computed hashes, and how to
 rebuild or replace the dynamically loaded Qt/PySide libraries. The same guide
 is included at `licenses/upstream/SOURCES.md`. Corresponding source archives
-are attached to the [V1.2 GitHub Release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2).
+are attached to the [V1.2.1 GitHub Release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2.1).
 
 The project's MIT source and PyInstaller build specifications are available in
 the repository and GitHub's source archives. No project license term prevents

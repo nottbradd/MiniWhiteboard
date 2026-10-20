@@ -1,4 +1,4 @@
-# Dependency sources for Mini Whiteboard V1.1
+# Dependency sources for Mini Whiteboard
 
 Qt and Qt for Python binaries are unmodified upstream 6.11.2 builds. The release
 uses dynamically loaded libraries. The exact source archives are listed below,

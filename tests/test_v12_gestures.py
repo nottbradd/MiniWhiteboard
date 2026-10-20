@@ -175,6 +175,24 @@ class HoldGestureTests(QtCase):
         self.release()
         self.assertFalse(self.rects)
 
+    def test_escape_rearms_after_idle_without_polling_its_release(self):
+        self.begin()
+        with patch.object(self.tracker, 'sample', return_value=(self.down.copy(), self.complete.copy(), True)):
+            self.tracker.poll()
+        self.assert_idle()
+        self.down.clear()
+        self.complete.clear()
+        with patch.object(self.tracker, 'sample', return_value=(set(), set(), True)):
+            self.tracker.poll()  # W released while Escape is still held.
+        self.assertFalse(self.tracker.timer.isActive())
+        # Escape releases while idle, when there is deliberately no polling.
+        self.begin()
+        with patch.object(self.tracker, 'sample', return_value=(self.down.copy(), self.complete.copy(), True)):
+            self.tracker.poll()
+        self.assert_idle()
+        self.release()
+        self.assertFalse(self.rects)
+
     def test_all_four_release_directions(self):
         for end in ((-700, -600), (-300, -600), (-700, -200), (-300, -200)):
             self.begin(point=(-500, -400))

@@ -57,8 +57,8 @@ def validate_bundle(bundle, architecture):
         with (bundle/"Contents/Info.plist").open("rb") as source:
             info = plistlib.load(source)
         check("Bundle metadata and accessory mode", all(info.get(k) == v for k, v in {
-            "CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": "1.2",
-            "CFBundleVersion": "1.2", "LSMinimumSystemVersion": "14.0", "LSUIElement": True}.items()))
+            "CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": "1.2.1",
+            "CFBundleVersion": "1.2.1", "LSMinimumSystemVersion": "14.0", "LSUIElement": True}.items()))
         check("Screen capture purpose without microphone purpose", bool(info.get("NSScreenCaptureUsageDescription"))
               and "NSMicrophoneUsageDescription" not in info)
         executable = bundle/"Contents/MacOS"/info["CFBundleExecutable"]
@@ -124,7 +124,7 @@ def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: bundle verification requires macOS.")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v12/Mini Whiteboard.app"))
+    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v121/Mini Whiteboard.app"))
     parser.add_argument("--architecture", choices=("universal2", "arm64", "x86_64"), default="universal2")
     parser.add_argument("--report", type=Path, default=Path("verification/macos-package-check.json"))
     args = parser.parse_args()

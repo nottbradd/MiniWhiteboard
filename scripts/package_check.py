@@ -21,7 +21,7 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v12/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v121/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     executable = args.executable.resolve()
     results = []
@@ -42,9 +42,14 @@ def main():
         for entry in group:
             for table in getattr(entry, 'StringTable', ()):
                 version_strings.update(table.entries)
-    check('Executable product and file metadata are Version 1.2',
+    parts = tuple(int(part) for part in APP_VERSION.split('.'))
+    numeric = (parts + (0, 0, 0, 0))[:4]
+    fixed = pe.VS_FIXEDFILEINFO[0]
+    check(f'Executable string and numeric metadata are Version {APP_VERSION}',
           version_strings.get(b'ProductVersion') == APP_VERSION.encode()
-          and version_strings.get(b'FileVersion') == APP_VERSION.encode(),
+          and version_strings.get(b'FileVersion') == APP_VERSION.encode()
+          and fixed.FileVersionMS == fixed.ProductVersionMS == (numeric[0] << 16 | numeric[1])
+          and fixed.FileVersionLS == fixed.ProductVersionLS == (numeric[2] << 16 | numeric[3]),
           {key.decode(): value.decode() for key,value in version_strings.items()})
     check('Bundled JPEG and WEBP decoders are included',
           all((executable.parent/'_internal/PySide6/plugins/imageformats'/name).is_file()
@@ -57,7 +62,7 @@ def main():
                     data = language.data.struct
                     manifests.append(pe.get_data(data.OffsetToData, data.Size).decode("utf-8", errors="replace"))
     check("Embedded manifest is PerMonitorV2 and asInvoker",
-          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.2.0.0"' in text for text in manifests))
+          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.2.1.0"' in text for text in manifests))
     initial = windows.SingleInstance()
     if not initial.acquired:
         initial.close()
@@ -217,6 +222,78 @@ def main():
                   ((width//2,0),(0,height//2),(width-1,height//2),(width//2,height-1))]
         check('Packaged blank board has top line and no side or bottom outlines',
               pixels[0]==BORDER and all(p=='#ffffff' for p in pixels[1:]), pixels)
+        # Native input targets only this owned frozen board. Pixel assertions
+        # observe its visible editor/artwork without adding a test API to the app.
+        mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
+        get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
+        ancestor = windows.bind(user32, 'GetAncestor', W.HWND, W.HWND, W.UINT)
+        owned_board = boards[0]
+
+        def click_paper(x, y):
+            p = (round(paper.x+x*dpi), round(paper.y+y*dpi))
+            set_cursor(*p)
+            time.sleep(.04)
+            if ancestor(get_at(W.POINT(*p)), 2) != owned_board:
+                raise RuntimeError('Frozen textbox click is outside the owned board')
+            mouse(2, 0, 0, 0, 0)
+            try:
+                time.sleep(.04)
+            finally:
+                mouse(4, 0, 0, 0, 0)
+            time.sleep(.12)
+
+        def text_key(vk, ctrl=False):
+            if foreground() != owned_board:
+                raise RuntimeError('Frozen textbox key target is not the owned board')
+            if ctrl:
+                key(0x11)
+            try:
+                key(vk)
+                key(vk, True)
+            finally:
+                if ctrl:
+                    key(0x11, True)
+            time.sleep(.08)
+
+        def dark_content():
+            area = Rect(round(paper.x+14*dpi), round(paper.y+40*dpi),
+                        round(paper.width-28*dpi), round(paper.height-105*dpi))
+            image = windows.capture_rect(area)
+            return sum(image.pixelColor(x, y).lightness() < 150
+                       for y in range(image.height()) for x in range(image.width()))
+
+        text_key(ord('T'))
+        click_paper(50, 80)
+        check('Frozen native Text click visibly opens an editor', dark_content() > 5)
+        click_paper(60, 190)
+        check('Frozen native blank dismissal removes the editor without replacement', dark_content() == 0)
+        text_key(ord('Q'))
+        text_key(0x1B)
+        check('Frozen dismissal leaves no editor to receive stray typing', dark_content() == 0)
+        click_paper(80, 220)
+        for _ in range(4):
+            text_key(ord('Q'))
+        text_key(0x1B)
+        check('Frozen next intentional click types and commits text', dark_content() > 8)
+        text_key(ord('Z'), ctrl=True)
+        check('Frozen text creation is one document undo', dark_content() == 0)
+        text_key(ord('Y'), ctrl=True)
+        check('Frozen text creation redo restores visible content', dark_content() > 8)
+        text_key(0x1B)  # Clear selection handles before reopening.
+        click_paper(90, 230)
+        text_key(ord('A'), ctrl=True)
+        text_key(0x08)
+        text_key(0x0D, ctrl=True)
+        check('Frozen clearing existing text removes invisible objects/editor', dark_content() == 0)
+        text_key(ord('Z'), ctrl=True)
+        check('Frozen cleared-text undo restores the original artwork', dark_content() > 8)
+        text_key(ord('Y'), ctrl=True)
+        check('Frozen cleared-text redo removes it again', dark_content() == 0)
+        text_key(ord('C'))
+        click_paper(370, 100)
+        text_key(ord('Q'))
+        text_key(0x1B)
+        check('Frozen palette dismissal does not replay into textbox creation', dark_content() == 0)
         point = (round(paper.x+paper.width*.2),round(paper.y+paper.height*.3))
         end = (round(paper.x+paper.width*.7),round(paper.y+paper.height*.7))
         begin('S', point)

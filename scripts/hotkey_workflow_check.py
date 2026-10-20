@@ -264,6 +264,35 @@ def main():
         release_all()
         check('Fresh W works immediately after cancelled capture', len(controller.boards) == count+2)
         idle('Final gesture leaves no tracking resources')
+        from mini_whiteboard.document import Text
+        board = controller.boards[-1]
+        board.canvas.begin_editing(Text((30, 40), 'creation while editing'))
+        QTest.qWait(80)
+        check('Creation audit begins with a focused editor', board.canvas.editor.hasFocus())
+        count = len(controller.boards)
+        begin('W', a)
+        set_cursor(*b)
+        release_all()
+        QTest.qWait(100)
+        check('Native W hold from an editor creates exactly one new board', len(controller.boards) == count+1)
+        check('New-board activation commits the old editor once', board.canvas.editor is None
+              and len(board.canvas.document.objects) == 1
+              and board.canvas.document.objects[0].text == 'creation while editing')
+        board = controller.boards[-1]
+        board.canvas.open_palette()
+        QTest.qWait(60)
+        check('Creation audit opens a temporary palette', board.canvas.palette is not None
+              and board.canvas.palette.isVisible())
+        count = len(controller.boards)
+        begin('S', a)
+        key(0x1B)
+        QTest.qWait(60)
+        key(0x1B, True)
+        release_all()
+        check('Native capture cancellation with a popup creates no extra board', len(controller.boards) == count
+              and not controller.capture.active)
+        board.canvas.stop_transient_ui()
+        idle('Editor and popup creation audits leave no tracking resources')
         check('No callback exceptions', not errors, errors)
     finally:
         if mouse_down:

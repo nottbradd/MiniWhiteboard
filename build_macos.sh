@@ -13,11 +13,12 @@ fi
 export MACOSX_DEPLOYMENT_TARGET=14.0
 export MINIWHITEBOARD_ARCH="${MINIWHITEBOARD_ARCH:-universal2}"
 mkdir -p verification build
+"$python_bin" -m scripts.check_documentation
 "$python_bin" -m scripts.package_notices
 "$python_bin" -m scripts.make_macos_icon
 QT_QPA_PLATFORM=offscreen "$python_bin" -m scripts.run_tests > verification/macos-shared-tests.txt 2>&1
 build_target() {
-    "$python_bin" -m PyInstaller --noconfirm --distpath dist/macos-v12 --workpath "build/macos-v12-$MINIWHITEBOARD_ARCH" \
+    "$python_bin" -m PyInstaller --noconfirm --distpath dist/macos-v121 --workpath "build/macos-v121-$MINIWHITEBOARD_ARCH" \
         'Mini Whiteboard.macos.spec' > "verification/macos-build-$MINIWHITEBOARD_ARCH.txt" 2>&1
 }
 if ! build_target; then
@@ -33,6 +34,6 @@ if ! build_target; then
     fi
 fi
 "$python_bin" -m scripts.macos_package_check --architecture "$MINIWHITEBOARD_ARCH"
-echo 'Built dist/macos-v12/Mini Whiteboard.app. Complete docs/MACOS_CHECKLIST.md before tester release.'
+echo 'Built dist/macos-v121/Mini Whiteboard.app. Interactive acceptance: see docs/TESTING.md.'
 echo 'Create a verified tester ZIP: .venv-macos/bin/python -m scripts.macos_package_release'
 echo 'Automated build/packaging does not complete the interactive Mac acceptance checklist.'

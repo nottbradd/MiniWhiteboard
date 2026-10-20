@@ -82,6 +82,7 @@ Esc — cancel interaction / clear selection · F1 — toggle this reference<br>
 Text wraps to its stored width. Tool letters, C and numbers type normally.<br>
 Enter adds a real new line; soft wraps leave the text unchanged.<br>
 Ctrl+Enter / Esc / click outside — finish editing.<br>
+Blank text dismisses without creating a replacement. Click again to insert.<br>
 Double-click text to edit. Text undo stays inside the editor.<br><br>
 Drag the empty top edge to move; edges/corners to resize the board.<br>
 − hides to tray · × deletes this board · tray menu exits the application.

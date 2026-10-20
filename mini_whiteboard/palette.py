@@ -68,6 +68,16 @@ class ColorPalette(QFrame):
         else:
             super().keyPressEvent(event)
 
+    def mousePressEvent(self, event):
+        if not self.rect().contains(event.position().toPoint()):
+            # Qt clears this flag for each new mouse event, so set it on the
+            # dismissing press rather than when constructing the popup.
+            self.setAttribute(Qt.WidgetAttribute.WA_NoMouseReplay)
+            self.close()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
     def closeEvent(self, event):
         self.canvas.palette = None
         if self.canvas.window().isActiveWindow():

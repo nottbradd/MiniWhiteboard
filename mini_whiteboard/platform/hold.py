@@ -29,6 +29,7 @@ class HoldTracker(QObject):
         if self.active is not None or self.blocked:
             self.blocked.add(identifier)
             return
+        self.escape_down = False  # Escape can release while the idle timer is stopped.
         self.active = identifier
         self.blocked.add(identifier)
         self.timer.start()

@@ -3,8 +3,8 @@ import math
 
 from PySide6.QtCore import QEvent, QRectF, Qt, Signal, QTimer
 from PySide6.QtGui import QFont, QTextCursor, QTextOption, QPainterPath, QPainter
-from PySide6.QtWidgets import (QFrame, QTextEdit, QGraphicsView, QGraphicsScene,
-                              QGraphicsProxyWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QTextEdit, QGraphicsView, QGraphicsScene,
+                              QGraphicsProxyWidget, QWidget)
 
 from .settings import INK, SELECTION
 from .transforms import translation
@@ -80,8 +80,16 @@ class TextEditor(QTextEdit):
             self.commit_timer.start(0)
 
     def commit_if_unfocused(self):
-        if not self.closing and self.isVisible() and not self.hasFocus():
+        if (not self.closing and self.isVisible() and not self.hasFocus()
+                and not self.popup_active()):
             self.committed.emit()
+
+    def popup_active(self):
+        # A proxy embeds QTextEdit's menus in its scene. Such menus are visible
+        # child widgets, but are absent from QApplication.activePopupWidget().
+        return (QApplication.activePopupWidget() is not None or
+                any(child.isVisible() and child.windowType() == Qt.WindowType.Popup
+                    for child in self.findChildren(QWidget)))
 
 
 class MaskedEditorProxy(QGraphicsProxyWidget):
@@ -157,13 +165,33 @@ class EditorOverlay(QGraphicsView):
         return False
 
     def mousePressEvent(self, event):
+        if self.editor.closing:
+            event.accept()
+            return
+        if self.editor.popup_active():
+            super().mousePressEvent(event)
+            self.restore_after_popup()
+            return
         if not self.proxy.contains(self.proxy.mapFromScene(self.mapToScene(event.position().toPoint()))):
-            self.canvas.finish_editing()
-            # The overlay and canvas share coordinates. Complete the outside
-            # click as a normal canvas press; subsequent events target canvas.
-            self.canvas.mousePressEvent(event)
+            self.canvas.editor_outside_press(self.editor, event)
             return
         super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if self.editor.closing:
+            event.accept()
+        elif self.editor.popup_active():
+            super().mouseDoubleClickEvent(event)
+            self.restore_after_popup()
+        elif not self.proxy.contains(self.proxy.mapFromScene(self.mapToScene(event.position().toPoint()))):
+            self.canvas.editor_outside_press(self.editor, event)
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def restore_after_popup(self):
+        if (self.canvas.editor is self.editor and not self.editor.closing
+                and not self.editor.popup_active()):
+            self.activate_editor()
 
     def resizeEvent(self, event):
         self.setSceneRect(QRectF(self.viewport().rect()))

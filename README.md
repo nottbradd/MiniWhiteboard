@@ -1,226 +1,126 @@
 # Mini Whiteboard
 
 [![Windows tests](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml)
-[![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.2.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-v1.2.yml)
+[![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml)
 
 Place a small desktop whiteboard by holding a shortcut, moving the pointer and
-releasing. Draw, type, paste images and annotate screenshots without a permanent toolbar. Version **1.2** uses
-PySide6, with a Windows tray icon and a macOS menu-bar item. Launch opens no board.
+releasing. Draw, type, paste images and annotate screenshots without a permanent
+toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-## Download V1.2
+## Download V1.2.1
 
-| Download | Status | How to open it |
+| Download | Platform | Installation |
 |---|---|---|
-| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/WinMiniWhiteboardV1.2.zip) | Stable; Windows 10/11, 64-bit | Extract the ZIP, open **Mini Whiteboard**, then run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2/MacMiniWhiteboardV1.2-Preview.zip) | Preview; macOS 14+ | Extract on a Mac, move **Mini Whiteboard.app** to Applications, then open it. |
+| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/WinMiniWhiteboardV1.2.1.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/MacMiniWhiteboardV1.2.1-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
 
-Both downloads include Python and Qt. See the [V1.2 release notes and checksums](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2).
+Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
+describe this patch. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2.1)
+accompany the downloads.
 
-The Mac preview has passed automated build, bundle, startup and archive checks.
-Interactive Mac testing is still outstanding. It is ad-hoc signed; if macOS
-blocks a trusted download, follow [Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
+Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
+For a trusted Mac download blocked by Gatekeeper, follow
+[Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
+Interactive Mac acceptance, execution on macOS 14 and Intel hardware remain
+**NOT RUN**. Universal2 bundle checks and limited startup do not establish those results.
 
 ![Hold, move and release to place a whiteboard](docs/media/placement.gif)
 
-The demo uses the real app controller and renderer on a controlled desktop.
-Point at one corner, hold the shortcut, move to the opposite corner and release. The dotted outline becomes a board.
+The demo uses the app controller and renderer on a controlled desktop.
 
 <details>
-<summary>See a board with drawing, shapes and text</summary>
+<summary>A board with drawing, shapes and text</summary>
 
 ![Mini Whiteboard with drawing, shapes and text](docs/media/whiteboard.png)
 
 </details>
 
-## Features
+## Place a board or screenshot
 
-- Hold, move and release to place a board: **Ctrl+Alt+W** on Windows or
-  **Control+Option+W** on macOS.
-- Freehand drawing, seven shapes, wrapped multiline text and a temporary colour palette.
-- Multiple selection, shared movement/scaling/rotation, Smart Guides and optional
-  Grid Snap.
-- Circular partial erasure and a whole-stroke eraser.
-- Editable copy/cut/paste/duplicate, image paste and local image drops.
-- A global screenshot shortcut that creates a board with a locked background,
-  ready to annotate.
-- Undo/redo, object locking and ordering, and independent boards.
+1. Point at the first corner and hold **Ctrl+Alt+W** on Windows or
+   **Control+Option+W** on Mac.
+2. Keep holding and move to the opposite corner. Dots preview the rectangle.
+3. Release W **or any required modifier** to create a focused board.
 
-Documents last for the current session. Only preferences are saved. The app has
-no accounts, network service or telemetry.
+Use **S** in the same global shortcut to capture a region into a new board
+with a locked screenshot background, ready to annotate. Mac's **Global shortcuts**
+menu also offers **Command+Option+Shift+W/S** when the default conflicts.
 
-## Platform status
-
-| Platform | Support and evidence |
-|---|---|
-| Windows 10/11, x64 | Native input, capture, lifecycle and packaged-app checks passed on Windows 11. Physical mixed-DPI and clean-machine deployment remain untested. |
-| macOS 14+, preview | [V1.2 CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39256527611) passed 191 tests and verified a Universal2 bundle, startup and ZIP round-trip on macOS 15.7.9 arm64. Interactive acceptance remains **NOT RUN**. |
-| Linux | Unsupported. |
-
-The application deployment target and runtime minimum remain **macOS 14.0**.
-The observed builder used Universal2 Python 3.13.15. Universal2 validation does
-not prove execution on Intel or macOS 14. See
-[TEST_RESULTS.md](docs/TEST_RESULTS.md) for actual results and both platform checklists
-for the remaining GUI/hardware checks.
-
-## Run from source
-
-Clone the repository, then use the commands for your platform:
-
-```text
-git clone https://github.com/nottbradd/MiniWhiteboard.git
-cd MiniWhiteboard
-```
-
-### Windows
-
-Use 64-bit Python 3.12 on Windows 10/11. From PowerShell:
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m mini_whiteboard
-```
-
-### macOS
-
-Use the standard python.org universal2 Python 3.13 on macOS 14+:
-
-```bash
-python3.13 -m venv .venv-macos
-.venv-macos/bin/python -m pip install -r requirements-macos.txt
-.venv-macos/bin/python -m mini_whiteboard
-```
-
-Look for the tray/menu-bar icon. Closing the last board leaves the utility
-running; choose **Exit Mini Whiteboard** or **Quit Mini Whiteboard** to exit.
-
-## Place a board
-
-1. Point at the first corner and hold the global W shortcut.
-2. Keep holding and move the pointer to the opposite corner. A dotted outline previews the board.
-3. Release W **or any required modifier**. The rectangle becomes a focused board.
-
-Use S with the same hold, move and release gesture to capture a screenshot board.
-No clicks, second press or minimum hold time are needed. Either workflow supports
-all four directions and negative desktop coordinates. A board smaller than
-160 × 100 logical pixels, or a screenshot smaller than 4 × 4 desktop units,
-cancels completely with brief feedback. Escape or the tray/menu cancellation
-clears the preview. Held repeats cannot create more boards or switch tools.
-The menu's creation entries show these shortcut instructions.
+Both gestures support four directions and negative desktop coordinates. A board
+below 160 × 100 logical pixels, or a capture below 4 × 4 desktop units, cancels.
+Escape or the tray/menu cancellation clears a preview. Held repeats cannot
+create more boards. Screen capture may request Screen Recording permission on
+Mac; a denied or failed capture creates no board.
 
 ## Tools and shortcuts
 
-Tool keys work only in the focused canvas. New boards start in Draw mode and
-remember their tool settings. Press **F1** for help.
+Tools work only in the focused canvas. New boards start in Draw mode.
+Press **F1** for the compact shortcut reference.
 
 | Key | Action |
 |---|---|
-| D, then 1–5 | Draw at 2, 4, 6, 9 or 14 px |
-| T, then 1–3 | Text at 14, 20 or 28 pt |
+| D, then 1–5 | Draw at 2, 4, 6, 9 or 14 logical px |
+| T, then 1–3 | Text at 14, 20 or 28 pt; apply to selected text or the next textbox |
 | S, then 1–7 | Rectangle, rounded rectangle, ellipse, line, arrow, triangle, diamond |
-| A or V | Select and transform; Shift-click toggles selection, Shift-marquee adds |
-| E, then 1–4 | Circular partial eraser at 8, 16, 32 or 64 logical px |
-| E, then 5 | Toggle whole-stroke erasing; a second 5 returns to the 16 px circular brush |
+| A or V | Select and transform; Shift-click toggles, Shift-marquee adds fully enclosed objects |
+| E, then 1–4 | Partial circular eraser at 8, 16, 32 or 64 logical px |
+| E, then 5 | Toggle whole-stroke erasing; toggling off returns to circular 16 px |
 | C | Temporary colour palette; 1–7 choose presets |
-| Arrow keys / Shift+arrows | Move the selection by 1 / 10 logical px |
-| Delete / Backspace | Delete the selected editable objects |
+| Arrows / Shift+arrows | Move selection by 1 / 10 logical px |
+| Delete / Backspace | Delete selected editable objects |
+| Escape | Cancel a gesture or clear selection |
 
-Corner handles scale proportionally. Edge handles scale one axis unless Shift
-is held or the selection contains text or images. The rotation handle rotates
-around the group centre; Shift snaps to 15-degree increments. Escape cancels an
-active gesture. Selection bounds include surviving artwork outside the viewport.
-
-Circular erasing cuts every editable object under the swept brush. Whole-stroke
-mode removes an entire original freehand stroke when any surviving fragment is
-hit. Locked objects are protected. Erased regions stay attached through transforms
-and text edits. New drawing over an erased region remains visible.
-
-| Action | Windows | macOS |
+| Action | Windows | Mac |
 |---|---|---|
-| Place a board | Hold Ctrl+Alt+W, move, release | Hold Control+Option+W, move, release |
-| Screenshot region | Hold Ctrl+Alt+S, move, release | Hold Control+Option+S, move, release |
 | Copy / cut / paste / duplicate | Ctrl+C / X / V / D | Command+C / X / V / D |
 | Select all | Ctrl+A | Command+A |
-| Undo / redo | Ctrl+Z / Ctrl+Shift+Z | Command+Z / Command+Shift+Z |
+| Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y | Command+Z / Command+Shift+Z |
 | Bypass snapping | Alt | Option |
-| Finish text editing | Ctrl+Enter or Escape | Command+Return or Escape |
+| Finish text | Ctrl+Enter or Escape | Command+Return or Escape |
 
-While a textbox is active, its editor owns typing, clipboard commands and undo.
-Letters, numbers, arrows, Delete and Backspace never switch canvas tools during
-editing. Clicking outside commits text. Board undo resumes after editing ends.
+Text wraps to a stored width. Enter adds a newline; the temporary editor follows
+the caret for tall content. Resizing the board preserves objects and text width.
+While editing, letters, numbers, clipboard commands, arrows, deletion and undo
+belong exclusively to the text editor.
 
-New text wraps to the space from its insertion point to the right edge, with an
-8 px margin and a 24 px minimum. Words wrap naturally; long URLs can break within
-a word. Soft wraps leave plain text unchanged; Enter inserts a real newline.
-Editing, committed rendering and reopening share the stored local width.
-Moving, transforming or resizing the board preserves that width. The temporary
-editor follows the caret for tall content; all text survives outside the viewport.
+Clicking outside blank or whitespace-only text dismisses it without starting a
+canvas action. A separate next click immediately creates text. Meaningful text
+keeps its whitespace; in Text mode an outside click can commit it and start or
+edit the next textbox. Clearing existing text removes it with one board undo.
 
-The canvas context menu offers locking, unlocking and front/back ordering. The
-tray/menu-bar **Snap & Guides** menu controls Smart Guides and Grid Snap. On Mac,
-**Global shortcuts** offers Command+Option+Shift+W/S when the default conflicts.
-Screen capture may require Screen Recording permission; the app explains the
-request. A rejected or failed capture creates no blank board.
+Selection has shared move, resize and rotation controls. Corners preserve ratio;
+edges scale one axis unless Shift is held or the group contains text or images.
+Shift snaps rotation to 15°. Shape creation retains square/circle constraints.
+Circular erasure cuts every editable object under its swept brush. Whole-stroke
+erasure removes an original freehand gesture, including its surviving fragments.
+Masks follow objects through transforms and edits.
 
-## Test and build
+Right-click for ordering and lock/unlock commands. Paste images or drop local
+PNG, JPEG and WEBP files. **Snap & Guides** controls Smart Guides and Grid Snap.
+The minus button hides a board while preserving contents and history; the red
+× deletes that board. The tray/menu restores boards. Closing the last board
+leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the session.
 
-Development requirements include the packaging tools. Windows, from PowerShell:
+## Limitations and development
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-$env:QT_QPA_PLATFORM = 'offscreen'
-.\.venv\Scripts\python.exe -m unittest discover -v
-Remove-Item Env:QT_QPA_PLATFORM
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
-```
+- Documents are session-only. Only preferences are saved.
+- Windows 11 has scripted native and packaged checks. Windows 10, clean-machine
+  deployment and physical mixed-DPI arrangements still need testing.
+- Mac remains a preview. Interactive shortcuts, focus, permissions, capture,
+  Spaces and Retina/multi-monitor acceptance are outstanding. Floating windows
+  use normal Space membership; coverage over every full-screen app is not guaranteed.
+- Linux is unsupported. Images are limited to 64 million pixels and editable
+  clipboard data to 96 MB. Protected desktop content may be unavailable to capture.
+- The app has no accounts, network service or telemetry.
 
-The Windows build targets `dist/windows-v12/Mini Whiteboard/`. Keep the complete
-output folder together when testing it.
-
-Mac builds require Xcode Command Line Tools:
-
-```bash
-.venv-macos/bin/python -m pip install -r requirements-dev.txt -r requirements-macos.txt
-QT_QPA_PLATFORM=offscreen .venv-macos/bin/python -m unittest discover -v
-bash build_macos.sh
-.venv-macos/bin/python -m scripts.macos_package_release
-```
-
-The Mac build attempts Universal2. It allows an arm64 retry only after a genuine
-architecture mismatch on an Apple Silicon host. Packaging uses `ditto` and
-verifies the archive after extraction. Keep the finished Mac ZIP unchanged when
-transferring it through Windows.
-
-[Windows CI](.github/workflows/windows-tests.yml) runs automated tests on code/config
-pushes and pull requests to main. [Mac CI](.github/workflows/macos-v1.2.yml) runs the full
-build/validation pipeline for relevant main pushes or manual dispatches.
-Generated logs under `verification/` are ignored; CI reports are downloadable
-Actions artifacts.
-
-## Development and limitations
-
-The [documentation index](docs/README.md) links the specifications, build and
-verification reports, and manual checklists. The source launcher is `main.py`;
-`python -m mini_whiteboard` remains supported.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contributions,
-[SPEC.md](docs/SPEC.md) for behaviour, [PLAN.md](docs/PLAN.md) for design history,
-[PERFORMANCE.md](docs/PERFORMANCE.md) for measurements, and
-[CROSS_PLATFORM_REPORT.md](docs/CROSS_PLATFORM_REPORT.md) for platform details.
-Manual checks are in [MANUAL_TESTING.md](docs/MANUAL_TESTING.md) and
-[MACOS_CHECKLIST.md](docs/MACOS_CHECKLIST.md).
-
-Image import is limited to 64 million pixels and editable clipboard data to
-96 MB. Protected desktop content may be unavailable to native capture. Physical
-multi-monitor/DPI arrangements, long sessions and third-party clipboard apps need
-further manual testing. Mac floating windows use normal Space membership; display
-over every full-screen app is not guaranteed.
+[CONTRIBUTING](CONTRIBUTING.md) covers source setup, architecture and rebuilding.
+[Testing and troubleshooting](docs/TESTING.md) covers native checks and remaining
+hardware acceptance. [Report a bug](https://github.com/nottbradd/MiniWhiteboard/issues)
+with the version, OS and reproduction steps.
 
 ## License
 
 Mini Whiteboard's own source and assets use the [MIT license](LICENSE).
-Dependencies retain their own licenses; see
-[THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
-The downloads include dependency license texts, a manifest of the exact
-versions and notice hashes, and instructions for rebuilding or replacing Qt.
-The release also provides the corresponding Qt/PySide source archives.
+Dependencies retain their own terms; see [third-party notices](docs/THIRD_PARTY_NOTICES.md).
+Both packages contain license texts, exact dependency versions, notice hashes
+and the [source/rebuild guide](assets/licenses/SOURCES.md).

@@ -347,7 +347,8 @@ class Canvas(EditingActions, QWidget):
         self.editing_object = obj
         self.cursor_position = None
         self.editor = TextEditor(obj, None)
-        self.editor.committed.connect(self.finish_editing)
+        editor = self.editor
+        self.editor.committed.connect(lambda: self.finish_editing(editor))
         self.editor.help_requested.connect(self.toggle_help)
         self.editor_overlay = EditorOverlay(obj, self.editor, self)
         self.editor_overlay.show()
@@ -356,8 +357,8 @@ class Canvas(EditingActions, QWidget):
         self.sync_tool_overlay()
         self.update()
 
-    def finish_editing(self):
-        if self.editor is None:
+    def finish_editing(self, session=None, *, refocus=True):
+        if self.editor is None or (session is not None and session is not self.editor):
             return
         editor, overlay = self.editor, self.editor_overlay
         editor.closing = True
@@ -367,21 +368,55 @@ class Canvas(EditingActions, QWidget):
         editor.commit_timer.stop()
         overlay.hide()
         overlay.deleteLater()  # The proxy owns the editor and its children.
+        meaningful = bool(obj.text.strip())
         if self.document.get(obj.id) is not None:
-            self.document.replace(obj, "Edit text")
-        elif obj.text:
+            if meaningful:
+                self.document.replace(obj, "Edit text")
+            else:
+                self.document.delete({obj.id}, "Delete text")
+        elif meaningful:
             self.document.add(obj, "Create text")
         self.sync_selection()
-        if self.window().isActiveWindow():
+        if refocus and self.window().isActiveWindow():
             self.setFocus(Qt.FocusReason.OtherFocusReason)
         self.update_cursor()
         self.update()
 
+    def editor_outside_press(self, session, event):
+        """Own one outside canvas press; its move/release has no gesture to finish."""
+        if session is not self.editor:
+            return
+        # Continue meaningful text with one intentional Text-tool press. Empty
+        # dismissal and other tools never replay a press into canvas gestures.
+        continue_text = (bool(session.toPlainText().strip()) and self.tool == "Text"
+                         and event.button() == Qt.MouseButton.LeftButton)
+        local = self.mapFromGlobal(event.globalPosition().toPoint()).toPointF()
+        self.finish_editing(session)
+        if continue_text:
+            self.edit_text_at((local.x(), local.y()))
+        event.accept()
+
+    def edit_text_at(self, position):
+        if not self.valid_position(position):
+            return
+        from .settings import TEXT_MARGIN, TEXT_MIN_WIDTH, TEXT_MAX_WIDTH
+        hit = self.hit_test(position)
+        width = min(TEXT_MAX_WIDTH, max(TEXT_MIN_WIDTH, round(self.width()-position[0]-TEXT_MARGIN)))
+        self.begin_editing(hit if isinstance(hit, Text) else Text(position,
+                           size=FONT_SIZES[self.font_key], color=self.active_color, layout_width=width))
+
     def eventFilter(self, watched, event):
-        if self.editor is not None and event.type() == QEvent.Type.MouseButtonPress:
-            if QApplication.activePopupWidget() is None and isinstance(watched, QWidget):
-                if not self.editor_overlay.owns_mouse_event(watched, event):
-                    self.finish_editing()
+        if (self.editor is not None and event.type() in (QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick)
+                and not self.editor.popup_active() and isinstance(watched, QWidget)):
+            view = watched if isinstance(watched, EditorOverlay) else watched.parentWidget()
+            if isinstance(view, EditorOverlay) and view.canvas is self and view is not self.editor_overlay:
+                return False  # A retired view cannot finish its replacement session.
+            if not self.editor_overlay.owns_mouse_event(watched, event):
+                if watched in (self, self.editor_overlay, self.editor_overlay.viewport()):
+                    self.editor_outside_press(self.editor, event)
+                    return True
+                # Controls, other boards and other applications keep their own input.
+                self.finish_editing(self.editor, refocus=False)
         return False
 
     def paintEvent(self, event):
@@ -475,10 +510,7 @@ class Canvas(EditingActions, QWidget):
                 self.start_gesture("marquee")
                 self.marquee_add = shift
         elif self.tool == "Text":
-            from .settings import TEXT_MARGIN, TEXT_MIN_WIDTH, TEXT_MAX_WIDTH
-            width = min(TEXT_MAX_WIDTH, max(TEXT_MIN_WIDTH, round(self.width()-self.start[0]-TEXT_MARGIN)))
-            self.begin_editing(hit if isinstance(hit, Text) else Text(self.start,
-                               size=FONT_SIZES[self.font_key], color=self.active_color, layout_width=width))
+            self.edit_text_at(self.start)
         elif isinstance(hit, Text) and self.tool != "Eraser":
             self.set_selection({hit.id})
             self.start_gesture("text_click")
