@@ -6,7 +6,7 @@ import time
 from PySide6.QtCore import QAbstractAnimation, QPoint, QRect, Qt
 from PySide6.QtGui import QShowEvent
 from PySide6.QtTest import QTest
-from tests.qt_case import APP, QtCase
+from tests.qt_case import APP, QtCase, wait_until
 from tests.fake_platform import fake_platform
 from mini_whiteboard.appearance import ANIMATION_MS, DisplayPolicy
 from mini_whiteboard.board import BoardWindow
@@ -37,7 +37,7 @@ class PresentationTests(QtCase):
         board.place(Rect(board.x(),board.y(),board.width(),board.height()))
         self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Running)
         self.assertEqual(board.emphasis.value, 1)
-        QTest.qWait(180)
+        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
         self.assertFalse(board.emphasis.deadline.isActive())
         board.prepare_hide()
         board.hide()
@@ -51,7 +51,7 @@ class PresentationTests(QtCase):
         self.assertTrue(menu.emphasis.deadline.isActive())
         menu.hide()
         self.assertFalse(menu.emphasis.deadline.isActive())
-        QTest.qWait(180)
+        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
         self.assertEqual(before, (board.geometry(), board.canvas.document.objects, board.canvas.document.history))
         self.assertEqual(board.windowOpacity(), 1)
         self.assertFalse(board.activation_timer.isActive())
@@ -88,7 +88,7 @@ class PresentationTests(QtCase):
     def test_native_show_notifications_cannot_restart_a_completed_presentation(self):
         board = self.board()
         board.place(Rect(board.x(),board.y(),board.width(),board.height()))
-        QTest.qWait(180)
+        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
         self.assertFalse(board.emphasis.deadline.isActive())
         APP.sendEvent(board,QShowEvent())
         board.restore(activate=False)  # Already visible: only restore focus/state.

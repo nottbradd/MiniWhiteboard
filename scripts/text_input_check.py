@@ -73,6 +73,20 @@ def main():
         monitor = windows.monitors()[0]
         board.place(Rect(monitor.rect.x+100, monitor.rect.y+130, 650, 450))
         QTest.qWait(180)
+        if foreground()!=int(board.winId()):
+            # A directly launched background test process may be denied native
+            # foreground activation. Give only this verified owned board a real
+            # activation click before sending any keys, as the hotkey audit does.
+            paper=board.physical_paper_rect()
+            x,y=round(paper.x+paper.width/2),round(paper.y+3)
+            set_cursor(x,y)
+            QTest.qWait(30)
+            if ancestor(at_point(W.POINT(x,y)),2)!=int(board.winId()):
+                raise AssertionError('Textbox activation click is not over the owned board')
+            mouse_event(2,0,0,0,0)
+            QTest.qWait(30)
+            mouse_event(4,0,0,0,0)
+            QTest.qWait(120)
         click(25, 25)  # Verify ownership before any keyboard input.
         board.canvas.document = Document()
         board.canvas.cancel_interaction()

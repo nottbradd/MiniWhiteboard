@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from types import SimpleNamespace
 import sys
 
-from tests.qt_case import APP, QtCase
+from tests.qt_case import APP, QtCase, wait_until
 from tests.fake_platform import fake_platform
 from PySide6.QtCore import QSettings, QAbstractAnimation
 from PySide6.QtTest import QTest
@@ -150,7 +150,10 @@ class AppearanceTests(QtCase):
             self.assertFalse(board.emphasis.deadline.isActive())
             board.restore(activate=False)
             prefs.set_theme('Glass' if prefs.theme == 'White' else 'White')
-        QTest.qWait(180)
+        self.assertTrue(wait_until(lambda: board.emphasis.animation.state() == QAbstractAnimation.State.Stopped
+                                   and not board.emphasis.deadline.isActive(), 180),
+                        f'Presentation exceeded 180 ms: frame={board.emphasis.animation.currentTime()}; '
+                        f'deadline={board.emphasis.deadline.remainingTime()}; elapsed={board.emphasis.clock.elapsed()}')
         self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Stopped,
                          f'frame={board.emphasis.animation.currentTime()} ms; '
                          f'deadline={board.emphasis.deadline.remainingTime()} ms; '

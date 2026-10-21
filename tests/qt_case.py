@@ -6,10 +6,28 @@ import unittest
 import sys
 from unittest.mock import patch
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication, QElapsedTimer, QEvent
+from PySide6.QtTest import QTest
 
 APP = QApplication.instance() or QApplication([])
 APP.setQuitOnLastWindowClosed(False)
+
+
+def wait_until(predicate, timeout_ms):
+    """Pump short event-loop turns within a fixed wall-clock assertion budget.
+
+    A single long qWait can return with an overdue Python timer callback still
+    queued on the macOS offscreen dispatcher. Short turns service those callbacks
+    without increasing the deadline or ignoring a failed completion condition.
+    """
+    clock = QElapsedTimer()
+    clock.start()
+    while not predicate():
+        remaining = timeout_ms-clock.elapsed()
+        if remaining <= 0:
+            return False
+        QTest.qWait(min(5,remaining))
+    return clock.elapsed() <= timeout_ms
 
 
 class QtCase(unittest.TestCase):
