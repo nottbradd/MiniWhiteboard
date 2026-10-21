@@ -147,8 +147,6 @@ class BoardWindow(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.refresh_appearance()
-        if hasattr(self, 'emphasis'):
-            self.emphasis.start()
         self.sync_shadow()
 
     def hideEvent(self, event):

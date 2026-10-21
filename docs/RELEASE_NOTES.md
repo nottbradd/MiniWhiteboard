@@ -9,8 +9,8 @@
 - Bold interface headings, medium action labels and regular support text.
   Document/editor fonts, presets, text widths, masks and geometry are unchanged.
   The shortcut reference scrolls on smaller logical desktops while keeping its
-  readable font size. Material emphasis has a 140 ms wall-clock deadline and
-  does not restart on native view refresh.
+  readable font size. Theme-change emphasis has a 140 ms wall-clock deadline;
+  showing, restoring or refreshing a native view does not restart it.
 - Removed OCR entirely: actions, review UI, workers/backends, Tesseract/English
   payload, exclusive Vision/CoreML requirements, fixtures and collection steps.
   The original V1.3 release, evidence and dependency sources remain available.

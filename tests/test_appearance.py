@@ -151,7 +151,9 @@ class AppearanceTests(QtCase):
             board.restore(activate=False)
             prefs.set_theme('Glass' if prefs.theme == 'White' else 'White')
         QTest.qWait(180)
-        self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Stopped)
+        self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Stopped,
+                         f'frame={board.emphasis.animation.currentTime()} ms; '
+                         f'deadline={board.emphasis.deadline.remainingTime()} ms')
         self.assertFalse(board.emphasis.deadline.isActive())
         self.assertEqual(board.geometry(), before)
         self.assertEqual(board.canvas.document.history, [])

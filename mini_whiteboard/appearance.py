@@ -1,6 +1,6 @@
 """Shared visual values; native compositor and accessibility policy stay in adapters."""
 from dataclasses import dataclass
-from PySide6.QtCore import QEasingCurve, QPointF, QRectF, Qt, QTimer, QVariantAnimation
+from PySide6.QtCore import QEasingCurve, QElapsedTimer, QPointF, QRectF, Qt, QTimer, QVariantAnimation
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainterPath, QPen, QRegion
 
 ANIMATION_MS = 140
@@ -112,6 +112,7 @@ class Emphasis:
     def __init__(self, board):
         self.board = board
         self.value = 0
+        self.clock = QElapsedTimer()
         self.animation = QVariantAnimation(board)
         self.animation.setDuration(ANIMATION_MS)
         self.animation.setStartValue(1.0)
@@ -125,6 +126,9 @@ class Emphasis:
         self.animation.finished.connect(self.stop)
 
     def changed(self, value):
+        if value and self.clock.isValid() and self.clock.elapsed() >= ANIMATION_MS:
+            self.stop()
+            return
         self.value = value
         paper = self.board.paper_rect().toAlignedRect()
         self.board.update(QRegion(paper).subtracted(QRegion(paper.adjusted(5,5,-5,-5))))
@@ -132,6 +136,7 @@ class Emphasis:
     def start(self):
         self.stop()
         if self.board.isVisible() and self.board.display_policy.motion and not self.board.display_policy.high_contrast:
+            self.clock.start()
             self.animation.start()
             # Qt's shared animation clock can defer its first frame under load.
             # A separate deadline bounds presentation lifetime from the trigger.
@@ -140,5 +145,6 @@ class Emphasis:
     def stop(self):
         self.animation.stop()
         self.deadline.stop()
+        self.clock.invalidate()
         if self.value:
             self.changed(0)
