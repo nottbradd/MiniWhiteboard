@@ -1,6 +1,8 @@
 from pathlib import Path
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from types import SimpleNamespace
+import sys
 
 from tests.qt_case import APP, QtCase
 from tests.fake_platform import fake_platform
@@ -15,6 +17,54 @@ from mini_whiteboard.clipboard import rendered_image
 
 
 class AppearanceTests(QtCase):
+    def test_mac_accessibility_fallback_recovers_when_transparency_is_reenabled(self):
+        from mini_whiteboard.platform.macos.desktop import MacDesktop
+        callbacks = {}
+        class Centre:
+            def addObserverForName_object_queue_usingBlock_(self, name, obj, queue, callback):
+                token = object()
+                callbacks[token] = callback
+                return token
+            def removeObserver_(self, token):
+                callbacks.pop(token)
+            def publish(self):
+                for callback in tuple(callbacks.values()):
+                    callback(None)
+        centre = Centre()
+        workspace = MagicMock()
+        workspace.notificationCenter.return_value = centre
+        workspace.accessibilityDisplayShouldIncreaseContrast.return_value = False
+        workspace.accessibilityDisplayShouldReduceMotion.return_value = True
+        workspace.accessibilityDisplayShouldReduceTransparency.return_value = True
+        appkit = SimpleNamespace(NSWorkspace=SimpleNamespace(sharedWorkspace=lambda: workspace),
+            NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification='policy',
+            NSVisualEffectView=MagicMock(), NSVisualEffectMaterialUnderWindowBackground=1,
+            NSVisualEffectBlendingModeBehindWindow=0, NSVisualEffectStateActive=1,
+            NSAppearance=MagicMock(), NSAppearanceNameAqua='Aqua', NSViewWidthSizable=2,
+            NSViewHeightSizable=4, NSWindowBelow=-1)
+        foundation = SimpleNamespace(NSOperationQueue=SimpleNamespace(mainQueue=lambda: None))
+        prefs = SnapPreferences()
+        prefs.set_theme('Glass')
+        board = BoardWindow('Policy recovery', prefs, fake_platform())
+        self.widgets.append(board)
+        board.show()
+        with patch.dict(sys.modules, {'AppKit': appkit, 'Foundation': foundation}), \
+             patch('mini_whiteboard.platform.macos.desktop.native_window', return_value=MagicMock()):
+            board.desktop = MacDesktop()
+            board.refresh_appearance()
+            self.assertFalse(board.native_glass)
+            self.assertEqual(len(callbacks), 1)
+            workspace.accessibilityDisplayShouldReduceTransparency.return_value = False
+            centre.publish()
+            self.assertTrue(board.native_glass)
+            self.assertEqual(len(callbacks), 1)
+            workspace.accessibilityDisplayShouldReduceTransparency.return_value = True
+            centre.publish()
+            self.assertFalse(board.native_glass)
+            self.assertEqual(len(callbacks), 1)
+            board.close()
+            self.assertEqual(callbacks, {})
+
     def test_native_effect_failure_uses_readable_solid_without_changing_document(self):
         prefs = SnapPreferences()
         board = BoardWindow('Fallback', prefs)

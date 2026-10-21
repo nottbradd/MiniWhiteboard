@@ -65,7 +65,7 @@ class MacDesktop(QtDesktop):
                 effect.layer().setCornerRadius_(RADIUS)
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
-                board._visual_effect = (content, effect)
+                board._visual_effect = (content, effect, parent)
             return True
         except (AttributeError, RuntimeError, ValueError):
             self.release_appearance(board)
@@ -121,7 +121,12 @@ class MacDesktop(QtDesktop):
     def sync_decoration(self, board):
         if board.isVisible() and not board._closing:
             self.configure_board(board)
-            native_window(board).invalidateShadow()
+            window = native_window(board)
+            record = getattr(board, '_visual_effect', None)
+            if record is not None and (record[0] != window.contentView()
+                                        or record[2] != window.contentView().superview()):
+                board.refresh_appearance()
+            window.invalidateShadow()
 
     def configure_overlay(self, overlay, *, interactive=False, owner=None):
         import AppKit
