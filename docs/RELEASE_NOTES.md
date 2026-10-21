@@ -43,22 +43,85 @@ Unsupported systems, reduced transparency and high contrast retain solid fallbac
 
 ### Verification
 
-The Windows source suite passes all 242 applicable tests (244 discovered, two
-Mac-only skips) through the project watchdog. Native material checks use an
-independently composed owned background process, verified foreground identity
-and actual captured pixels. Both enabled and reduced-motion paths are exercised;
-enabled native evidence uses a test-only policy injection. Windows OS settings
-remain unchanged (motion disabled). Full package/CI results and hashes will be
-recorded after rebuilding this iteration.
+Built from [`8d0f10a`](https://github.com/nottbradd/MiniWhiteboard/commit/8d0f10a69e9a239a12fdbf80bf561cc8690b8773)
+on `codex/v1.3.1-liquid-glass`.
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39570524574) and
+[Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39570529848) passed
+for that exact source. Later receipt changes affect documentation only.
 
-Fresh outputs use `build/candidates/v1.3.1/review-02/`. The prior candidate and
-its evidence remain available locally for comparison. Version metadata stays 1.3.1.
+| Check | Actual result |
+|---|---|
+| Baseline | 237 discovered; Windows 235 passed plus two Mac-only skips |
+| Final source suite | 244 discovered; Windows 242 passed plus two skips; Mac all 244 passed twice; project watchdog |
+| Windows native | 112 general, 61 hotkey/focus, 22 textbox, 15 appearance/geometry and 49 material/state/motion checks |
+| Final executable | 37 package checks and 17 supplementary native Glass/H/menu/help checks |
+| Material | Independent owned background process; focused/unfocused comparisons, all popups, live background changes, same-turn update/popup, recreation and fallbacks passed |
+| Native clipping | 244 outside-corner pixel probes at each of normal/minimum sizes showed no backdrop leakage; 244 input probes passed through; all four diagonal grips worked |
+| Presentation | Native enabled frames use an injected test policy; OS motion remained disabled. Reduced motion suppressed the effect. Strict 180 ms wall-clock condition assertions, interruption and loaded-thread checks passed |
+| Resources | After warmup, 30 further source menu/theme/hide cycles: GDI/User 47/60 → 47/59. Twenty frozen hide/restore cycles: 47/57 → 47/57. Hosts released, owned shadows hidden, timers stopped and normal shutdown passed |
+| Windows package | 174 runtime files, 153 frozen modules; all ZIP CRC/file SHA-256 and 17 notice hashes verified; 1.3.1 strings, 1.3.1.0 numeric/manifest metadata |
+| Mac builder | macOS 15.7.9 arm64, universal2 Python 3.13.15, Qt/PySide6 6.11.2, PyInstaller 6.22.3 and PyObjC 12.2.2 |
+| Mac bundle/archive | Universal2, 14.0 minimum; 770 architecture/linkage/signature/symlink/module/notice checks before and after ditto extraction; 15 notices, 375 ZIP entries and metadata round-trip passed |
+| Mac startup/transfer | Eight-second Cocoa launch and normal exit passed; finished Mac ZIP transferred unchanged and checked against the Mac hash |
+| Retained content | Three font/layout/glyph/clipboard fixtures, including 24,000 wrapped Unicode characters, remained byte-identical; native ink stayed opaque |
+| Other checks | Dependencies, compilation, workflow lint, 32 local documentation links and OCR absence checks passed |
+
+Windows measurements and captures used build 26200 x64, Python 3.12.14,
+Qt/PySide6 6.11.2 and one 1920 × 1080 display at 100%. Both saved H choices
+remain available. Ctrl+Alt+H is occupied by another app on this PC; tests selected,
+persisted/reloaded and natively exercised the shipped Ctrl+Alt+Shift+H alternative.
+The source and final executable captures were personally inspected. Interactive
+Mac acceptance is not established by CI or bundle validation.
+
+### Performance against the previous reviewed candidate
+
+Both preserved and revised packages ran on the same Windows machine. Startup
+uses five alternating warm launches per package; these small samples vary by run.
+
+| Measurement | Previous candidate | Review 02 |
+|---|---:|---:|
+| Median launch to tray | 399.5 ms | 411.3 ms |
+| Tray working set / private memory | 56.59 / 26.66 MiB | 56.71 / 26.93 MiB |
+| CPU time in separate 60-second tray-idle samples | 0.0 s | 0.0 s |
+| Visible Glass blank-board working set / private memory | 79.85 / 35.59 MiB | 80.15 / 35.07 MiB |
+| Native dot-to-observed-pixel median, Glass blank | 38.93 ms | 39.71 ms |
+| Native dot-to-observed-pixel median, Glass screenshot | 37.39 ms | 38.09 ms |
+| White processing median of medians / worst p95 | 1.89 / 5.01 ms | 1.87 / 5.41 ms |
+| Glass processing median of medians / worst p95 | 1.87 / 5.29 ms | 1.58 / 4.91 ms |
+| Wrapped-text hit path median / p95 | 0.049 / 0.108 ms | 0.048 / 0.089 ms |
+
+Native latency uses 16 dots per case and includes input delivery, compositor
+and GDI observation. Control runs observed every dot in the first capture;
+capture-only medians were 21–26 ms. Repeated Glass blank medians were 44.00 /
+44.89 ms, with p95 51.00 / 48.35 ms. The screenshot repeat was 44.31 / 44.27 ms.
+These measurements do not isolate display latency or establish a universal speedup.
+
+Source measurements use 28 workloads with 120 events each, 20 strokes, 20 shapes,
+10 text objects and blank/1080p/1440p/4K backgrounds. The preserved source was
+repeated in the same dependency environment. Initial White/Glass medians were
+1.82 / 2.14 ms; the table uses the matched repeat. Individual timings varied:
+White 1080p marquee median was 0.71 → 0.93 ms. Every screenshot cache built once;
+source-image paint/decode work stayed zero. The long-text geometry and pixel
+fixtures were unchanged. Detailed samples remain in local verification evidence.
+
+### Unpublished packages
+
+Staging: `build/candidates/v1.3.1/review-02/`. Previous candidate archives and
+screenshots remain intact, with their original hashes rechecked. Public downloads
+remain V1.3; no V1.3.1 release/tag or promotion has been made.
+
+| Package | Bytes | SHA-256 |
+|---|---:|---|
+| `WinMiniWhiteboardV1.3.1.zip` | 37,822,209 | `9cbebd8f864430637e659c47a76227c988ef9d3c75fb6e5e285dc7d55c466b60` |
+| `MacMiniWhiteboardV1.3.1-Preview.zip` | 56,452,627 | `caefb39d524e3102685209fcdf7c016ffaa4f35e28c5d74fa48c2972df33c392` |
+
+Windows is unsigned. Mac is ad-hoc signed and not notarized.
 
 **NOT RUN:** interactive Mac appearance/shortcuts/focus, permission/capture flows,
 Spaces, Retina and physical multi-monitor acceptance; macOS 14 and Intel execution;
 Windows 10, clean-machine deployment, physical mixed-DPI arrangements and extended
-hand-operated IME/RTL/handle ergonomics. Mac native animation/performance are not
-measured. Windows is unsigned; Mac is ad-hoc signed and not notarized.
+hand-operated IME/RTL/handle ergonomics. Mac native animation/performance were not
+measured. Visual approval remains required before publication.
 
 
 ## V1.3
