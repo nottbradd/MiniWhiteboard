@@ -48,12 +48,15 @@ class BoardWindow(QWidget):
         self.display_policy = self.desktop.display_policy()
         self.native_glass = False
         self.emphasis = Emphasis(self)
+        self._presented_theme = self.appearance_theme
         self.canvas.preferences.appearance_changed.connect(self.refresh_appearance)
 
     def refresh_appearance(self):
         if self.canvas is None or not hasattr(self, 'emphasis') or self._closing:
             return
         self.emphasis.stop()
+        theme_changed = self._presented_theme != self.appearance_theme
+        self._presented_theme = self.appearance_theme
         self.display_policy = self.desktop.display_policy()
         self.desktop.release_appearance(self)
         self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() else False
@@ -70,7 +73,8 @@ class BoardWindow(QWidget):
                 "QToolButton:hover { background:rgba(120,130,155,65); }"
                 "QToolButton:pressed { background:rgba(100,110,140,90); }")
         self.canvas.stop_transient_ui()
-        self.emphasis.start()
+        if theme_changed:
+            self.emphasis.start()
         self.update()
 
     @property
