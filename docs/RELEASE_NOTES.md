@@ -43,7 +43,7 @@ Unsupported systems, reduced transparency and high contrast retain solid fallbac
 
 ### Verification
 
-The Windows source suite passes all 241 applicable tests (243 discovered, two
+The Windows source suite passes all 242 applicable tests (244 discovered, two
 Mac-only skips) through the project watchdog. Native material checks use an
 independently composed owned background process, verified foreground identity
 and actual captured pixels. Both enabled and reduced-motion paths are exercised;

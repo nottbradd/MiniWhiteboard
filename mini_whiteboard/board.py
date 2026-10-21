@@ -148,8 +148,6 @@ class BoardWindow(QWidget):
         super().showEvent(event)
         self.refresh_appearance()
         self.sync_shadow()
-        if self.appearance_theme == 'Glass':
-            self.emphasis.start()
 
     def hideEvent(self, event):
         if hasattr(self, 'emphasis'):
@@ -188,6 +186,8 @@ class BoardWindow(QWidget):
         self.desktop.focus_window(self)
         (self.canvas or self).setFocus()
         self.activation_timer.start(0)
+        if self.appearance_theme == 'Glass':
+            self.emphasis.start()
 
     def minimize_to_tray(self):
         self.prepare_hide()
@@ -204,6 +204,7 @@ class BoardWindow(QWidget):
             self.canvas.stop_transient_ui()
 
     def restore(self, *, activate=True):
+        was_hidden = not self.isVisible()
         self.activation_timer.stop()
         if self.canvas is not None:
             self.canvas.suspended = False
@@ -213,6 +214,8 @@ class BoardWindow(QWidget):
             self.activation_timer.start(0)
         else:
             self.desktop.show_without_activating(self)
+        if was_hidden and self.appearance_theme == 'Glass':
+            self.emphasis.start()
         self.restored.emit(self)
 
     def activate_explicitly(self):

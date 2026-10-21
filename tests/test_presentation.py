@@ -4,12 +4,14 @@ from unittest.mock import patch
 import time
 
 from PySide6.QtCore import QAbstractAnimation, QPoint, QRect, Qt
+from PySide6.QtGui import QShowEvent
 from PySide6.QtTest import QTest
 from tests.qt_case import APP, QtCase
 from tests.fake_platform import fake_platform
 from mini_whiteboard.appearance import ANIMATION_MS, DisplayPolicy
 from mini_whiteboard.board import BoardWindow
 from mini_whiteboard.document import Text
+from mini_whiteboard.geometry import Rect
 from mini_whiteboard.shortcuts import ShortcutPolicy
 from mini_whiteboard.snapping import SnapPreferences
 from mini_whiteboard.surfaces import SurfaceMenu
@@ -32,7 +34,7 @@ class PresentationTests(QtCase):
         text = Text((30,40), 'Regular text stays fixed', layout_width=220)
         board.canvas.document.add(text)
         before = board.geometry(), board.canvas.document.objects, list(board.canvas.document.history)
-        board.show()
+        board.place(Rect(board.x(),board.y(),board.width(),board.height()))
         self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Running)
         self.assertEqual(board.emphasis.value, 1)
         QTest.qWait(180)
@@ -56,7 +58,7 @@ class PresentationTests(QtCase):
 
     def test_repeated_triggers_keep_the_original_deadline_and_load_does_not_extend_it(self):
         board = self.board()
-        board.show()
+        board.place(Rect(board.x(),board.y(),board.width(),board.height()))
         QTest.qWait(35)
         elapsed = board.emphasis.clock.elapsed()
         for _ in range(8):
@@ -82,6 +84,16 @@ class PresentationTests(QtCase):
         self.assertEqual(editor.toPlainText(),'Typed immediately A V E 12345')
         self.assertEqual(board.canvas.tool,'Draw')
         self.assertEqual(board.canvas.document.history,[])
+
+    def test_native_show_notifications_cannot_restart_a_completed_presentation(self):
+        board = self.board()
+        board.place(Rect(board.x(),board.y(),board.width(),board.height()))
+        QTest.qWait(180)
+        self.assertFalse(board.emphasis.deadline.isActive())
+        APP.sendEvent(board,QShowEvent())
+        board.restore(activate=False)  # Already visible: only restore focus/state.
+        self.assertFalse(board.emphasis.deadline.isActive())
+        self.assertEqual(board.emphasis.animation.state(),QAbstractAnimation.State.Stopped)
 
     def test_reduced_motion_and_obsolete_lifetimes_leave_no_presentation_timer(self):
         board = self.board(motion=False)

@@ -41,6 +41,8 @@ def main():
     ancestor = windows.bind(u,'GetAncestor',W.HWND,W.HWND,W.UINT)
     set_cursor = windows.bind(u,'SetCursorPos',W.BOOL,C.c_int,C.c_int)
     mouse = windows.bind(u,'mouse_event',None,W.DWORD,W.DWORD,W.DWORD,W.DWORD,C.c_size_t)
+    key_event = windows.bind(u,'keybd_event',None,W.BYTE,W.BYTE,W.DWORD,C.c_size_t)
+    pid_for = windows.bind(u,'GetWindowThreadProcessId',W.DWORD,W.HWND,C.POINTER(W.DWORD))
     send = windows.bind(u,'SendMessageW',C.c_ssize_t,W.HWND,W.UINT,W.WPARAM,W.LPARAM)
     flush = windows.bind(C.WinDLL('dwmapi'),'DwmFlush',C.c_long)
     is_window = windows.bind(u,'IsWindow',W.BOOL,W.HWND)
@@ -103,6 +105,14 @@ def main():
         send(background_handle,0x8001,('busy','light','dark').index(mode),0)
         QTest.qWait(90)
         flush()
+    def key(code):
+        owner=W.DWORD()
+        pid_for(foreground(),C.byref(owner))
+        if owner.value!=os.getpid():
+            raise RuntimeError('Native key target is not the owned test application.')
+        key_event(code,0,0,0)
+        key_event(code,0,2,0)
+        QTest.qWait(60)
     try:
         ready = output/'background-ready.json'
         if ready.exists():
@@ -196,6 +206,38 @@ def main():
         actual = observe('same-turn-change-and-popup',capture('same-turn-change-and-popup'))
         check('Same-turn background update and popup cannot retain the old grey material',difference(actual,reference['busy'])<=3)
         appearance.close()
+        board.restore()
+        QTest.qWait(120)
+        click(int(board.winId()),region.x+440,region.y+73)
+        appearance.popup(QPoint(round(region.x+1070),round(region.y+85)))
+        appearance.setActiveAction(None)
+        key(0x28)
+        key(0x28)
+        selected=appearance.activeAction()
+        capture('appearance-keyboard-selected')
+        check('Native menu keys focus the checked Glass action',
+              selected is not None and selected.text()=='Glass' and selected.isChecked())
+        key(0x1b)
+        check('Native Escape dismisses the menu and releases its host',
+              not appearance.isVisible() and getattr(appearance,'_backdrop',None) is None)
+        canvas.setFocus()
+        key(0x70)  # F1
+        canvas.help_panel.move(round(region.right-canvas.help_panel.width()-12),round(region.y+50))
+        capture('help-native-keyboard')
+        check('Native F1 shows grouped help without changing foreground focus',
+              canvas.help_panel.isVisible() and canvas.help_panel.columns==2 and foreground()==int(board.winId()))
+        key(0x70)
+        check('Native F1 dismisses help and stops its material',
+              not canvas.help_panel.isVisible() and getattr(canvas.help_panel,'_backdrop',None) is None)
+        canvas.set_selection(set())
+        palette_before=canvas.document.objects,list(canvas.document.history)
+        canvas.open_palette()
+        key(ord('3'))
+        check('Native palette number key chooses its colour without editing the document',
+              canvas.palette is None and canvas.active_color=='#2878d0'
+              and palette_before==(canvas.document.objects,canvas.document.history),
+              {'palette_open':canvas.palette is not None,'active_colour':str(canvas.active_color),
+               'history_length':len(canvas.document.history),'focus_type':type(app.focusWidget()).__name__})
         old_handle = int(board.winId())
         old_paper = board.physical_paper_rect()
         board.prepare_hide()
@@ -259,8 +301,9 @@ def main():
         for motion in (True,False):
             policy=replace(system_policy,motion=motion)
             controller.platform.desktop.display_policy=lambda p=policy:p
+            paper=board.physical_paper_rect()
             board.hide()
-            board.show()
+            board.place(paper)
             for trigger in ('creation','restore','palette'):
                 if trigger=='restore':
                     board.prepare_hide();board.hide();board.restore(activate=False)
