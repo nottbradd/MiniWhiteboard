@@ -18,6 +18,8 @@
   H registration preserves W/S. Restore All preserves the foreground application.
 - Text/editor fonts, wrapping, masks, transforms, clipboard output, history,
   screenshot caching and hold → move → release placement remain unchanged.
+- Queued placement activation now preserves a textbox opened immediately after
+  creation. Help text is laid out when requested, avoiding that work during placement.
 
 This candidate has not been tagged or published. Public downloads remain V1.3
 pending visual approval. Mac remains a preview. Glass uses supported compositor
@@ -41,7 +43,7 @@ Unsupported systems, reduced transparency and high contrast retain solid fallbac
 
 ### Verification
 
-The Windows source suite passes all 240 applicable tests (242 discovered, two
+The Windows source suite passes all 241 applicable tests (243 discovered, two
 Mac-only skips) through the project watchdog. Native material checks use an
 independently composed owned background process, verified foreground identity
 and actual captured pixels. Both enabled and reduced-motion paths are exercised;

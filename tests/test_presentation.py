@@ -69,6 +69,20 @@ class PresentationTests(QtCase):
         self.assertFalse(board.emphasis.deadline.isActive())
         self.assertEqual(board.emphasis.value, 0)
 
+    def test_queued_creation_activation_preserves_an_immediately_started_editor(self):
+        board = self.board(motion=False)
+        board.show()
+        board.activation_timer.start(0)
+        board.canvas.begin_editing(Text((25,35),'Typed immediately'))
+        editor = board.canvas.editor
+        APP.processEvents()
+        self.assertIs(board.canvas.editor,editor)
+        self.assertTrue(editor.hasFocus())
+        QTest.keyClicks(editor,' A V E 12345')
+        self.assertEqual(editor.toPlainText(),'Typed immediately A V E 12345')
+        self.assertEqual(board.canvas.tool,'Draw')
+        self.assertEqual(board.canvas.document.history,[])
+
     def test_reduced_motion_and_obsolete_lifetimes_leave_no_presentation_timer(self):
         board = self.board(motion=False)
         board.show()

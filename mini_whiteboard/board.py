@@ -218,7 +218,12 @@ class BoardWindow(QWidget):
     def activate_explicitly(self):
         if self.isVisible():
             self.desktop.focus_window(self)
-            (self.canvas or self).setFocus()
+            if self.canvas is not None and self.canvas.editor_overlay is not None:
+                # Placement may still have its one queued activation when a
+                # user starts typing. Preserve the editor's exclusive focus.
+                self.canvas.editor_overlay.activate_editor()
+            else:
+                (self.canvas or self).setFocus()
 
     def closeEvent(self, event):
         self.activation_timer.stop()

@@ -97,7 +97,8 @@ class ShortcutReference(Surface, QFrame):
         self.scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.scroll.verticalScrollBar().setFocusPolicy(Qt.FocusPolicy.NoFocus)
         layout.addWidget(self.scroll)
-        self.fit_reference()
+        # Shape the reference only when requested, keeping board creation free
+        # of six rich-text layouts that are usually never shown.
 
     def fit_reference(self):
         board = self.parentWidget()
@@ -113,6 +114,7 @@ class ShortcutReference(Surface, QFrame):
             label.setFixedWidth(column_width)
             label.setFixedHeight(label.heightForWidth(column_width))
             self.grid.addWidget(label, index % rows, index // rows, Qt.AlignmentFlag.AlignTop)
+            label.show()
         self.grid.invalidate()
         self.content.setFixedSize(width-70, self.grid.sizeHint().height())
         self.setFixedHeight(min(self.content.height()+88, available.height()-24))
