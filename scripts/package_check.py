@@ -257,15 +257,38 @@ def main():
             time.sleep(.08)
 
         def dark_content():
+            # A proxy editor's antialiased blue-gray frame is lighter than ink.
+            # Count it too: a blank editor must stay observable when its caret
+            # blinks off, and dismissal must remove both its frame and its ink.
             area = Rect(round(paper.x+14*dpi), round(paper.y+40*dpi),
                         round(paper.width-28*dpi), round(paper.height-105*dpi))
             image = windows.capture_rect(area)
-            return sum(image.pixelColor(x, y).lightness() < 150
-                       for y in range(image.height()) for x in range(image.width()))
+            count = 0
+            for y in range(image.height()):
+                for x in range(image.width()):
+                    color = image.pixelColor(x,y)
+                    if color.lightness() < 150 or (color.blue()-color.red() > 5 and color.red() < 245):
+                        count += 1
+            return count
 
         text_key(ord('T'))
         click_paper(50, 80)
-        check('Frozen native Text click visibly opens an editor', dark_content() > 5)
+        first_editor_pixels = dark_content()
+        windows.capture_rect(paper).save('verification/v131-first-editor-observation.png')
+        if first_editor_pixels <= 5:
+            windows.capture_rect(paper).save('verification/v131-first-editor-observation.png')
+            time.sleep(.5)
+            windows.capture_rect(paper).save('verification/v131-settled-editor-observation.png')
+            print(json.dumps({'first_editor_pixels':first_editor_pixels,'settled_editor_pixels':dark_content(),
+                              'modifiers':{name:bool(user32.GetAsyncKeyState(vk)&0x8000) for name,vk in
+                                           (('Control',0x11),('Alt',0x12),('Shift',0x10),('W',ord('W')))},
+                              'foreground':foreground(),'board':owned_board}),flush=True)
+        check('Frozen native Text click visibly opens an editor', first_editor_pixels > 5)
+        blink_samples = []
+        for _ in range(4):
+            time.sleep(.18)
+            blink_samples.append(dark_content())
+        check('Frozen editor remains observable across caret blinking',min(blink_samples) > 5,blink_samples)
         click_paper(60, 190)
         check('Frozen native blank dismissal removes the editor without replacement', dark_content() == 0)
         text_key(ord('Q'))

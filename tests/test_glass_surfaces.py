@@ -145,3 +145,18 @@ class GlassSurfaceTests(QtCase):
             self.assertEqual(panel.label.font().toString(),font)
             panel.scroll.verticalScrollBar().setValue(100)
             self.assertEqual(panel.scroll.verticalScrollBar().value(),100)
+
+    def test_glass_diagonal_grips_follow_visible_arcs_without_covering_the_controls(self):
+        board = self.board()
+        board.canvas.preferences.set_theme('Glass')
+        r = board.paper_rect()
+        samples=((QPointF(r.left()+8,r.top()+20),Qt.Edge.LeftEdge|Qt.Edge.TopEdge),
+                 (QPointF(r.right()-8,r.top()+20),Qt.Edge.RightEdge|Qt.Edge.TopEdge),
+                 (QPointF(r.left()+8,r.bottom()-20),Qt.Edge.LeftEdge|Qt.Edge.BottomEdge),
+                 (QPointF(r.right()-8,r.bottom()-20),Qt.Edge.RightEdge|Qt.Edge.BottomEdge))
+        for point,expected in samples:
+            self.assertEqual(board.edges_at(point),expected)
+            self.assertFalse(board.remove.geometry().contains(point.toPoint()))
+        self.assertFalse(board.edges_at(QPointF(r.left()+25,r.top()+25)))
+        board.canvas.preferences.set_theme('White')
+        self.assertEqual(board.edges_at(QPointF(r.left()+5,r.top()+5)),Qt.Edge.LeftEdge|Qt.Edge.TopEdge)

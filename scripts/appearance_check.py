@@ -204,6 +204,27 @@ def main():
                             blocked.append([x,y])
         check('All sampled transparent corner points pass desktop input',not blocked,
               {'outside_probes':probes,'blocked':blocked})
+        mouse = windows.bind(windows.user32,'mouse_event',None,W.DWORD,W.DWORD,W.DWORD,W.DWORD,C.c_size_t)
+        set_cursor = windows.bind(windows.user32,'SetCursorPos',W.BOOL,C.c_int,C.c_int)
+        for right,bottom in ((False,False),(True,False),(False,True),(True,True)):
+            old = board.desktop.window_rect(board)
+            paper = board.physical_paper_rect()
+            x = paper.right-8 if right else paper.x+8
+            y = paper.bottom-20 if bottom else paper.y+20
+            set_cursor(round(x),round(y));QTest.qWait(30)
+            if ancestor(get_at(W.POINT(round(x),round(y))),2) != int(board.winId()):
+                raise AssertionError('Rounded resize target is not owned by the board')
+            mouse(2,0,0,0,0);QTest.qWait(25)
+            set_cursor(round(x+12),round(y+10));QTest.qWait(70)
+            mouse(4,0,0,0,0);QTest.qWait(50)
+            resized = board.desktop.window_rect(board)
+            if (resized.width != old.width+(12 if right else -12)
+                    or resized.height != old.height+(10 if bottom else -10)):
+                raise AssertionError('A visible Glass corner did not resize both axes')
+            board.desktop.set_window_rect(board,old)
+            QTest.qWait(30)
+        check('All four visible Glass corner arcs support native diagonal resizing',
+              board.physical_paper_rect() == before[2])
         for _ in range(8):
             old = board.desktop.window_rect(board)
             target = Rect(old.x+13,old.y+9,old.width+17,old.height+11)

@@ -240,6 +240,17 @@ class BoardWindow(QWidget):
         r = self.paper_rect()
         if not r.contains(point):
             return Qt.Edge(0)
+        radius = self.corner_radius()
+        if radius > RADIUS:
+            # A large rounded corner has no painted pixels in the old 7×7
+            # corner square. Follow its visible arc with the same grip depth.
+            for horizontal, dx in ((Qt.Edge.LeftEdge,point.x()-r.left()),
+                                   (Qt.Edge.RightEdge,r.right()-point.x())):
+                for vertical, dy in ((Qt.Edge.TopEdge,point.y()-r.top()),
+                                     (Qt.Edge.BottomEdge,r.bottom()-point.y())):
+                    if (0 <= dx < radius and 0 <= dy < radius
+                            and radius-EDGE_GRIP <= math.hypot(radius-dx,radius-dy) <= radius):
+                        return horizontal | vertical
         edges = Qt.Edge(0)
         if point.x() <= r.left()+EDGE_GRIP:
             edges |= Qt.Edge.LeftEdge
