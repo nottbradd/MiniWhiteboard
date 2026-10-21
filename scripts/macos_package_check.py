@@ -9,6 +9,7 @@ import plistlib
 import re
 import subprocess
 import sys
+from mini_whiteboard import APP_VERSION
 
 MACHO_MAGIC = {b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe",
                b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca", b"\xca\xfe\xba\xbf", b"\xbf\xba\xfe\xca"}
@@ -57,8 +58,8 @@ def validate_bundle(bundle, architecture):
         with (bundle/"Contents/Info.plist").open("rb") as source:
             info = plistlib.load(source)
         check("Bundle metadata and accessory mode", all(info.get(k) == v for k, v in {
-            "CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": "1.3",
-            "CFBundleVersion": "1.3", "LSMinimumSystemVersion": "14.0", "LSUIElement": True}.items()))
+            "CFBundleIdentifier": "com.brad.miniwhiteboard", "CFBundleShortVersionString": APP_VERSION,
+            "CFBundleVersion": APP_VERSION, "LSMinimumSystemVersion": "14.0", "LSUIElement": True}.items()))
         check("Screen capture purpose without microphone purpose", bool(info.get("NSScreenCaptureUsageDescription"))
               and "NSMicrophoneUsageDescription" not in info)
         executable = bundle/"Contents/MacOS"/info["CFBundleExecutable"]
@@ -98,6 +99,8 @@ def validate_bundle(bundle, architecture):
         from PyInstaller.archive.readers import CArchiveReader
         archive = CArchiveReader(str(executable))
         pyz = archive.open_embedded_archive("PYZ.pyz")
+        from .build_support import verify_frozen_modules
+        check('Removed OCR modules are absent', verify_frozen_modules(executable)['frozen_ocr_modules_absent'])
         for name in ("objc", "AppKit", "Foundation", "Quartz", "CoreMedia", "ScreenCaptureKit",
                      "mini_whiteboard.platform.macos.runtime", "mini_whiteboard.platform.macos.desktop",
                      "mini_whiteboard.platform.macos.hotkeys", "mini_whiteboard.platform.macos.capture"):
@@ -124,7 +127,7 @@ def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: bundle verification requires macOS.")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v13/Mini Whiteboard.app"))
+    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v131-candidate/Mini Whiteboard.app"))
     parser.add_argument("--architecture", choices=("universal2", "arm64", "x86_64"), default="universal2")
     parser.add_argument("--report", type=Path, default=Path("verification/macos-package-check.json"))
     args = parser.parse_args()

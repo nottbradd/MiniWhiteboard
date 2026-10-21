@@ -11,7 +11,8 @@ from PySide6.QtTest import QTest
 from mini_whiteboard.appearance import DisplayPolicy, surface
 from mini_whiteboard.board import BoardWindow
 from mini_whiteboard.document import Text
-from mini_whiteboard.images import from_image, read_bytes
+from mini_whiteboard.images import from_image
+from PySide6.QtGui import QImage
 from mini_whiteboard.snapping import SnapPreferences
 from mini_whiteboard.clipboard import rendered_image
 
@@ -41,7 +42,8 @@ class AppearanceTests(QtCase):
             NSVisualEffectView=MagicMock(), NSVisualEffectMaterialUnderWindowBackground=1,
             NSVisualEffectBlendingModeBehindWindow=0, NSVisualEffectStateActive=1,
             NSAppearance=MagicMock(), NSAppearanceNameAqua='Aqua', NSViewWidthSizable=2,
-            NSViewHeightSizable=4, NSWindowBelow=-1)
+            NSViewHeightSizable=4, NSWindowBelow=-1, NSFloatingWindowLevel=3,
+            NSColor=MagicMock(), NSWindowCollectionBehaviorManaged=0)
         foundation = SimpleNamespace(NSOperationQueue=SimpleNamespace(mainQueue=lambda: None))
         prefs = SnapPreferences()
         prefs.set_theme('Glass')
@@ -89,7 +91,9 @@ class AppearanceTests(QtCase):
             board = BoardWindow('Existing', prefs, platform)
             self.widgets.append(board)
             board.show()
-            image = from_image(read_bytes((Path(__file__).parent/'fixtures/ocr/clean.png').read_bytes()))
+            pixels = QImage(80, 60, QImage.Format.Format_RGB32)
+            pixels.fill('#2878d0')
+            image = from_image(pixels)
             board.canvas.document.add(image)
             original = board.canvas.document.objects
             original_history = list(board.canvas.document.history)

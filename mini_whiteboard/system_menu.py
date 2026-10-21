@@ -8,7 +8,7 @@ from .shortcuts import ShortcutPolicy
 def rebuild_menu(controller):
     c, menu = controller, controller.menu
     menu.clear()
-    menu.addAction(f"Mini Whiteboard {APP_VERSION}").setEnabled(False)
+    menu.add_heading(f"Mini Whiteboard {APP_VERSION}")
     for label, key in (("New Whiteboard", "W"), ("Screenshot to Whiteboard", "S")):
         shortcut = c.platform.shortcuts.global_label(key)
         menu.addAction(f"{label} · hold {shortcut}",
@@ -53,6 +53,16 @@ def rebuild_menu(controller):
             action.setCheckable(True)
             action.setChecked(c.preferences.shortcut_preset == preset)
             action.triggered.connect(lambda checked=False, p=preset: c.change_shortcut_preset(p))
+    else:
+        choices = menu.addMenu('Hide All shortcut')
+        group = QActionGroup(choices)
+        group.setExclusive(True)
+        for choice in ('default', 'shift'):
+            action = choices.addAction(ShortcutPolicy(hide_shortcut=choice).global_label('H'))
+            action.setCheckable(True)
+            action.setChecked(c.preferences.windows_hide == choice)
+            group.addAction(action)
+            action.triggered.connect(lambda checked=False, value=choice: c.change_hide_shortcut(value))
     menu.addSeparator()
     menu.addAction("Keyboard shortcuts", c.show_shortcuts)
     menu.addAction("About Mini Whiteboard", c.show_about)

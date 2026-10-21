@@ -6,9 +6,12 @@ from dataclasses import dataclass
 class ShortcutPolicy:
     mac: bool = False
     preset: str = "default"
+    hide_shortcut: str = "default"
 
     def global_label(self, key):
         prefix = ("Command+Option+Shift" if self.preset == "alternate" else "Control+Option") if self.mac else "Ctrl+Alt"
+        if not self.mac and key == 'H' and self.hide_shortcut == 'shift':
+            prefix += '+Shift'
         return f"{prefix}+{key}"
 
     @property
@@ -22,6 +25,8 @@ class ShortcutPolicy:
     def help_html(self):
         from .settings import SHORTCUT_REFERENCE
         text = SHORTCUT_REFERENCE
+        if not self.mac:
+            text = text.replace('Ctrl+Alt+H', self.global_label('H'))
         if self.mac:
             for key in ('W', 'S', 'H'):
                 text = text.replace('Ctrl+Alt+' + key, self.global_label(key))

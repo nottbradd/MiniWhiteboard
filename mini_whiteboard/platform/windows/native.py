@@ -186,11 +186,12 @@ def dominant_monitor(rect, available=None):
 
 
 class NativeHotkeys(QAbstractNativeEventFilter):
-    def __init__(self, app):
+    def __init__(self, app, hide_shortcut='default'):
         super().__init__()
         self.app = app
         self.events = HotkeyEvents()
         self.registered = set()
+        self.hide_shortcut = hide_shortcut
         self.hold = HoldTracker(app, self.events, self.sample)
         self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
                                       lambda: bool(user32.GetAsyncKeyState(ord('H')) & 0x8000))
@@ -223,12 +224,26 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         failures = []
         for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"), (HIDE_HOTKEY, "H")):
             try:
-                self.register(identifier, 0x0001 | 0x0002, ord(key))
+                modifiers = 7 if key == 'H' and self.hide_shortcut == 'shift' else 3
+                self.register(identifier, modifiers, ord(key))
             except OSError as error:
-                failures.append(f"Ctrl+Alt+{key}: {error}")
+                label = 'Ctrl+Alt+' + ('Shift+' if modifiers == 7 else '') + key
+                failures.append(f"{label}: {error}")
         if failures:
-            self.events.cancel.emit()
             raise OSError("\n".join(failures))
+
+    def set_hide_shortcut(self, choice):
+        if choice not in ('default', 'shift'):
+            raise ValueError('Unknown Hide All shortcut.')
+        if choice == self.hide_shortcut:
+            return
+        if HIDE_HOTKEY in self.registered:
+            user32.UnregisterHotKey(None, HIDE_HOTKEY)
+            self.registered.remove(HIDE_HOTKEY)
+        # Drain queued messages for the old binding without releasing a physical
+        # H latch. Changing the menu while holding H cannot cause a second toggle.
+        self.record_release(HIDE_HOTKEY)
+        self.hide_shortcut = choice
 
     def enable_escape(self):
         # Consume Escape in every release order, including while Ctrl/Alt are
@@ -261,6 +276,9 @@ class NativeHotkeys(QAbstractNativeEventFilter):
                     if self.last_activation.get(msg.wParam) != stamp:
                         self.last_activation[msg.wParam] = stamp
                         if msg.wParam == HIDE_HOTKEY:
+                            expected = 7 if self.hide_shortcut == 'shift' else 3
+                            if msg.lParam & 7 != expected:
+                                return True, 0
                             self.hide_latch.activate()
                         else:
                             self.hold.activate(msg.wParam)

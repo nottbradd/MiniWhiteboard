@@ -2,8 +2,8 @@
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QLabel, QVBoxLayout
 
-from .shortcuts import ui_font_family
-from .appearance import ANIMATION_MS
+from .appearance import ANIMATION_MS, interface_font
+from .surfaces import Surface
 
 
 class FeedbackLabel(QLabel):
@@ -11,8 +11,7 @@ class FeedbackLabel(QLabel):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setStyleSheet("background: #f0f2f4; color: #48535e; border-radius: 6px; "
-                           f"padding: 5px 9px; font: 10pt '{ui_font_family()}';")
+        self.setFont(interface_font('support'))
         self.opacity = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity)
         self.fade = QPropertyAnimation(self.opacity, b"opacity", self)
@@ -37,6 +36,11 @@ class FeedbackLabel(QLabel):
     def show_message(self, text):
         self.fade.stop()
         self.delay.stop()
+        board = self.window()
+        glass = board.appearance_theme == 'Glass' and board.display_policy.transparency
+        self.setStyleSheet('color:#303644; border:1px solid rgba(255,255,255,170); '
+                           'border-radius:10px; padding:6px 11px; '
+                           f"background:{'rgba(247,248,252,220)' if glass else '#f0f2f4'};")
         self.setText(text)
         self.adjustSize()
         self.reposition()
@@ -54,26 +58,32 @@ class FeedbackLabel(QLabel):
         self.hide()
 
 
-class ShortcutReference(QFrame):
-    def __init__(self, board):
+class ShortcutReference(Surface, QFrame):
+    def __init__(self, board, preferences):
         super().__init__(board, Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint |
                          Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.init_surface(board.platform, preferences)
         self.setWindowTitle("Mini Whiteboard shortcuts")
-        self.setStyleSheet("QFrame { background: #fafbfc; color: #303841; "
-                           "border: 1px solid #d5dbe0; border-radius: 9px; }"
-                           f"QLabel {{ border: none; font: 10pt '{ui_font_family()}'; }}")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setContentsMargins(22, 18, 22, 18)
         label = QLabel(board.platform.shortcuts.help_html(), self)
+        label.setFont(interface_font('support'))
+        label.setStyleSheet('color:#181b24; background:transparent;')
         label.setWordWrap(True)
         label.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(label)
-        self.setFixedWidth(510)
+        self.setFixedWidth(560)
         self.adjustSize()
+
+    def paintEvent(self, event):
+        self.paint_surface()
+        super().paintEvent(event)
 
     def showEvent(self, event):
         board = self.parentWidget()
+        self.findChild(QLabel).setText(board.platform.shortcuts.help_html())
+        self.adjustSize()
         available = board.screen().availableGeometry()
         origin = board.frameGeometry().topRight()
         x = min(origin.x()+8, available.right()-self.width())

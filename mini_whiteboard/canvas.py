@@ -27,7 +27,6 @@ class Canvas(EditingActions, QWidget):
         self.scene = Scene()
         self.background_cache = None
         self.suspended = False
-        self.ocr_service = self.ocr_panel = None
         self.tool_overlay = None
         self.clip_spec = None
         self.preferences = preferences if preferences is not None else SnapPreferences()
@@ -59,7 +58,7 @@ class Canvas(EditingActions, QWidget):
         self.cursor_position = None
         from .feedback import FeedbackLabel, ShortcutReference
         self.feedback = FeedbackLabel(self)
-        self.help_panel = ShortcutReference(self.window())
+        self.help_panel = ShortcutReference(self.window(), self.preferences)
         self.init_actions()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
@@ -98,8 +97,6 @@ class Canvas(EditingActions, QWidget):
         return self.scene.after() if self.scene.previews else None
 
     def sync_scene(self):
-        if self.ocr_panel is not None and self.document.get(self.ocr_panel.image.id) is not self.ocr_panel.image:
-            self.ocr_panel.close()
         self.scene.sync(self.document.objects)
 
     def set_screenshot_background(self, obj):
@@ -125,7 +122,7 @@ class Canvas(EditingActions, QWidget):
         paper.translate(-self.x(), -self.y())
         def frozen(rect):
             return Rect(rect.x(), rect.y(), rect.width(), rect.height())
-        clip = PaintClip(frozen(QRectF(self.rect())), frozen(paper), RADIUS,
+        clip = PaintClip(frozen(QRectF(self.rect())), frozen(paper), board.corner_radius(),
                          tuple(frozen(rect) for rect in self.control_rects()))
         if clip != self.clip_spec:
             self.clip_spec = clip
@@ -737,8 +734,6 @@ class Canvas(EditingActions, QWidget):
         super().resizeEvent(event)
 
     def stop_transient_ui(self):
-        if self.ocr_panel is not None:
-            self.ocr_panel.close()
         if self.palette is not None:
             self.palette.close()
         if self.context_menu is not None:

@@ -29,13 +29,14 @@ class PaperShadow(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         paper = self.board.paper_rect()
+        radius = self.board.corner_radius()
         ring = QPainterPath()
         ring.addRect(self.rect())
         hole = QPainterPath()
-        hole.addRoundedRect(paper, RADIUS, RADIUS)
+        hole.addRoundedRect(paper, radius, radius)
         painter.setClipPath(ring.subtracted(hole))
         painter.setPen(Qt.PenStyle.NoPen)
         for spread in range(SHADOW, 0, -1):
             painter.setBrush(QColor(30, 38, 45, 2 + (SHADOW-spread)//2))
             painter.drawRoundedRect(paper.adjusted(-spread, -spread+1, spread, spread+1),
-                                    RADIUS+spread, RADIUS+spread)
+                                    radius+spread, radius+spread)

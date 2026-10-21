@@ -11,9 +11,10 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 
 os.environ["QT_QPA_PLATFORM"] = "windows"
-from PySide6.QtCore import QProcess, QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QProcess, QCoreApplication, QEvent, Qt, QSettings
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from mini_whiteboard import windows, images
@@ -25,8 +26,8 @@ from mini_whiteboard.geometry import Rect, normalized
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test-hide-with-shift', action='store_true',
-                        help='Verify native H dispatch with Ctrl+Alt+Shift+H when another app owns Ctrl+Alt+H.')
+    parser.add_argument('--hide-shortcut', choices=('default','shift'), default='default',
+                        help='Select and reload the shipped persisted Windows Hide All configuration.')
     args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
@@ -39,16 +40,16 @@ def main():
     previous = foreground()
     set_cursor = windows.bind(user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)
     key_event = windows.bind(user32, "keybd_event", None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
-    controller = WhiteboardApplication(app, SnapPreferences())
+    settings_directory = tempfile.TemporaryDirectory(prefix='miniwhiteboard-shortcut-test-')
+    settings_path = str(Path(settings_directory.name)/'settings.ini')
+    controller = WhiteboardApplication(app, SnapPreferences(settings=QSettings(settings_path,QSettings.Format.IniFormat)))
     warnings = []
     controller.notify = warnings.append
-    hide_modifiers = (0x11, 0x12, 0x10) if args.test_hide_with_shift else (0x11, 0x12)
-    if args.test_hide_with_shift:
-        from mini_whiteboard.platform.base import HIDE_HOTKEY
-        if HIDE_HOTKEY in controller.hotkeys.registered:
-            user32.UnregisterHotKey(None, HIDE_HOTKEY)
-            controller.hotkeys.registered.remove(HIDE_HOTKEY)
-        controller.hotkeys.register(HIDE_HOTKEY, 7, ord('H'))
+    hide_modifiers = (0x11,0x12,0x10) if args.hide_shortcut == 'shift' else (0x11,0x12)
+    controller.rebuild_menu()
+    choices = next(a.menu() for a in controller.menu.actions() if a.text() == 'Hide All shortcut')
+    label = 'Ctrl+Alt+Shift+H' if args.hide_shortcut == 'shift' else 'Ctrl+Alt+H'
+    next(a for a in choices.actions() if a.text() == label).trigger()
     messages = []
     controller.placement.message.connect(messages.append)
     confirmed_rectangles = []
@@ -135,6 +136,9 @@ def main():
         check("External test application has focus", foreground() == helper_id)
 
     try:
+        saved = SnapPreferences(settings=QSettings(settings_path,QSettings.Format.IniFormat))
+        check('Shipped menu selection persists and reloads the Windows H choice',
+              saved.windows_hide == args.hide_shortcut and controller.hotkeys.hide_shortcut == saved.windows_hide)
         helper.start(sys.executable, ["-m", "scripts.focus_target"])
         if not helper.waitForStarted(5000) or not helper.waitForReadyRead(5000):
             raise RuntimeError(bytes(helper.readAllStandardError()).decode(errors="replace"))
@@ -309,7 +313,7 @@ def main():
         idle('Editor and popup creation audits leave no tracking resources')
         from mini_whiteboard.platform.base import HIDE_HOTKEY
         check('Native H registers alongside W and S', HIDE_HOTKEY in controller.hotkeys.registered,
-              {'test_chord': 'Ctrl+Alt+Shift+H' if args.test_hide_with_shift else 'Ctrl+Alt+H',
+              {'shipped_chord': label,
                'default_registration_warnings': warnings})
         manually_hidden = controller.boards[0]
         manually_hidden.minimize_to_tray()
@@ -332,7 +336,7 @@ def main():
               all(not b.isVisible() for b in visible))
         key(ord('H'), True)
         key(0x12, True)
-        if args.test_hide_with_shift:
+        if args.hide_shortcut == 'shift':
             key(0x10, True)
         QTest.qWait(80)
         check('Native H physical release stops its tracker without toggling',
@@ -358,6 +362,7 @@ def main():
         for vk in tuple(pressed):
             key(vk, True)
         controller.cleanup()
+        settings_directory.cleanup()
         if helper_id:
             post = windows.bind(user32, "PostMessageW", W.BOOL, W.HWND, W.UINT, W.WPARAM, W.LPARAM)
             post(helper_id, 0x0010, 0, 0)

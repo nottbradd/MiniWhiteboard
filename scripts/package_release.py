@@ -7,7 +7,7 @@ import zipfile
 
 import pefile
 from mini_whiteboard import APP_VERSION
-from .build_support import verify_release_files, verify_ocr_runtime
+from .build_support import verify_release_files, verify_frozen_modules
 
 
 def version_strings(executable):
@@ -24,12 +24,12 @@ def version_strings(executable):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verify',type=Path)
-    parser.add_argument('--distribution', type=Path, default=Path('dist/windows-v13/Mini Whiteboard'))
-    parser.add_argument('--archive', type=Path, default=Path('build/releases-v1.3/WinMiniWhiteboardV1.3.zip'))
+    parser.add_argument('--distribution', type=Path, default=Path('dist/windows-v131-candidate/Mini Whiteboard'))
+    parser.add_argument('--archive', type=Path, default=Path('build/candidates/v1.3.1/WinMiniWhiteboardV1.3.1.zip'))
     args = parser.parse_args()
     distribution = args.distribution.resolve()
     license_report = verify_release_files(distribution)
-    verify_ocr_runtime(distribution)
+    module_report = verify_frozen_modules(distribution/'Mini Whiteboard.exe')
     files = sorted(p for p in distribution.rglob('*') if p.is_file())
     if not files:
         raise RuntimeError('Build the distribution first.')
@@ -62,12 +62,12 @@ def main():
         info = version_strings(executable)
         if info.get('ProductVersion') != APP_VERSION or info.get('FileVersion') != APP_VERSION:
             raise RuntimeError('The ZIP does not contain the requested version.')
-    result = {'version':APP_VERSION,**license_report,'archive':str(archive.resolve()),'archive_bytes':archive.stat().st_size,
+    result = {'version':APP_VERSION,**license_report,**module_report,'archive':str(archive.resolve()),'archive_bytes':archive.stat().st_size,
               'archive_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),
               'executable':str(distribution/'Mini Whiteboard.exe'),'executable_bytes':len(executable),
               'executable_sha256':hashlib.sha256(executable).hexdigest(),
               'file_count':len(entries),'all_crcs_and_sha256_match':True,'metadata':info,'files':entries}
-    output = Path('verification/windows-v13-release-verified.json' if args.verify else 'verification/windows-v13-release-staged.json')
+    output = Path('verification/windows-v131-candidate-release-verified.json' if args.verify else 'verification/windows-v131-candidate-release-staged.json')
     output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps({key:value for key,value in result.items() if key != 'files'},indent=2))
 

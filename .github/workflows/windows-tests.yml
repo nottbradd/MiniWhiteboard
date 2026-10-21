@@ -53,5 +53,5 @@ jobs:
 
       - name: Run the complete automated suite
         run: |
-          python -m unittest discover -v
+          python -m scripts.run_tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

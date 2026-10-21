@@ -12,4 +12,3 @@
 # Preserve upstream notices verbatim and keep imported license collections out
 # of code diffs (their original headings can resemble merge conflict markers).
 assets/licenses/*.txt text eol=lf -diff
-*.traineddata binary

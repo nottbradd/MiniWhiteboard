@@ -7,6 +7,10 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
+> **V1.3.1 is an unpublished candidate.** It refines Glass, removes OCR and adds
+> a saved Windows Hide All alternative. Public downloads below remain V1.3
+> while the new appearance awaits visual approval.
+
 ## Download V1.3
 
 | Download | Platform | Installation |
@@ -101,27 +105,19 @@ The minus button hides a board while preserving contents and history; the red
 × deletes that board. The tray/menu restores boards. Closing the last board
 leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the session.
 
-<details>
-<summary>V1.3 on Windows: White, native Glass and offline OCR</summary>
-
-![White appearance](docs/media/white-v13.png)
-![Native Glass over an owned test background](docs/media/glass-v13.png)
-![Editable offline OCR review](docs/media/ocr-v13.png)
-
-These are actual Windows captures. Glass appearance varies with the desktop and
-system accessibility settings.
-
-</details>
-
-## Appearance, Hide All and offline OCR
+## Appearance and Hide All
 
 **Appearance → White / Glass** is a global saved preference in the tray/menu.
-White is the default. Glass adds a pale backing, restrained cyan accents and
-native background frost while artwork stays sharp and fully opaque. Windows 11
-build 22621+ uses DWM Acrylic; Windows 10, unavailable effects and reduced
-transparency/high contrast use a readable solid surface. Mac uses a native
-visual-effect view. System reduced motion disables the brief 140 ms emphasis
-and feedback fades. There are no animated backgrounds or desktop-capture loops.
+White is the default. V1.3.1 Glass uses a mostly neutral backing, native frost,
+rounded light-catching edges, subtle highlights and matching temporary surfaces.
+Interface headings are bold; document text and artwork retain their original
+weight, colours and opacity. Windows 11 build 22621+ uses DWM Acrylic; Windows 10,
+unavailable effects and reduced transparency/high contrast use a solid surface.
+Mac uses NSVisualEffectView. This is a Liquid Glass-inspired approximation;
+it does not implement optical refraction or native Apple Liquid Glass.
+OS-owned Mac menus and standard colour/permission dialogs retain native styling.
+Reduced motion disables the brief 140 ms emphasis and feedback fades.
+There are no animated backgrounds or desktop-capture loops.
 
 **Ctrl+Alt+H** on Windows, **Control+Option+H** on Mac, or the matching menu action
 hides all visible boards immediately. Press again to restore that recorded set
@@ -131,20 +127,13 @@ or deleted boards leave the batch; a later manual minimize is respected. Held H
 repeats and key release cannot toggle again. Mac's alternate preset includes H;
 normal Command+H remains a system shortcut.
 
-Right-click an image and choose **Extract Text…**, including on a locked screenshot.
-Review/correct the result, then choose **Copy** or **Insert as Text**. Recognition
-alone changes neither clipboard nor document. Insertion creates wrapped editable
-text in one undo action and retains every line. Cancel or hide the board to stop
-its request. Original pixels and the image's lock state are preserved.
+On Windows, **Hide All shortcut** in the tray menu offers **Ctrl+Alt+H** and
+**Ctrl+Alt+Shift+H**. Your explicit choice is saved for the next launch. A conflict
+keeps W/S working; choose the alternative or retry the unavailable binding.
+The app never silently switches shortcuts. Mac retains its existing W/S/H presets.
 
-OCR is offline and guarantees **English only**. Windows bundles Tesseract 5.5.3,
-its native libraries and English data; Mac uses system Vision. Nothing is uploaded
-or downloaded at first use. The engine runs outside the GUI process. Display
-rotation/scale is rectified to original image orientation/resolution; local masks
-and creation clips are applied. Transparent regions become white, and predominantly
-dark images are inverted temporarily. Limits: 16 million source pixels, 32 MiB
-PNG input, 100,000 output characters, 20 seconds per job, one running request plus
-one queued across the app. OCR can misread small, handwritten or complex layouts.
+OCR and Extract Text are removed in V1.3.1, including their engine and language data.
+Historical V1.3 release assets and notes remain available.
 
 ## Limitations and development
 
@@ -156,7 +145,7 @@ one queued across the app. OCR can misread small, handwritten or complex layouts
   use normal Space membership; coverage over every full-screen app is not guaranteed.
 - Linux is unsupported. Images are limited to 64 million pixels and editable
   clipboard data to 96 MB. Protected desktop content may be unavailable to capture.
-- The app has no accounts, network service or telemetry. OCR results are not saved in logs.
+- The app has no accounts, network service or telemetry.
 
 [CONTRIBUTING](CONTRIBUTING.md) covers source setup, architecture and rebuilding.
 [Testing and troubleshooting](docs/TESTING.md) covers native checks and remaining

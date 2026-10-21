@@ -45,20 +45,22 @@ class WhiteboardApplication:
         self.next_number = 1
         self.exiting = False
         self.preferences = preferences if preferences is not None else SnapPreferences(persist=self.platform.runtime.persist_preferences)
-        from .ocr import OcrService
-        self.ocr_service = OcrService(app)
-        self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset)
+        self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset,
+                                                 self.preferences.windows_hide)
         app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
         app.setApplicationVersion(APP_VERSION)
         app.setWindowIcon(app_icon())
-        self.menu = QMenu()
+        from .surfaces import SurfaceMenu
+        self.menu = SurfaceMenu(self.platform, self.preferences)
         self.tray = QSystemTrayIcon(app_icon(), app)
         self.update_shortcut_labels()
         self.tray.setContextMenu(self.menu)
         self.tray.activated.connect(self.tray_activated)
         self.menu.aboutToShow.connect(self.rebuild_menu)
         self.hotkeys = self.platform.create_hotkeys(app, self.preferences.shortcut_preset)
+        if not self.platform.shortcuts.mac and hasattr(self.hotkeys, 'set_hide_shortcut'):
+            self.hotkeys.set_hide_shortcut(self.preferences.windows_hide)
         self.hotkeys.events.hide_toggle.connect(self.toggle_visibility)
         if hasattr(self.hotkeys.events, "warning"):
             self.hotkeys.events.warning.connect(self.notify)
@@ -93,8 +95,11 @@ class WhiteboardApplication:
         screen.logicalDotsPerInchChanged.connect(self.displays_changed)
 
     def hotkey_error(self, detail):
+        alternative = (' Choose Hide All shortcut → Ctrl+Alt+Shift+H in the tray menu if H conflicts.'
+                       if not self.platform.shortcuts.mac and self.preferences.windows_hide == 'default' else '')
         self.notify('A global shortcut is unavailable. Working shortcuts remain registered. '
-                    f'Use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.\n{detail}')
+                    f'Use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.'
+                    f'{alternative}\n{detail}')
 
     def update_shortcut_labels(self):
         policy = self.platform.shortcuts
@@ -106,6 +111,13 @@ class WhiteboardApplication:
         self.hotkeys.set_preset(preset)
         self.preferences.set_shortcut_preset(preset)
         self.platform.shortcuts = ShortcutPolicy(mac=True, preset=preset)
+        self.update_shortcut_labels()
+        self.retry_hotkey()
+
+    def change_hide_shortcut(self, choice):
+        self.hotkeys.set_hide_shortcut(choice)
+        self.preferences.set_windows_hide(choice)
+        self.platform.shortcuts = ShortcutPolicy(hide_shortcut=choice)
         self.update_shortcut_labels()
         self.retry_hotkey()
 
@@ -130,7 +142,6 @@ class WhiteboardApplication:
 
     def create_board(self, rect):
         board = BoardWindow(f"Whiteboard {self.next_number}", self.preferences, self.platform)
-        board.canvas.ocr_service = self.ocr_service
         try:
             board.place(rect)
         except (OSError, ValueError) as error:
@@ -197,6 +208,7 @@ class WhiteboardApplication:
             self.hidden_batch.remove(board)
 
     def toggle_visibility(self):
+        self.menu.close()
         self.placement.cancel()
         self.capture.cancel()
         if self.hidden_batch:
@@ -234,8 +246,8 @@ class WhiteboardApplication:
         self.hotkeys.close()
         for board in tuple(self.boards):
             board.close()
-        self.ocr_service.close()
         self.tray.hide()
+        self.menu.close()
 
 
 def main():

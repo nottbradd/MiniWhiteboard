@@ -20,7 +20,7 @@ def configure_qt_plugins():
 
 
 def notice_data(project):
-    root = Path(project) / 'build' / 'license-notices'
+    root = Path(project) / 'build' / 'candidates' / 'v1.3.1' / 'license-notices'
     if not (root / 'MANIFEST.json').is_file():
         raise RuntimeError('Run python -m scripts.package_notices before packaging.')
     return [(str(root), 'licenses')]
@@ -54,30 +54,25 @@ def verify_release_files(root):
                                         for name in forbidden)]
     if unexpected:
         raise RuntimeError('Unused Qt products found in package: ' + ', '.join(unexpected))
+    removed = [p.relative_to(root).as_posix() for p in root.rglob('*')
+               if p.is_file() and removed_component(p.relative_to(root).as_posix())]
+    if removed:
+        raise RuntimeError('Removed OCR payload found in package: ' + ', '.join(removed))
     return {'license_files': len(report['files']), 'licenses_verified': True,
-            'unused_qt_products_absent': True}
+            'unused_qt_products_absent': True, 'ocr_payload_absent': True}
 
 
-def verify_ocr_runtime(root):
-    import hashlib
-    import json
-    root = Path(root)
-    if sys.platform == 'win32':
-        resources = next(root.rglob('assets/ocr/MANIFEST.json'), None)
-        if resources is None:
-            raise RuntimeError('Missing bundled OCR resources.')
-        ocr = json.loads(resources.read_text(encoding='utf-8'))
-        data = resources.parent / ocr['data']['path']
-        if hashlib.sha256(data.read_bytes()).hexdigest() != ocr['data']['sha256']:
-            raise RuntimeError('English OCR data hash mismatch.')
-        for entry in ocr['files']:
-            matches = [path for path in root.rglob(Path(entry['path']).name) if path.is_file()]
-            if not matches or any(hashlib.sha256(path.read_bytes()).hexdigest() != entry['sha256'] for path in matches):
-                raise RuntimeError('OCR binary missing or changed: ' + entry['path'])
-            import pefile
-            for path in matches:
-                binary = pefile.PE(str(path), fast_load=True)
-                if binary.FILE_HEADER.Machine != 0x8664:
-                    raise RuntimeError('OCR needs x64 binaries: ' + entry['path'])
-                binary.close()
-    return True
+def removed_component(name):
+    name = name.lower().replace('\\', '/').replace('.', '/')
+    return any(token in name for token in ('tesserocr','tesseract','leptonica','cysignals',
+        'traineddata')) or bool({'ocr','ocr_worker','ocr_panel','vision','coreml'} & set(name.split('/')))
+
+
+def verify_frozen_modules(executable):
+    from PyInstaller.archive.readers import CArchiveReader
+    archive = CArchiveReader(str(executable))
+    modules = archive.open_embedded_archive('PYZ.pyz').toc
+    removed = [name for name in modules if removed_component(name)]
+    if removed:
+        raise RuntimeError('Removed OCR modules found in executable: ' + ', '.join(removed))
+    return {'frozen_ocr_modules_absent': True, 'frozen_module_count': len(modules)}

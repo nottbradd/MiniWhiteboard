@@ -13,7 +13,7 @@ SHADOW = 8
 TOP_STRIP = 11  # Previously 32: keep a slim dedicated window drag strip.
 CANVAS_INSET = 0  # Content reaches the sides/bottom; resizing uses invisible zones.
 EDGE_GRIP = 7  # Invisible resize targets, independent of the canvas inset.
-BORDER_WIDTH = 1  # Visible top edge only; sides and bottom have no outline.
+BORDER_WIDTH = 1  # White's top edge; Glass has a separate thin optical rim.
 CONTROL_WIDTH, CONTROL_HEIGHT = 24, 20
 CONTROL_TOP, CONTROL_GAP, CONTROL_RIGHT = 3, 2, 5
 CONTROL_FONT_SIZE = 16
@@ -51,12 +51,12 @@ ROTATION_HANDLE_DISTANCE = 24  # Physical pixels from the top midpoint.
 CONTAINMENT_TOLERANCE = .01
 DRAG_THRESHOLD = 3
 TOOL_KEYS = {"D": "Draw", "T": "Text", "S": "Shape", "A": "Select", "V": "Select", "E": "Eraser"}
-SHORTCUT_REFERENCE = f"""<b>Mini Whiteboard · Version {APP_VERSION}</b><br>
+SHORTCUT_REFERENCE = f"""<span style="font-size:12pt;font-weight:700">Mini Whiteboard · Version {APP_VERSION}</span><br>
 Ctrl+Alt+W — hold at first corner → move → release to place<br>
 Ctrl+Alt+S — hold → move → release for screenshot board · Esc cancels<br><br>
 Ctrl+Alt+H — Hide All / Restore All without taking focus<br>
 Tray → Appearance: White (default) / Glass<br>
-Right-click an image → Extract Text · offline English · review / Copy / Insert<br><br>
+<br>
 <b>D</b> Draw · 1–5: 2 / 4 / 6 / 9 / 14 px<br>
 <b>T</b> Text · 1–3: 14 / 20 / 28 pt (finish editing first)<br>
 <b>S</b> Shapes · 1 Rectangle · 2 Rounded rectangle · 3 Ellipse<br>

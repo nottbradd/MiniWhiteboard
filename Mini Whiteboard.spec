@@ -5,17 +5,13 @@ project = Path(SPECPATH)
 import sys
 sys.path.insert(0, str(project))
 from scripts.build_support import configure_qt_plugins, notice_data
-from PyInstaller.utils.hooks import collect_all
 configure_qt_plugins()
-ocr_data, ocr_binaries, ocr_imports = collect_all('tesserocr', include_py_files=False)
-ocr_data = [(source, target) for source, target in ocr_data if not source.endswith('.pyi')]
-ocr_imports = [name for name in ocr_imports if 'CSI-helper' not in name]
 a = Analysis(
     [str(project / "main.py")],
     pathex=[str(project)],
-    binaries=ocr_binaries,
-    datas=notice_data(project) + ocr_data + [(str(project / 'assets' / 'ocr'), 'assets/ocr')],
-    hiddenimports=ocr_imports + ['mini_whiteboard.ocr_worker', 'mini_whiteboard.platform.windows.ocr'],
+    binaries=[],
+    datas=notice_data(project),
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -18,7 +18,7 @@ class WindowsDesktop(QtDesktop):
 
     def apply_appearance(self, board):
         from .appearance import BackdropHost, capable
-        if board.canvas.preferences.theme != 'Glass' or not capable(board.display_policy):
+        if board.appearance_theme != 'Glass' or not capable(board.display_policy):
             self.release_appearance(board)
             return False
         try:
@@ -111,10 +111,10 @@ class WindowsDesktop(QtDesktop):
             board._shadow = PaperShadow(board)
         bounds = self.window_rect(board)
         scale = board.devicePixelRatioF()
-        key = (bounds.width, bounds.height, scale)
+        key = (bounds.width, bounds.height, scale, board.corner_radius())
         if key != board._region_key:
             board._region_key = key
-            native.clip_window_to_paper(board, round(SHADOW*scale), round(RADIUS*scale))
+            native.clip_window_to_paper(board, round(SHADOW*scale), round(board.corner_radius()*scale))
         board._shadow.sync()
         if getattr(board, '_backdrop', None) is not None:
             try:
@@ -143,7 +143,7 @@ class WindowsDesktop(QtDesktop):
                 scale = self.window_scale(board)
                 point = QPointF((x-bounds.x)/scale, (y-bounds.y)/scale)
                 path = QPainterPath()
-                path.addRoundedRect(board.paper_rect(), RADIUS, RADIUS)
+                path.addRoundedRect(board.paper_rect(), board.corner_radius(), board.corner_radius())
                 if not path.contains(point):
                     return True, -1
         return None

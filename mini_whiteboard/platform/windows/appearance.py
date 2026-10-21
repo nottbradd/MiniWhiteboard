@@ -58,7 +58,7 @@ class BackdropHost:
                                    W.HWND, W.DWORD, C.c_void_p, W.DWORD)
             margins = (C.c_int * 4)(-1, -1, -1, -1)
             extend = native.bind(dwm, 'DwmExtendFrameIntoClientArea', C.c_long, W.HWND, C.c_void_p)
-            for identifier, value in ((2, 2), (20, 0), (33, 2), (38, 3)):
+            for identifier, value in ((2, 2), (20, 0), (33, 2), (34, 0xFFFFFFFE), (38, 3)):
                 number = C.c_int(value)
                 if attribute(self.handle, identifier, C.byref(number), C.sizeof(number)) < 0:
                     raise OSError('DWM backdrop unavailable.')
@@ -73,7 +73,17 @@ class BackdropHost:
     def sync(self, board):
         rect = board.physical_paper_rect()
         scale = board.devicePixelRatioF()
-        dimensions = round(rect.width), round(rect.height), round(RADIUS * scale)
+        # DWM controls its own discrete corner radius and ignores arbitrary
+        # HRGN clipping for the system backdrop. Keep its frosted core strictly
+        # inside our larger rounded optical edge instead of leaking square
+        # backdrop pixels through transparent corners. The outer edge stays clear.
+        from math import ceil, sqrt
+        inset = ceil(max(0, board.corner_radius()-8)*(1-1/sqrt(2))) + 1
+        rect = rect.expanded(-round(inset*scale))
+        dimensions = round(rect.width), round(rect.height), round(8 * scale)
+        if not native.user32.SetWindowPos(self.handle, self.owner, round(rect.x), round(rect.y),
+                                          dimensions[0], dimensions[1], 0x0050):
+            raise OSError('Cannot place backdrop.')
         if dimensions != self.region_key:
             gdi = C.WinDLL('gdi32')
             create_region = native.bind(gdi, 'CreateRoundRectRgn', W.HRGN,
@@ -86,9 +96,6 @@ class BackdropHost:
                 native.bind(gdi, 'DeleteObject', W.BOOL, W.HGDIOBJ)(region)
                 raise OSError('Cannot clip backdrop.')
             self.region_key = dimensions
-        if not native.user32.SetWindowPos(self.handle, self.owner, round(rect.x), round(rect.y),
-                                          dimensions[0], dimensions[1], 0x0050):
-            raise OSError('Cannot place backdrop.')
 
     def close(self):
         if self.handle:
@@ -116,7 +123,7 @@ def _register_class():
                     ('cursor', W.HANDLE), ('brush', W.HBRUSH), ('menu', W.LPCWSTR), ('name', W.LPCWSTR)]
     gdi = C.WinDLL('gdi32')
     brush = native.bind(gdi, 'GetStockObject', W.HGDIOBJ, C.c_int)(4)  # BLACK_BRUSH
-    name = 'MiniWhiteboardDwmBackdropV13'
+    name = 'MiniWhiteboardDwmBackdropV131'
     record = WindowClass(0, procedure, 0, 0, None, None, None, brush, None, name)
     if not native.bind(native.user32, 'RegisterClassW', W.ATOM, C.POINTER(WindowClass))(C.byref(record)):
         raise OSError('Cannot register backdrop class.')

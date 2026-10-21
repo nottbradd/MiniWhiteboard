@@ -20,6 +20,8 @@ class SnapPreferences(QObject):
         self.grid_snap = self.settings.value("snap/grid", False, type=bool) if self.settings else False
         preset = self.settings.value("shortcuts/preset", "default") if self.settings else "default"
         self.shortcut_preset = preset if preset in ("default", "alternate") else "default"
+        hide = self.settings.value('shortcuts/windows_hide', 'default') if self.settings else 'default'
+        self.windows_hide = hide if hide in ('default', 'shift') else 'default'
         theme = self.settings.value('appearance/theme', 'White') if self.settings else 'White'
         self.theme = theme if theme in ('White', 'Glass') else 'White'
 
@@ -39,6 +41,14 @@ class SnapPreferences(QObject):
             raise ValueError("Unknown global shortcut preset.")
         self.shortcut_preset = preset
         self.save()
+
+    def set_windows_hide(self, choice):
+        if choice not in ('default', 'shift'):
+            raise ValueError('Unknown Hide All shortcut.')
+        self.windows_hide = choice
+        if self.settings is not None:
+            self.settings.setValue('shortcuts/windows_hide', choice)
+            self.settings.sync()
 
     def set_smart(self, enabled):
         self.smart_guides = bool(enabled)

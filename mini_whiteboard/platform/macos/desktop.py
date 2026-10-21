@@ -38,7 +38,7 @@ class MacDesktop(QtDesktop):
             board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
                 AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
                 NSOperationQueue.mainQueue(), policy_changed)
-        if board.canvas.preferences.theme != 'Glass' or not board.display_policy.transparency:
+        if board.appearance_theme != 'Glass' or not board.display_policy.transparency:
             record = getattr(board, '_visual_effect', None)
             if record is not None:
                 record[1].removeFromSuperview()
@@ -62,7 +62,7 @@ class MacDesktop(QtDesktop):
                 effect.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
                 effect.setAutoresizingMask_(AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
                 effect.setWantsLayer_(True)
-                effect.layer().setCornerRadius_(RADIUS)
+                effect.layer().setCornerRadius_(board.corner_radius())
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
@@ -115,7 +115,7 @@ class MacDesktop(QtDesktop):
         view = window.contentView()
         view.setWantsLayer_(True)
         layer = view.layer()
-        layer.setCornerRadius_(RADIUS)
+        layer.setCornerRadius_(board.corner_radius())
         layer.setMasksToBounds_(True)
 
     def sync_decoration(self, board):
@@ -127,6 +127,20 @@ class MacDesktop(QtDesktop):
                                         or record[2] != window.contentView().superview()):
                 board.refresh_appearance()
             window.invalidateShadow()
+
+    def sync_surface(self, surface):
+        if not surface.isVisible():
+            return
+        window = native_window(surface)
+        content = window.contentView()
+        content.setWantsLayer_(True)
+        content.layer().setCornerRadius_(surface.corner_radius())
+        content.layer().setMasksToBounds_(True)
+        window.setHasShadow_(True)
+        record = getattr(surface, '_visual_effect', None)
+        if record is not None and (record[0] != content or record[2] != content.superview()):
+            surface.refresh_appearance()
+        window.invalidateShadow()
 
     def configure_overlay(self, overlay, *, interactive=False, owner=None):
         import AppKit

@@ -1,5 +1,5 @@
 param([string]$Python = "$PSScriptRoot\.venv\Scripts\python.exe",
-      [string]$DistPath = 'dist\windows-v13')
+      [string]$DistPath = 'dist\windows-v131-candidate')
 $ErrorActionPreference = 'Stop'
 Push-Location -LiteralPath $PSScriptRoot
 try {
@@ -33,7 +33,7 @@ try {
         }
         Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
     }
-    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v13'
+    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v131-candidate'
     if (Test-Path -LiteralPath $buildWorkOutput) {
         $resolvedBuildWork = (Resolve-Path -LiteralPath $buildWorkOutput).Path
         if (-not $resolvedBuildWork.StartsWith($workspaceRoot, [StringComparison]::OrdinalIgnoreCase)) {

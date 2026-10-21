@@ -40,33 +40,3 @@ The PyObjC wheels' original license notices are collected on the Mac builder.
 Python's actual runtime license is collected on each builder. The PyInstaller
 notice includes the bootloader exception. Apple system frameworks and Windows
 system libraries remain components of their respective operating systems.
-
-## OCR sources and rebuilding
-
-Windows uses the unmodified standalone tesserocr 2.11.0 CPython 3.12 x64 wheel
-from [the upstream Windows build release](https://github.com/simonflueckiger/tesserocr-windows_build/releases/tag/tesserocr-v2.11.0-tesseract-5.5.3).
-Its SHA-256 is `74604b65547b6e988dcdab0d6d7366964ec588a9fd28a526b2ca9b9f8b8d3dea`.
-The build recipe is pinned at `cb737e34870e2568da274ac89e1b11db2c52aad8`;
-its tesserocr submodule is `d27f2e394c79739c75b062fc150b08f420300ab6`.
-It builds Tesseract 5.5.3 (`db0ec62`) and Leptonica 1.87.0 (`13275a2`),
-using the named Software Network image/compression dependencies.
-
-[OCR-SOURCES.json](OCR-SOURCES.json) records exact archive bytes/hashes for all
-these libraries and **cysignals 1.12.6** (the upstream wheel release identifies
-that version for Python 3.12+). The V1.3 release's `MiniWhiteboard-OCR-Sources.zip`
-contains those archives, the Windows build recipe and patches, and this guide.
-Follow its `appveyor.yml` dependency/wheel build steps with Python 3.12 x64 and
-Visual Studio 2022. Build cysignals from its included sdist without modifying its
-source, as the recipe does. These sources include the build files and licenses.
-
-English `eng.traineddata` is the original tessdata_fast 4.1.0 file, under Apache 2.0.
-SHA-256: `7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2`.
-Its download URL is recorded in the repository's `assets/ocr/MANIFEST.json`.
-
-Windows OCR DLLs/extensions remain external, dynamically loaded files under
-`_internal/tesserocr`, including `_internal/tesserocr/cysignals/signals*.pyd`.
-Replace them with ABI-compatible builds or install rebuilt wheels and rebuild the
-app. No project term prevents modification or reverse engineering to debug LGPL
-library changes. Keep required notices with redistributed modifications. The Mac
-package uses the operating system's Vision framework and the pinned PyObjC bridge;
-it does not bundle Windows OCR binaries or English model data.

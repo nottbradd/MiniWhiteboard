@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QToolButton, QWidget
 
 from .platform import get_platform
 from .shortcuts import ui_font_family
+from .appearance import corner_radius, paint_surface
 from .geometry import Rect, large_enough
 from .settings import (BORDER, EDGE_GRIP, MIN_HEIGHT, MIN_WIDTH, PAPER,
                        RADIUS, SHADOW, TOP_STRIP, CANVAS_INSET, BORDER_WIDTH,
@@ -55,8 +56,29 @@ class BoardWindow(QWidget):
         self.emphasis.stop()
         self.display_policy = self.desktop.display_policy()
         self.desktop.release_appearance(self)
-        self.native_glass = self.desktop.apply_appearance(self)
+        self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() else False
+        self.layout_children()
+        self._region_key = None
+        self.sync_shadow()
+        glass = self.appearance_theme == 'Glass' and not self.display_policy.high_contrast
+        for button, delete in ((self.minus, False), (self.remove, True)):
+            background = '#ef5b64' if delete else 'rgba(90,94,115,32)'
+            foreground = '#ffffff' if delete else '#292c38'
+            button.setStyleSheet(
+                f"QToolButton {{ border:0; border-radius:10px; color:{foreground if glass else '#d75555' if delete else '#71777d'}; "
+                f"background:{background if glass else 'transparent'}; font:{CONTROL_FONT_SIZE}px '{ui_font_family()}'; }}"
+                "QToolButton:hover { background:rgba(120,130,155,65); }"
+                "QToolButton:pressed { background:rgba(100,110,140,90); }")
+        self.canvas.stop_transient_ui()
+        self.emphasis.start()
         self.update()
+
+    @property
+    def appearance_theme(self):
+        return self.canvas.preferences.theme
+
+    def corner_radius(self):
+        return corner_radius(self.paper_rect(), self.appearance_theme)
 
     def event(self, event):
         result = super().event(event)
@@ -92,9 +114,12 @@ class BoardWindow(QWidget):
 
     def layout_children(self):
         paper = self.paper_rect()
-        right = paper.right()-CONTROL_RIGHT-CONTROL_WIDTH
-        self.remove.setGeometry(round(right), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
-        self.minus.setGeometry(round(right-CONTROL_WIDTH-CONTROL_GAP), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
+        from .appearance import GLASS_CONTROL_TOP, GLASS_CONTROL_RIGHT
+        glass = self.appearance_theme == 'Glass' if self.canvas is not None else False
+        top, inset = (GLASS_CONTROL_TOP,GLASS_CONTROL_RIGHT) if glass else (CONTROL_TOP,CONTROL_RIGHT)
+        right = paper.right()-inset-CONTROL_WIDTH
+        self.remove.setGeometry(round(right), round(paper.top()+top), CONTROL_WIDTH, CONTROL_HEIGHT)
+        self.minus.setGeometry(round(right-CONTROL_WIDTH-CONTROL_GAP), round(paper.top()+top), CONTROL_WIDTH, CONTROL_HEIGHT)
         if self.canvas is not None:
             self.canvas.setGeometry(math.ceil(paper.left()+CANVAS_INSET),
                                     math.ceil(paper.top()+TOP_STRIP),
@@ -149,20 +174,8 @@ class BoardWindow(QWidget):
                 painter.setBrush(QColor(30, 38, 45, 2 + (SHADOW-spread)//2))
                 painter.drawRoundedRect(paper.adjusted(-spread, -spread+1, spread, spread+1),
                                         RADIUS+spread, RADIUS+spread)
-        from .appearance import surface, ACCENT, GLASS_BORDER
-        painter.setBrush(surface(self.canvas.preferences.theme, self.native_glass, self.display_policy))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRoundedRect(paper, RADIUS, RADIUS)
-        emphasized = getattr(self, 'emphasis', None)
-        border = QColor(GLASS_BORDER if self.canvas.preferences.theme == 'Glass' else BORDER)
-        if emphasized and emphasized.value and not self.display_policy.high_contrast:
-            accent = QColor(ACCENT)
-            amount = emphasized.value
-            border = QColor(*(round(base*(1-amount)+highlight*amount) for base, highlight in
-                              zip(border.getRgb()[:3], accent.getRgb()[:3])))
-        painter.setPen(QPen(border, BORDER_WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        painter.drawLine(QPointF(paper.left()+RADIUS, paper.top()+BORDER_WIDTH/2),
-                         QPointF(paper.right()-RADIUS, paper.top()+BORDER_WIDTH/2))
+        paint_surface(painter, paper, self.appearance_theme, self.native_glass, self.display_policy,
+                      emphasis=self.emphasis.value)
 
     def place(self, rect):
         self.desktop.place_board(self, rect)

@@ -1,5 +1,28 @@
 # Release notes
 
+## V1.3.1 candidate — unpublished
+
+- Revised optional Glass with neutral translucency, generous rounded corners,
+  a clear optical edge, thin light-catching rim, static highlights and soft shadow.
+  Palette, app-owned menus, help and feedback share the presentation. White keeps
+  its top border. Native Mac menus and system dialogs retain their OS behaviour.
+- Bold interface headings, medium action labels and regular support text.
+  Document/editor fonts, presets, text widths, masks and geometry are unchanged.
+- Removed OCR entirely: actions, review UI, workers/backends, Tesseract/English
+  payload, exclusive Vision/CoreML requirements, fixtures and collection steps.
+  The original V1.3 release, evidence and dependency sources remain available.
+- Added saved Windows Hide All choices: Ctrl+Alt+H or Ctrl+Alt+Shift+H. A failed
+  binding retains W/S; changing/retrying H leaves those working registrations.
+  Existing physical-key suppression and visibility-batch/focus rules remain.
+
+This candidate has not been tagged or published. Public download links remain
+V1.3 pending final visual approval. Mac remains a preview. Glass approximates the
+approved concept with supported frost, shading and edges; it has no optical
+refraction, desktop-capture loop or native Apple Liquid Glass dependency.
+
+Candidate verification and package hashes will be recorded after final builds.
+
+
 ## V1.3
 
 Published [21 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3).

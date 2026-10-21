@@ -49,7 +49,19 @@ class ReleaseNoticeTests(unittest.TestCase):
 
     def test_verified_package_has_complete_notices(self):
         self.assertEqual(verify_release_files(self.root), {
-            'license_files':1, 'licenses_verified':True, 'unused_qt_products_absent':True})
+            'license_files':1, 'licenses_verified':True, 'unused_qt_products_absent':True, 'ocr_payload_absent':True})
+
+    def test_removed_ocr_payload_rejects_both_platform_packages(self):
+        for relative in ('_internal/tesserocr/engine.dll', 'assets/ocr/eng.traineddata',
+                         'Contents/Resources/Vision/_Vision.so', 'Contents/Resources/CoreML/_CoreML.so',
+                         'licenses/upstream/ocr-tesseract.txt'):
+            with self.subTest(relative=relative):
+                path = self.root/relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+                with self.assertRaisesRegex(RuntimeError, 'Removed OCR payload'):
+                    verify_release_files(self.root)
+                path.unlink()
 
     @unittest.skipIf(sys.platform == 'win32', 'Real Mac bundle symlinks run on Mac CI')
     def test_mac_bundle_notice_alias_counts_physical_manifest_once(self):

@@ -8,7 +8,7 @@ Qt-delivered. Mark each unperformed check **NOT RUN**. Current results belong in
 
 ## Automated and native checks
 
-The GUI suite uses Qt offscreen and fake platform services; real OCR tests also exercise the installed platform engine.
+The GUI suite uses Qt offscreen and fake platform services.
 `scripts.run_tests` runs the complete suite with a 300-second diagnostic watchdog.
 It does not establish native focus, global shortcuts, permissions or display behaviour.
 
@@ -107,7 +107,7 @@ still needs the checks below. Capture can request Screen Recording permission.
   Closing the last board keeps the tray/menu alive; Exit/Quit clears all resources.
   Launch twice: one owner. Observe idle CPU for at least 60 seconds.
 
-### Hide All, appearance and OCR
+### Hide All and appearance
 
 - H with mixed visible/minimized boards records only the visible set. Check held
   repeats, each release order, no-board/all-minimized cases, individual restore
@@ -115,25 +115,32 @@ still needs the checks below. Capture can request Screen Recording permission.
 - Restore with another owned app focused: its foreground and keyboard focus must
   stay unchanged, including after queued callbacks settle. Check every board's
   geometry, selection, content/history and normal clicking afterward.
-- Hide active text, previews, transforms, help, palettes, menus, animations and OCR.
-  No late popup/result, shadow, native host, mouse grab or activation timer may remain.
+- Hide active text, previews, transforms, help, palettes, menus and animations.
+  No late popup, shadow, native host, mouse grab or activation timer may remain.
 - White is the first-launch default. Persist Glass, switch existing/new boards and
   compare source PNG bytes, document state, masks and clipboard artwork output.
 - Verify actual Windows frost with an owned changing bright/dark/busy background;
   successful API calls or offscreen renders alone do not prove blur. Check native
   failure/unsupported-system fallback, reduced transparency/motion and high contrast.
-- OCR locked screenshots and explicit/selected images. Review/correct multiline
-  text; only Copy changes clipboard, only Insert adds one wrapped text action.
-  Check exact undo/redo, long results, source change/removal, no text, corruption,
-  unsupported language, missing data, queue limits, cancellation, timeout and exit.
-- Run `scripts.ocr_check` against source and the frozen executable. It uses exact
-  clean/dark/transparent fixtures, restricted PATH, an invalid external data path,
-  spaces/Unicode in temporary paths and a Python socket audit guard. Native engine
-  imports/data are bundled; a clean machine disconnected from a network is a
-  separate acceptance check. Real-world recognition errors must be reported.
+- Use `scripts.appearance_check` for actual Windows White/Glass captures on owned
+  light/dark/busy backgrounds, menus, palette, help, screenshot opacity, rounded
+  input regions and repeated resource cleanup. Inspect the captures personally;
+  successful DWM calls alone cannot establish appearance.
+- Test both persisted Windows H choices. When the default conflicts, run
+  `scripts.hotkey_workflow_check --hide-shortcut shift`. It chooses the real menu
+  option, verifies its saved value and dispatches the shipped binding with native
+  input. Test settings are isolated from the user's preferences. Do not take over
+  a binding owned by another application.
+- Build candidates in a fresh dependency environment. Package checks reject OCR
+  engines/data/bridges and inspect frozen modules. Retain all required Qt/Python
+  and shared Mac bridge notices. Historical V1.3 packages remain unchanged.
+- Compare UI heading/action/support weights and document metrics separately.
+  Verify regular text, wrapping, Unicode, transformed editing, masks and exact
+  clipboard pixels after a theme switch. Inspect small boards, rounded controls,
+  popup navigation and outside-click dismissal.
 - Compare idle CPU/timers, startup, memory, package size, screenshot counters and
   median/p95 paint/input processing on the same fixture/environment. These timings
-  measure processing work, not display FPS. Repeat OCR/theme/hide cycles and check
+  measure processing work, not display FPS. Repeat theme/hide cycles and check
   process/widget/native resources return to a stable count.
 
 ## Platform and hardware acceptance

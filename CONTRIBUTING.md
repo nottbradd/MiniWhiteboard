@@ -42,7 +42,6 @@ have different Screen Recording permission identities.
 | `canvas.py`, `text_editor.py` | Tool gestures, selection, focus routing and transformed plain-text editing |
 | `rendering.py`, `scene.py`, `background.py` | Shaped text/painted geometry, cached bounds, sparse previews, dirty painting and screenshot display cache |
 | `editing_actions.py`, `clipboard.py`, `snapping.py` | Shared commands, validated editable MIME and alignment |
-| `ocr.py`, `ocr_worker.py`, `ocr_panel.py` | Bounded process queue, immutable image input, offline adapters and explicit result review |
 | `appearance.py`, native appearance adapters | Shared style values, accessibility policy and passive compositor effects |
 | `tests/`, `scripts/` | Portable regressions, opt-in native checks and package validation |
 
@@ -85,8 +84,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v13/Mini Whiteboard/` and
-`build/releases-v1.3/WinMiniWhiteboardV1.3.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v131-candidate/Mini Whiteboard/` and
+`build/candidates/v1.3.1/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
 
 Mac:
 
@@ -98,9 +97,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v13/Mini Whiteboard.app` and
-`build/releases-v1.3/MacMiniWhiteboardV1.3.zip`. Rename the ZIP with
-`-Preview` for public preview downloads without changing its bytes.
+Output: `dist/macos-v131-candidate/Mini Whiteboard.app` and
+`build/candidates/v1.3.1/MacMiniWhiteboardV1.3.1-Preview.zip`. This is an unpublished candidate. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation
@@ -116,23 +114,29 @@ automated startup does not establish interactive Mac acceptance.
 
 `APP_VERSION` is the application version. Generate Windows resources with
 `scripts.make_version`; patch versions have four numeric Windows components
-(for example 1.3.0.0). Keep Mac plist versions, defaults, download names and checks
+(for example 1.3.1.0). Keep Mac plist versions, defaults, download names and checks
 consistent. Use a fresh versioned staging directory to preserve earlier packages.
 
-OCR is lazy: the GUI process does not import Tesseract or Vision. One worker
-process handles each immutable image snapshot; cancellation kills only that owned
-process. Results are queued to the GUI and checked against request, source object
-identity and board visibility. Keep Python worker streams optional: the windowed
-executable uses bounded temporary request/result files, removed after its process
-has exited. Do not log OCR images or text.
+V1.3.1 builds must use a fresh environment without the removed OCR dependencies.
+Windows keeps Python 3.12 x64; Mac keeps universal2 Python 3.13. Only Qt/PySide
+is a shared runtime requirement. Mac retains Cocoa, Quartz, ScreenCaptureKit
+and CoreMedia bridges for the existing native services. Package guards inspect
+both runtime filenames and the frozen module archive for removed OCR payload.
 
-Windows development/builds use Python **3.12 x64** for the pinned standalone OCR
-wheel. `requirements.txt` pins its URL and SHA-256. Mac uses the pinned Vision
-bridge from `requirements-macos.txt`. Run `python -m scripts.ocr_check` for the
-actual source engine, and pass `--executable` with the built EXE or Mac bundle's
-`Contents/MacOS/Mini Whiteboard` for the restricted-path frozen diagnostic. It
-blocks Python socket operations; it does not simulate a clean, physically offline
-machine. `assets/ocr/MANIFEST.json` pins every Windows OCR binary and model hash.
+`appearance.py` owns material values and explicit interface font roles. The
+document/editor family helper remains regular and preserves text metrics.
+`surfaces.py` retains QMenu navigation and owns temporary material lifetimes.
+Windows DWM offers discrete OS corner shapes rather than arbitrary radii, so the
+frosted core is inset inside a clear rounded optical edge. Qt paints the rim and
+static highlights; native adapters own frost and release every host/view on hide.
+No desktop capture or idle animation is used for the material. See Microsoft's
+[corner policy](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-rounded-corners).
+Cocoa's OS-owned menus retain native presentation; app-owned palette/help windows
+use the shared surface. Standard OS colour and permission dialogs stay native.
+
+Windows Hide All preferences change only H. Retrying skips bindings already
+registered, and changing the option retains the physical-H latch until release.
+Mac global presets and ordinary Command+H remain separate.
 
 Hide All is separate from ordinary focused restore. Keep native nonactivation,
 restore-batch membership, stopped activation timers and transient cleanup covered.
