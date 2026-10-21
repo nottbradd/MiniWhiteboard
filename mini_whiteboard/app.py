@@ -2,8 +2,7 @@
 
 import sys
 
-from PySide6.QtCore import QRectF, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
 
 from .platform import get_platform
@@ -15,24 +14,7 @@ from .screenshot import ScreenshotController
 from .snapping import SnapPreferences
 from .settings import APP_NAME, MIN_WIDTH, MIN_HEIGHT, CANVAS_INSET, TOP_STRIP
 from . import APP_VERSION
-
-
-def app_icon(size=64):
-    image = QPixmap(size, size)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    painter.scale(size/64, size/64)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setPen(QPen(QColor("#89939d"), 2))
-    painter.setBrush(QColor("white"))
-    painter.drawRoundedRect(QRectF(6, 8, 52, 48), 9, 9)
-    painter.setPen(QPen(QColor("#333c45"), 4, Qt.PenStyle.SolidLine,
-                        Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-    painter.drawLine(19, 39, 28, 24)
-    painter.drawLine(28, 24, 34, 36)
-    painter.drawLine(34, 36, 45, 21)
-    painter.end()
-    return QIcon(image)
+from .branding import app_icon
 
 
 class WhiteboardApplication:
@@ -53,7 +35,8 @@ class WhiteboardApplication:
         app.setWindowIcon(app_icon())
         from .surfaces import SurfaceMenu
         self.menu = SurfaceMenu(self.platform, self.preferences)
-        self.tray = QSystemTrayIcon(app_icon(), app)
+        self.tray = QSystemTrayIcon(self.platform.runtime.tray_icon(), app)
+        self.platform.runtime.configure_tray(app, self.tray)
         self.update_shortcut_labels()
         self.tray.setContextMenu(self.menu)
         self.tray.activated.connect(self.tray_activated)
@@ -231,7 +214,31 @@ class WhiteboardApplication:
         rebuild_menu(self)
 
     def show_about(self):
-        QMessageBox.information(None, "About Mini Whiteboard", f"Mini Whiteboard\nVersion {APP_VERSION}")
+        box = QMessageBox(QMessageBox.Icon.NoIcon, 'About Mini Whiteboard',
+                          f'Mini Whiteboard\nVersion {APP_VERSION}\n\nA small space for ideas.')
+        box.setWindowIcon(app_icon())
+        box.setIconPixmap(app_icon().pixmap(64, 64))
+        box.exec()
+
+    def change_login(self, enabled):
+        try:
+            state = self.platform.login.set_enabled(enabled)
+            if state.approval_required:
+                box = QMessageBox(QMessageBox.Icon.Information, 'Open at login', state.detail)
+                settings = box.addButton('Open startup settings', QMessageBox.ButtonRole.ActionRole)
+                box.addButton(QMessageBox.StandardButton.Ok)
+                box.exec()
+                if box.clickedButton() is settings:
+                    self.platform.login.open_settings()
+        except OSError as error:
+            QMessageBox.warning(None, 'Open at login', str(error))
+        self.rebuild_menu()
+
+    def open_login_settings(self):
+        try:
+            self.platform.login.open_settings()
+        except OSError as error:
+            QMessageBox.warning(None, 'Open at login', str(error))
 
     def show_shortcuts(self):
         QMessageBox.information(None, "Keyboard shortcuts", self.platform.shortcuts.help_html())
@@ -259,7 +266,8 @@ def main():
     platform.runtime.prepare()
     guard = platform.runtime.single_instance()
     if not guard.acquired:
-        platform.runtime.activate_existing(guard)
+        # SMAppService launches the main bundle without custom arguments.
+        # All duplicate launches stay quiet, including automatic/manual overlap.
         guard.close()
         return 0
     try:

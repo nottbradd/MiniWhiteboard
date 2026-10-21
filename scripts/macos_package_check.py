@@ -101,9 +101,9 @@ def validate_bundle(bundle, architecture):
         pyz = archive.open_embedded_archive("PYZ.pyz")
         from .build_support import verify_frozen_modules
         check('Removed OCR modules are absent', verify_frozen_modules(executable)['frozen_ocr_modules_absent'])
-        for name in ("objc", "AppKit", "Foundation", "Quartz", "CoreMedia", "ScreenCaptureKit",
+        for name in ("objc", "AppKit", "Foundation", "Quartz", "CoreMedia", "ScreenCaptureKit", "ServiceManagement",
                      "mini_whiteboard.platform.macos.runtime", "mini_whiteboard.platform.macos.desktop",
-                     "mini_whiteboard.platform.macos.hotkeys", "mini_whiteboard.platform.macos.capture"):
+                     "mini_whiteboard.platform.macos.hotkeys", "mini_whiteboard.platform.macos.capture", "mini_whiteboard.platform.macos.login"):
             check("Frozen module is bundled: "+name, name in pyz.toc)
         unwanted = [name for name in pyz.toc if name == "mini_whiteboard.windows"
                     or name.startswith("mini_whiteboard.platform.windows")]
@@ -127,7 +127,7 @@ def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: bundle verification requires macOS.")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v131-review03/Mini Whiteboard.app"))
+    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v132-review01/Mini Whiteboard.app"))
     parser.add_argument("--architecture", choices=("universal2", "arm64", "x86_64"), default="universal2")
     parser.add_argument("--report", type=Path, default=Path("verification/macos-package-check.json"))
     args = parser.parse_args()

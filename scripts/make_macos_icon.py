@@ -12,7 +12,9 @@ def main():
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
     from mini_whiteboard.app import app_icon
+    from .make_icon import generate
     app = QApplication.instance() or QApplication([])
+    generate()
     destination = Path(__file__).resolve().parents[1]/"assets"/"mini_whiteboard.icns"
     with tempfile.TemporaryDirectory() as directory:
         iconset = Path(directory)/"MiniWhiteboard.iconset"

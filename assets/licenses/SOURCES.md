@@ -35,6 +35,13 @@ Python source: https://www.python.org/downloads/source/ (use the runtime version
 recorded in the packaged licenses/MANIFEST.json).
 PyObjC source: https://github.com/ronaldoussoren/pyobjc/tree/v12.2.2
 PyInstaller source: https://github.com/pyinstaller/pyinstaller/tree/v6.22.3
+Inno Setup 6.7.3 source: https://github.com/jrsoftware/issrc/tree/is-6_7_3
+
+The Windows installer is built with Inno Setup 6.7.3. Its upstream license is
+included in [innosetup-6.7.3.txt](innosetup-6.7.3.txt) and the Windows package.
+The official compiler download is pinned by SHA-256 in `scripts/bootstrap_inno.py`.
+Mac includes the PyObjC ServiceManagement bridge under the same PyObjC source
+tag and wheel-notice collection as the other native bridges.
 
 The PyObjC wheels' original license notices are collected on the Mac builder.
 Python's actual runtime license is collected on each builder. The PyInstaller

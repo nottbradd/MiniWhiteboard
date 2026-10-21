@@ -14,6 +14,7 @@ from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 from mini_whiteboard import windows, clipboard, images
+from mini_whiteboard import APP_VERSION
 from mini_whiteboard.app import WhiteboardApplication
 from mini_whiteboard.appearance import interface_font
 from mini_whiteboard.document import Text, Stroke, Shape
@@ -52,7 +53,7 @@ class Background(QWidget):
         font.setPointSize(12)  # Keep the controlled backdrop identical across revisions.
         p.setFont(font)
         p.setPen(QColor('#ffffff' if self.mode == 'dark' else '#242a3c'))
-        p.drawText(38, 32, 'Mini Whiteboard V1.3.1 · unpublished candidate · owned demonstration background')
+        p.drawText(38, 32, f'Mini Whiteboard {APP_VERSION} · unpublished candidate · owned demonstration background')
 
 
 def sample_image():
@@ -81,7 +82,7 @@ def sample_image():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=Path('verification/review-03/appearance'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v132-review01/appearance'))
     args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])

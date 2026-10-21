@@ -10,9 +10,33 @@ toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 **V1.3.1 is available.** It refines Glass, removes OCR and adds a saved Windows
 Hide All alternative. Windows is the stable release; Mac remains a preview.
 
-> **Unpublished review 03:** this branch revises rounded edges, window controls
-> and both creation previews. It is awaiting visual approval. The public V1.3.1
+> **Unpublished V1.3.2 candidate:** this branch includes review 03's smoother
+> edges, themed controls and glass previews, plus a Windows installer, new
+> branding and optional Open at login. It awaits approval; the public V1.3.1
 > downloads below are unchanged.
+
+![Mini Whiteboard icon](assets/branding/app-128.png)
+
+### V1.3.2 installation and startup
+
+The **Windows installer is recommended** for the candidate. It installs for your
+account without an administrator prompt, adds Mini Whiteboard to Start/Search,
+and offers a desktop shortcut. The portable ZIP remains available: extract it
+and keep its entire folder together. Both launch quietly into the tray.
+
+On Mac, extract the Preview ZIP on a Mac and move Mini Whiteboard.app to
+Applications. Mac remains a preview; interactive acceptance is **NOT RUN**.
+
+Choose **Open at login** in the tray/menu-bar menu to opt in. It is off by
+default. The app reads the OS registration each time the menu opens. If Windows
+Startup apps or macOS Login Items blocks it, follow the shown settings action;
+the app does not silently enable it again. Keep portable copies in a permanent
+folder before enabling startup. Development and temporary copies cannot register.
+
+To update or uninstall Windows, first choose Exit from the tray menu after
+keeping any work you need. Setup and uninstall refuse to proceed while the app
+is running. Updates retain preferences and startup choice. Uninstall removes its
+own shortcuts and login registration; preferences remain for a later reinstall.
 
 ## Download V1.3.1
 

@@ -1,84 +1,40 @@
 # Release notes
 
-## V1.3.1 review 03 — unpublished
+## V1.3.2 candidate — unpublished
 
-The public [V1.3.1 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
-is unchanged. This candidate requires visual approval before publication.
+The public [V1.3.1 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1),
+its tag/assets and all previous candidate archives are unchanged. This candidate
+requires explicit approval before publication. Mac remains a preview.
 
-- Rounded boards and temporary surfaces retain their antialiased alpha fringe.
-  Binary window/widget clipping previously cut that fringe into steps. The
-  Windows backdrop is now explicitly input-transparent across processes.
-- Minimise and delete use matching theme surfaces and centred vector icons,
-  consistent 30 × 28 logical-pixel targets and safe minimum-board insets. Delete
-  has restrained red hover/pressed feedback; tooltips and accessible names remain.
-- Both hold → move → release previews use rounded glass material, a thin rim and
-  a low tint. Native frost has a lightweight fallback; reduced transparency/high
-  contrast use an unfilled two-tone perimeter. White remains the default board.
-- Boundary artwork, cached screenshot display and the real temporary editor use
-  alpha clipping. The saved capture excludes all preview material.
+- Includes review 03's smoother rounded edges, aligned vector window controls,
+  glass W/S creation previews and alpha clipping for artwork, captures and text.
+- Adds a recommended Windows installer alongside the complete portable ZIP.
+  Installation is per user, with Start/Search access, an optional desktop shortcut
+  and normal uninstall. A stable installation identity avoids duplicate entries.
+  Setup and uninstall refuse to proceed while Mini Whiteboard is running.
+- Adds a glass whiteboard icon with a bold pen stroke, a vector master,
+  multi-resolution Windows ICO and high-resolution Mac ICNS. A simpler matching
+  tray symbol contrasts with Windows system appearance; Mac uses a template image.
+- Adds Open at login to the existing tray/menu-bar menu, off by default. Explicit
+  choices use per-user Windows Run registration or macOS SMAppService. The app
+  reads current OS status, reports failures/approval requirements and respects
+  external disables. Temporary/development copies cannot register.
+- Manual and automatic duplicate launches stay quiet. Windows upgrades preserve
+  preferences and startup choice; uninstall removes its owned registration.
 
-### Verification
+### Verification in progress
 
-Both candidates were built from
-[`2e12042`](https://github.com/nottbradd/MiniWhiteboard/commit/2e120427199d5a8c013dc47800adfc687087ac46).
-[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39590095270) and
-[Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39590098031) passed.
-Packages, raw captures and earlier attempts remain in the local review directories.
+Baseline: 255 discovered; Windows 253 passed plus two Mac-only skips. Current
+suite: 277 discovered; Windows 275 passed plus two skips. Added checks cover
+registration ownership, OS disables/errors/approval, path validation, menu state,
+quiet duplicates, native ICO decoding and small tray contrast/template masks.
 
-| Check | Actual result |
-|---|---|
-| Baseline / revised suite | 244 discovered, Windows 242 passed plus two Mac-only skips; revised 255 discovered, Windows 253 passed plus two skips; Mac all 255 passed twice |
-| Windows native | 112 general, 61 hotkey/focus, 24 textbox, 15 appearance and 49 material/state/motion checks passed |
-| Surface checks | 177 at each of 100%, 125%, 150%, 175% and 200% application scaling; another 177 on final source. Normal/minimum sizes, light/dark/busy backgrounds, controls, all four preview/capture directions and actual cross-process click delivery passed |
-| Final executable | 36 package checks and 38 supplementary native checks per theme passed. All 620 × 340 saved screenshot pixels matched the clean reference in both themes |
-| Windows archive | 174 runtime files, 155 frozen modules, 17 verified notices; all ZIP CRCs and file SHA-256 values matched the distribution; version remains 1.3.1 / 1.3.1.0 |
-| Mac archive | Standard macos-15 runner; Universal2 and macOS 14 minimum. 770 bundle checks before and after Mac extraction, 15 notices and 375 ZIP entries passed; finished ZIP transferred unchanged |
-| Mac startup | Eight-second Cocoa launch and normal exit passed; interactive acceptance remains NOT RUN |
-| Retained content | Three font/layout/glyph/clipboard fixtures, including 24,000 wrapped Unicode characters, remained byte-identical to the published candidate |
-| Other checks | Dependency consistency, compilation, workflow lint, documentation links and OCR absence checks passed |
-
-Raw native captures include all four original/enlarged corners, control states
-and both previews from the final Windows executable. The local review gallery
-also includes fractional application scales. The monitor stayed at 1920 × 1080
-and 100% physical scaling; this does not establish physical mixed-DPI transitions.
-
-Early verification failures were resolved: fixed initial editor snapshots also
-missed painting in the preserved published executable; both packages pass the
-same bounded native observation. Offscreen animation tests now measure the
-actual stop signal and still enforce 180 ms. The screenshot test now activates
-Unlock inside its submenu. Final checks pass without changing those product rules.
-
-### Comparable Windows measurements
-
-The published review-02 package and this candidate ran on the same Windows 11
-machine with Qt/PySide6 6.11.2. Startup uses five alternating warm launches per
-package. Preview measurements use three alternating runs of 20 movements each.
-
-| Measurement | Published package | Review 03 |
-|---|---:|---:|
-| Median launch to tray | 332.5 ms | 320.3 ms |
-| Tray working set / private memory | 56.55 / 26.51 MiB | 56.54 / 26.48 MiB |
-| CPU time in separate 60-second tray-idle samples | 0.0 s | 0.0 s |
-| Held preview working set / private memory | 80.76 / 37.01 MiB | 81.97 / 36.38 MiB |
-| Preview observed movement median / worst p95 | 29.29 / 45.23 ms | 26.08 / 44.03 ms |
-| Stationary held preview CPU time across three 10-second samples | 1.09 s | 1.09 s |
-
-Preview latency includes shortcut polling, composition and GDI readback; it does
-not isolate display latency. Stationary holds retain input tracking but do no
-material/paint updates. These small samples do not establish a universal speedup.
-
-Glass uses compositor frost, static shading and a thin rim, without optical
-refraction or desktop-capture polling. Partially covered antialiased edge pixels
-receive board input; zero-alpha corners/margins pass through. Reduced transparency
-and high contrast use an unfilled static two-tone preview perimeter.
-
-**NOT RUN:** interactive Mac appearance, focus, global shortcuts, capture
-permissions, Spaces/Mission Control/Stage Manager, Retina or physical multi-monitor
-acceptance; macOS 14 and Intel execution; Windows physical mixed-DPI transitions,
-Windows 10, clean-machine acceptance and extended IME/RTL or long-session ergonomics.
-Windows OS motion stayed disabled; enabled-motion native checks injected a local
-test policy. Windows is unsigned; Mac remains a preview with an ad hoc signature
-and no notarization.
+Final installer, native, archive, icon and comparable performance results are
+pending. A registry entry or service status alone does not establish a real login
+launch. Interactive Mac acceptance, real login, physical mixed-DPI transitions,
+Windows 10 and clean-machine acceptance remain **NOT RUN** unless new evidence
+establishes otherwise. Windows remains unsigned; Mac uses an ad hoc signature
+and is not notarized.
 
 ## V1.3.1
 

@@ -21,8 +21,8 @@ def main():
           "Escape with another app focused, menu mouse interaction, always-on-top, permission "
           "prompts, screenshot selection, Spaces, Mission Control, Stage Manager, real Retina "
           "and physical multi-monitor behaviour remain on docs/TESTING.md.")
-    print("\nDownload **MacMiniWhiteboardV1.3.1-Candidate** below. Extract GitHub's outer artifact archive "
-          "to obtain **MacMiniWhiteboardV1.3.1-Preview.zip**; transfer that inner ZIP unchanged.")
+    print("\nDownload **MacMiniWhiteboardV1.3.2-Review01** below. Extract GitHub's outer artifact archive "
+          "to obtain **MacMiniWhiteboardV1.3.2-Preview.zip**; transfer that inner ZIP unchanged.")
 
 
 if __name__ == "__main__":

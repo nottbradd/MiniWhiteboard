@@ -20,10 +20,10 @@ def configure_qt_plugins():
 
 
 def notice_data(project):
-    root = Path(project) / 'build' / 'candidates' / 'v1.3.1' / 'review-03' / 'license-notices'
+    root = Path(project) / 'build' / 'candidates' / 'v1.3.2' / 'review-01' / 'license-notices'
     if not (root / 'MANIFEST.json').is_file():
         raise RuntimeError('Run python -m scripts.package_notices before packaging.')
-    return [(str(root), 'licenses')]
+    return [(str(root), 'licenses'), (str(Path(project)/'assets/branding'), 'branding')]
 
 
 def verify_release_files(root):

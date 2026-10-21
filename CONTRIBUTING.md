@@ -84,8 +84,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v131-review03/Mini Whiteboard/` and
-`build/candidates/v1.3.1/review-03/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v132-review01/Mini Whiteboard/` and
+`build/candidates/v1.3.2/review-01/WinMiniWhiteboardV1.3.2.zip`. Keep the entire runtime folder.
+
+Build the recommended installer with the pinned, free Inno Setup compiler:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.bootstrap_inno
+.\.venv\Scripts\python.exe -m scripts.build_installer --compiler verification/tools/innosetup-6.7.3/compiler/ISCC.exe
+```
+
+The bootstrap verifies the official release SHA-256 and extracts in upstream's
+portable mode inside ignored `verification/tools/`. It creates no compiler
+shortcuts or uninstall entry. The installer source is `installer/MiniWhiteboard.iss`.
+Keep its AppId and mutex names stable across versions. Installation is per user;
+automatic application closing is disabled. The application mutex also blocks
+uninstallation while boards may be open. Setup never opts users into login startup.
 
 Mac:
 
@@ -97,8 +111,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v131-review03/Mini Whiteboard.app` and
-`build/candidates/v1.3.1/review-03/MacMiniWhiteboardV1.3.1-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v132-review01/Mini Whiteboard.app` and
+`build/candidates/v1.3.2/review-01/MacMiniWhiteboardV1.3.2-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation
@@ -117,11 +131,29 @@ automated startup does not establish interactive Mac acceptance.
 (for example 1.3.1.0). Keep Mac plist versions, defaults, download names and checks
 consistent. Use a fresh versioned staging directory to preserve earlier packages.
 
-V1.3.1 builds must use a fresh environment without the removed OCR dependencies.
+Builds must use an environment without the removed OCR dependencies.
 Windows keeps Python 3.12 x64; Mac keeps universal2 Python 3.13. Only Qt/PySide
 is a shared runtime requirement. Mac retains Cocoa, Quartz, ScreenCaptureKit
 and CoreMedia bridges for the existing native services. Package guards inspect
 both runtime filenames and the frozen module archive for removed OCR payload.
+Mac also includes the matching PyObjC ServiceManagement bridge for login startup.
+
+`login.py` defines the observed registration state. Windows uses the current
+user's documented [Run key](https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys)
+with the real quoted executable and `--login`. StartupApproved is read
+conservatively as a compatibility signal; its format is not a public API.
+Disabled/unknown approval records require the user to check Startup apps. The
+app never writes an enable flag or recreates registration at launch. Mac uses
+[SMAppService.mainAppService](https://developer.apple.com/documentation/servicemanagement/smappservice/mainapp?language=objc),
+requires the real bundle in Applications and reflects enabled/pending/error states.
+No helper, launch plist or paid signing service is required. Actual acceptance
+under the current ad hoc signature remains a separate Mac check.
+
+The vector masters are `assets/mini_whiteboard.svg` and `assets/tray_symbol.svg`.
+`scripts.make_icon` regenerates the committed PNGs and multi-resolution ICO;
+`scripts.make_macos_icon` produces the ICNS on Mac. Runtime icons use cached PNGs.
+The Mac status icon is a template mask; Windows selects contrasting status
+symbols from system appearance and refreshes on OS broadcasts without polling.
 
 `appearance.py` owns material values and explicit interface font roles. The
 document/editor family helper remains regular and preserves text metrics.

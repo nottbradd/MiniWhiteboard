@@ -14,7 +14,7 @@ target = os.environ.get("MINIWHITEBOARD_ARCH", "universal2")
 identity = os.environ.get("MINIWHITEBOARD_SIGNING_IDENTITY") or None
 a = Analysis(
     [str(project / "main.py")], pathex=[str(project)], binaries=[], datas=notice_data(project),
-    hiddenimports=["objc", "AppKit", "Foundation", "CoreMedia"] +
+    hiddenimports=["objc", "AppKit", "Foundation", "CoreMedia", "ServiceManagement"] +
                   collect_submodules("Quartz") + collect_submodules("ScreenCaptureKit"),
     hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=["mini_whiteboard.platform.windows", "mini_whiteboard.windows",
@@ -28,10 +28,10 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Mini Whiteboard",
           codesign_identity=identity, entitlements_file=None)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Mini Whiteboard")
 app = BUNDLE(coll, name="Mini Whiteboard.app", icon=str(project/"assets"/"mini_whiteboard.icns"),
-             bundle_identifier="com.brad.miniwhiteboard", version="1.3.1",
+             bundle_identifier="com.brad.miniwhiteboard", version="1.3.2",
              info_plist={
                  "CFBundleName": "Mini Whiteboard", "CFBundleDisplayName": "Mini Whiteboard",
-                 "CFBundleShortVersionString": "1.3.1", "CFBundleVersion": "1.3.1",
+                 "CFBundleShortVersionString": "1.3.2", "CFBundleVersion": "1.3.2",
                  "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
                  "NSHighResolutionCapable": True,
                  "NSScreenCaptureUsageDescription": "Capture a region you select as a whiteboard background.",

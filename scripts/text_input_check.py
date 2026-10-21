@@ -20,7 +20,7 @@ from mini_whiteboard.geometry import Rect
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/review-03/text-input-check.json'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v132-review01/text-input-check.json'))
     args=parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])

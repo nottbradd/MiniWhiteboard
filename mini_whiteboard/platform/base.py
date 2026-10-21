@@ -1,5 +1,5 @@
 """Desktop units stop here; document geometry always uses Qt logical units."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
 from PySide6.QtCore import QObject, QPointF, QRectF, Qt, Signal
@@ -7,6 +7,7 @@ from PySide6.QtGui import QCursor, QGuiApplication, QImage
 
 from ..geometry import Rect, large_enough
 from ..settings import MIN_HEIGHT, MIN_WIDTH, SHADOW
+from ..login import UnavailableLogin
 
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
@@ -174,6 +175,13 @@ class QtRuntime:
     def configure_application(self, app):
         pass
 
+    def tray_icon(self):
+        from ..branding import tray_icon
+        return tray_icon()
+
+    def configure_tray(self, app, tray):
+        pass
+
     def activate_existing(self, guard):
         pass
 
@@ -189,6 +197,7 @@ class Platform:
     capture: CaptureService
     hotkey_factory: Callable
     shortcuts: object
+    login: object = field(default_factory=UnavailableLogin)
 
     def create_hotkeys(self, app, preset="default"):
         return self.hotkey_factory(app, preset)

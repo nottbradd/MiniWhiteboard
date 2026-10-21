@@ -26,7 +26,7 @@ from mini_whiteboard.geometry import Rect, normalized
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/review-03/hotkey-workflow.json'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v132-review01/hotkey-workflow.json'))
     parser.add_argument('--hide-shortcut', choices=('default','shift'), default='default',
                         help='Select and reload the shipped persisted Windows Hide All configuration.')
     args = parser.parse_args()

@@ -13,7 +13,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 def stage(project=PROJECT, destination=None):
     project = Path(project)
-    destination = Path(destination or project / 'build' / 'candidates' / 'v1.3.1' / 'review-03' / 'license-notices')
+    destination = Path(destination or project / 'build' / 'candidates' / 'v1.3.2' / 'review-01' / 'license-notices')
     if not destination.resolve().is_relative_to(project.resolve()):
         raise RuntimeError('Notice staging must stay inside the project.')
     destination.mkdir(parents=True, exist_ok=True)
@@ -30,6 +30,8 @@ def stage(project=PROJECT, destination=None):
     for source in sorted((project / 'assets' / 'licenses').glob('*')):
         if source.is_file():
             if source.name.startswith('pyobjc-') and sys.platform != 'darwin':
+                continue
+            if source.name.startswith('innosetup-') and sys.platform != 'win32':
                 continue
             if source.name == 'libffi.txt' and sys.platform != 'win32':
                 continue
@@ -54,7 +56,7 @@ def stage(project=PROJECT, destination=None):
     packages = ['PySide6','PySide6-Essentials','PySide6-Addons','shiboken6','PyInstaller']
     if sys.platform == 'darwin':
         packages += ['pyobjc-core','pyobjc-framework-Cocoa','pyobjc-framework-Quartz',
-                     'pyobjc-framework-ScreenCaptureKit','pyobjc-framework-CoreMedia']
+                     'pyobjc-framework-ScreenCaptureKit','pyobjc-framework-CoreMedia', 'pyobjc-framework-ServiceManagement']
     versions = {}
     for name in packages:
         dist = metadata.distribution(name)

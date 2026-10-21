@@ -4,7 +4,7 @@ The [MIT license](https://github.com/nottbradd/MiniWhiteboard/blob/main/LICENSE)
 covers Mini Whiteboard's own source and assets. Python, Qt, PySide6 and the other
 dependencies retain their original licenses.
 
-## Dependencies used by Version 1.3.1
+## Dependencies used by Version 1.3.2
 
 | Software | Use | Upstream license information |
 |---|---|---|
@@ -13,8 +13,13 @@ dependencies retain their original licenses.
 | Qt 6.11.2 | Widgets, rendering, image formats and platform integration | [Qt component notices](https://doc.qt.io/qt-6.11/licenses-used-in-qt.html); LGPLv3 with the applicable component notices |
 | PyObjC 12.2.2 core / frameworks | macOS native bridges | MIT, with notices for included software; original wheel license files are included in the Mac package |
 | PyInstaller 6.22.3 | Packaging tool and bootloader | [License and bootloader distribution exception](https://pyinstaller.org/en/stable/license.html) |
+| Inno Setup 6.7.3 | Windows installer compiler and installer/uninstaller runtime | [Inno Setup license](../assets/licenses/innosetup-6.7.3.txt); upstream copyright and notices are retained |
 | OpenSSL runtime libraries | Included with Python | Apache 2.0; the original upstream license is included |
 | libffi, Windows ABI-8 DLL | Python ctypes | MIT; the upstream notice is included; the DLL has no version resource |
+
+The Mac PyObjC framework set includes Cocoa, Quartz, ScreenCaptureKit, CoreMedia
+and ServiceManagement. The icon vector masters and generated branding are
+Mini Whiteboard's own MIT-licensed assets.
 
 ## What the downloads contain
 

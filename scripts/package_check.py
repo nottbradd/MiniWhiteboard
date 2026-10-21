@@ -21,8 +21,8 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/review-03/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v131-review03/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v132-review01/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v132-review01/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
@@ -65,7 +65,8 @@ def main():
                     data = language.data.struct
                     manifests.append(pe.get_data(data.OffsetToData, data.Size).decode("utf-8", errors="replace"))
     check("Embedded manifest is PerMonitorV2 and asInvoker",
-          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.3.1.0"' in text for text in manifests))
+          any("PerMonitorV2" in text and 'level="asInvoker"' in text and
+              f'assemblyIdentity version="{".".join(map(str,numeric))}"' in text for text in manifests))
     initial = windows.SingleInstance()
     if not initial.acquired:
         initial.close()

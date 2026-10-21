@@ -64,6 +64,21 @@ def rebuild_menu(controller):
             group.addAction(action)
             action.triggered.connect(lambda checked=False, value=choice: c.change_hide_shortcut(value))
     menu.addSeparator()
+    state = c.platform.login.state()
+    login = menu.addAction('Open at login')
+    login.setCheckable(True)
+    login.setChecked(state.enabled)
+    login.setEnabled(state.available)
+    login.setToolTip(state.detail or 'Launch quietly in the tray or menu bar when you sign in.')
+    login.triggered.connect(c.change_login)
+    if state.detail:
+        detail = menu.addAction(state.detail)
+        detail.setEnabled(False)
+    if state.approval_required:
+        menu.addAction('Open startup settings…', c.open_login_settings)
+    if state.registered and not state.enabled:
+        menu.addAction('Remove login registration', lambda: c.change_login(False))
+    menu.addSeparator()
     menu.addAction("Keyboard shortcuts", c.show_shortcuts)
     menu.addAction("About Mini Whiteboard", c.show_about)
     if not {CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY}.issubset(c.hotkeys.registered):

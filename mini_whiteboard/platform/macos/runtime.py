@@ -47,6 +47,10 @@ class MacRuntime(QtRuntime):
         # Keep Qt's NSApplication delegate and event loop. Only change policy.
         AppKit.NSApplication.sharedApplication().setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
 
+    def tray_icon(self):
+        from ...branding import tray_icon
+        return tray_icon(template=True)
+
     def activate_existing(self, guard):
         import AppKit
         if guard.owner_pid and guard.owner_pid != os.getpid():

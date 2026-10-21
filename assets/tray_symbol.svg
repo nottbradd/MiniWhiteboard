@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <title>Mini Whiteboard status symbol</title>
+  <g fill="none" stroke="#172b4d" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="26" height="22" rx="5" stroke-width="2.4"/>
+    <path d="M8 20L12 13L16 19L23 11" stroke-width="2.8"/>
+  </g>
+</svg>

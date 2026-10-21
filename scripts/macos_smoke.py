@@ -16,7 +16,7 @@ def build_environment():
     versions = {}
     for name in ("PySide6", "PyInstaller", "pyobjc-core", "pyobjc-framework-Cocoa",
                  "pyobjc-framework-Quartz", "pyobjc-framework-ScreenCaptureKit",
-                 "pyobjc-framework-CoreMedia"):
+                 "pyobjc-framework-CoreMedia", "pyobjc-framework-ServiceManagement"):
         try:
             versions[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
@@ -39,10 +39,14 @@ def build_environment():
 def run_smoke():
     if sys.platform != "darwin":
         raise RuntimeError("Mac import smoke checks must run on macOS.")
-    modules = ("objc", "Foundation", "AppKit", "Quartz", "CoreMedia", "ScreenCaptureKit")
+    modules = ("objc", "Foundation", "AppKit", "Quartz", "CoreMedia", "ScreenCaptureKit", "ServiceManagement")
     for name in modules:
         importlib.import_module(name)
-    for name in ("runtime", "desktop", "hotkeys", "capture"):
+    from ServiceManagement import SMAppService
+    for name in ('mainAppService', 'registerAndReturnError_', 'unregisterAndReturnError_', 'openSystemSettingsLoginItems'):
+        if not hasattr(SMAppService, name):
+            raise RuntimeError('Missing supported login-item API: '+name)
+    for name in ("runtime", "desktop", "hotkeys", "capture", "login"):
         importlib.import_module("mini_whiteboard.platform.macos." + name)
     from PySide6.QtCore import QCoreApplication
     from mini_whiteboard.platform import get_platform

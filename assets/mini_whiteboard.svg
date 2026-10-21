@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
+  <title>Mini Whiteboard</title>
+  <defs>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.52" stop-color="#eaf7ff"/><stop offset="1" stop-color="#b9e9fa"/></linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="#85dce9"/><stop offset="1" stop-color="#3279d7"/></linearGradient>
+  </defs>
+  <rect x="48" y="82" width="416" height="360" rx="78" fill="#153b69" opacity="0.18"/>
+  <rect x="44" y="60" width="424" height="360" rx="78" fill="url(#glass)" stroke="url(#edge)" stroke-width="16"/>
+  <path d="M117 88H395" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity="0.9"/>
+  <path d="M122 304C158 329 175 215 214 238C248 258 243 323 278 300L366 194" fill="none" stroke="#153858" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M348 216L366 194" fill="none" stroke="#22b9d1" stroke-width="20" stroke-linecap="round"/>
+</svg>

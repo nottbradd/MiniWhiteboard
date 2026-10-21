@@ -16,7 +16,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=["PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtWebEngineCore", "PySide6.QtTest",
-              "mini_whiteboard.platform.macos", "objc", "AppKit", "Foundation", "Quartz", "ScreenCaptureKit", "CoreMedia"],
+              "mini_whiteboard.platform.macos", "objc", "AppKit", "Foundation", "Quartz", "ScreenCaptureKit", "CoreMedia", "ServiceManagement"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

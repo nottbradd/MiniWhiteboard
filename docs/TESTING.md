@@ -21,7 +21,7 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.text_input_check
 .\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
-.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/review-03/native-100
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v132-review01/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
 ```
 
@@ -50,6 +50,30 @@ The Escape probe needs another application focused and Accessibility already off
 A pass requires an observed external-focus Escape event, with permission state
 and PID recorded. The native smoke uses owned Qt events; physical global input
 still needs the checks below. Capture can request Screen Recording permission.
+
+## Installation and login startup
+
+- Use a controlled per-user installation folder and preserve any original
+  Mini Whiteboard settings, shortcuts and startup values before testing.
+- Check fresh setup without elevation, Start menu/search access, shortcut launch,
+  default-off desktop shortcut, optional desktop shortcut and paths containing
+  spaces and non-ASCII characters. Keep the full private runtime; do not rely on
+  Python installed elsewhere. Record clean-machine execution separately.
+- Repeat setup and upgrade a controlled predecessor. Confirm one uninstall entry,
+  updated shortcuts, retained preferences and unchanged startup choice. Attempt
+  setup and uninstall with a board open: both must refuse; the app/work must live.
+- Enable/disable Open at login through the real packaged menu. Check the real
+  executable path, quiet launch, manual/automatic overlap, persistence, permission
+  errors and external OS disables. Reads/restarts must never reenroll the app.
+  Unknown Windows approval records require Startup apps; Mac pending approval
+  requires Login Items. Check removal of owned registrations and untouched peers.
+- Uninstall and verify files/shortcuts/owned startup cleanup. Restore temporary OS
+  values and retained test preferences. Do not terminate another user's app.
+- A controlled launch of the registered command is not a real login. Record an
+  actual sign-out/sign-in launch only on a suitable disposable test system.
+- Inspect executable, setup, shortcut and About icons at native 16/20/24/32/48 px
+  and larger sizes on light/dark backgrounds. Mac: inspect the bundle ICNS and
+  actual menu-bar template appearance, including Retina, where hardware permits.
 
 ## Interaction acceptance
 

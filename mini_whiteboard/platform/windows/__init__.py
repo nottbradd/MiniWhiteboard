@@ -166,11 +166,37 @@ class WindowsRuntime(QtRuntime):
 
     def prepare(self):
         native.enable_dpi_awareness()
+        if native.IS_WINDOWS:
+            native.bind(C.WinDLL('shell32'), 'SetCurrentProcessExplicitAppUserModelID', C.c_long, W.LPCWSTR)('MiniWhiteboard.Desktop')
 
     def single_instance(self):
         return native.SingleInstance()
 
+    def tray_icon(self):
+        from ...branding import tray_icon
+        light = True
+        if native.IS_WINDOWS:
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize') as key:
+                    light = bool(winreg.QueryValueEx(key, 'SystemUsesLightTheme')[0])
+            except OSError:
+                pass
+        return tray_icon(light_background=light)
+
+    def configure_tray(self, app, tray):
+        if native.IS_WINDOWS:
+            from .tray import TrayThemeObserver
+            self._tray_observer = TrayThemeObserver(app, tray, self.tray_icon)
+
+    def close(self):
+        observer = getattr(self, '_tray_observer', None)
+        if observer is not None:
+            observer.close()
+            self._tray_observer = None
+
 
 def create_platform():
+    from .login import WindowsLogin
     return Platform("windows", WindowsRuntime(), WindowsDesktop(), WindowsCapture(),
-                    lambda app, preset: native.NativeHotkeys(app), ShortcutPolicy())
+                    lambda app, preset: native.NativeHotkeys(app), ShortcutPolicy(), WindowsLogin())
