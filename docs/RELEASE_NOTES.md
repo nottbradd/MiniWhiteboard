@@ -3,8 +3,8 @@
 ## V1.3.2 candidate — unpublished
 
 The public [V1.3.1 downloads](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
-remain available. This candidate adds Windows installation and optional login startup.
-Mac remains a preview.
+remain available. V1.3.2 publication is on hold for the required Windows sign-in
+acceptance check. The Mac package remains a **Universal2 Preview**.
 
 - Adds a recommended per-user Windows installer with a Start menu shortcut,
   optional desktop shortcut and normal uninstall. The complete portable ZIP is
@@ -15,6 +15,8 @@ Mac remains a preview.
 - Adds **Open at login**, off by default, to the tray/menu-bar menu. Explicit choices
   use Windows per-user Run registration or macOS SMAppService. The menu reflects
   registration, external disables, approval requirements and errors.
+  **Turn off Open at login** removes the app's registration when startup is
+  disabled externally or OS approval is pending.
 - Manual and automatic launches stay quiet. Windows updates retain preferences
   and startup choice; uninstall removes the registration belonging to that copy.
 - Smooths rounded board edges, aligns themed window controls and adds glass
@@ -23,24 +25,25 @@ Mac remains a preview.
 
 ### Verification
 
-All three downloads use source
-[`3125075`](https://github.com/nottbradd/MiniWhiteboard/commit/312507574ed85190208beb0c1bd01a9bd78db8d7).
-[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39600167960)
-and [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39600174536)
+All three candidate packages use source
+[`04d9627`](https://github.com/nottbradd/MiniWhiteboard/commit/04d962786345fe2c9bf48f892271502b0d03e198).
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39680288687)
+and [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39680293467)
 passed for that revision. Subsequent documentation changes do not alter the packages.
 
 | Check | Actual result |
 |---|---|
-| Baseline / full suite | 255 discovered initially; final 280. Windows 278 passed plus two Mac-only skips; Mac all 280 passed twice |
+| Full automated suite | 280 discovered. Local Windows and Windows CI: 278 passed plus two Mac-only skips. Mac: all 280 passed twice |
 | Windows native | 111 general, 59 hotkey/focus, 24 textbox, 15 appearance and 49 material/state/motion checks passed |
-| Installer | 49 lifecycle checks and 13 fresh-default checks passed: non-elevated Unicode installation, all 200 runtime-file hashes, 18 notices, shortcuts, repeat/upgrade, preferences, startup choices, duplicate launches, open-board protection and uninstall cleanup |
-| Portable ZIP | Nine checks passed after extraction into a permanent Unicode path: CRC/file hashes, quiet launch with Python absent from PATH, login-menu registration/removal and duplicate prevention |
-| Final executable | 36 package checks and 38 supplementary native checks per theme passed; original screenshot pixels matched exactly |
+| Installer | 50 checks passed: fresh non-elevated Unicode installation, all 200 runtime-file hashes, 18 notices, Start/optional desktop shortcuts, repeat/upgrade, preferences, startup choices, open-board protection and uninstall cleanup |
+| Startup wording | The real packaged menu showed **Turn off Open at login**, the ordinary checkbox, OS status and settings action. The renamed action removed the owned command and externally disabled approval record. Isolated tests cover Mac pending approval and registration errors |
+| Portable ZIP | Nine checks passed after extraction into a permanent Unicode path: CRC/file hashes, quiet launch with Python absent from PATH, default-off/explicit registration/removal, and manual/login duplicate launches preserving the external foreground |
+| Final executable | 36 package checks and 38 supplementary native checks per theme passed; text completion/wrapping, undo/redo, Hide/Restore, placement and original screenshot pixels passed |
 | Edges and input | 177 native assertions passed at each of five application scales, including delivery through transparent corners to a separate process and all four screenshot directions |
-| Retained text | Three font/layout/glyph/clipboard fixtures, including 24,000 wrapped Unicode characters, matched the previous candidate exactly |
+| Retained text | Three font/layout/glyph/clipboard fixtures, including 24,000 wrapped Unicode characters, matched the previous approved candidate exactly |
 | Windows archive | 200 runtime files, 159 frozen modules; all CRC/file SHA-256 values and 18 notice hashes verified; consistent 1.3.2/1.3.2.0 metadata |
 | Mac archive | Universal2, macOS 14 minimum, macos-15 CI; 825 bundle checks before and after extraction, 16 notices, 404 ZIP entries, eight-second Cocoa startup and normal exit passed |
-| Other checks | Dependency consistency, compilation, workflow lint, 35 local documentation references and OCR absence checks passed |
+| Other checks | Dependency consistency, compilation, workflow lint, local documentation references and OCR absence checks passed |
 
 Windows checks used build 26200 x64 and one 1920 × 1080 display at 100% physical
 scaling. Fractional runs changed application DPR only. The native H checks used
@@ -48,34 +51,21 @@ the saved Ctrl+Alt+Shift+H alternative because Ctrl+Alt+H is occupied on this PC
 Enabled-motion checks injected a policy in the test process. Installer and
 portable tests restored their controlled registry values, shortcuts and preferences.
 The upgrade fixture wrapped the preserved V1.3.1 portable bundle in a test installer.
-Registration failures and Mac approval/error states also have isolated adapter tests.
-
-### Performance against the previous candidate
-
-Same Windows machine, five alternating warm launches per package, separate
-60-second tray-idle samples and three alternating runs of 20 preview movements.
-The final app's code, libraries and resources match the measured V1.3.2 payload.
-
-| Measurement | Previous candidate | V1.3.2 |
-|---|---:|---:|
-| Median launch to tray | 301.4 ms | 322.3 ms |
-| Tray working set / private memory | 56.53 / 26.45 MiB | 56.98 / 26.95 MiB |
-| CPU time in a 60-second tray-idle sample | 0.00 s | 0.00 s |
-| Preview movement median / worst p95 | 22.59 / 44.19 ms | 21.10 / 44.20 ms |
-| CPU time across three stationary 10-second previews | 1.08 s | 1.33 s |
-
-These small samples do not establish a general speedup. Preview timing includes
-input polling, composition and synchronous GDI observation.
 
 ### Acceptance limits
 
-**NOT RUN:** interactive Mac appearance, menu-bar icon, global shortcuts, capture
-permissions, login registration/approval or real login; macOS 14 and Intel execution;
-Spaces, Mission Control, Stage Manager and physical Retina/multi-monitor acceptance.
-Windows real sign-in startup, clean-machine execution without Python, Windows 10,
-downloaded/quarantined installation, physical mixed-DPI transitions and extended
-IME/RTL or long-session ergonomics are also **NOT RUN**. Launching the registered
-command is a controlled startup check, not a real sign-in.
+**Required before publication — NOT RUN:** two actual Windows sign-ins on an
+isolated test system. With Open at login enabled, one tray instance must appear
+quietly and the creation shortcut must work. After disabling it, the next sign-in
+must leave the app closed. No suitable isolated Windows environment is available.
+Launching the registered command does not establish sign-in acceptance.
+
+**Other NOT RUN checks:** interactive Mac appearance, menu-bar icon, global
+shortcuts, capture permissions, login registration/approval or real login; macOS
+14 and Intel execution; Spaces, Mission Control, Stage Manager and physical
+Retina/multi-monitor acceptance. Windows clean-machine execution without Python,
+Windows 10, downloaded/quarantined installation, physical mixed-DPI transitions
+and extended IME/RTL or long-session ergonomics are also untested.
 
 Windows is unsigned. Mac is ad-hoc signed and not notarized; CI startup and
 bundle validation do not establish interactive acceptance under that signature.
