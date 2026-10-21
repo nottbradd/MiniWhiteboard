@@ -32,10 +32,17 @@ class WindowsLoginTests(unittest.TestCase):
         for _ in range(10):self.assertFalse(self.login.state().enabled)
         self.assertEqual(self.registry.writes,[])
 
+    def test_command_keeps_the_loader_path_instead_of_a_host_backing_path(self):
+        backing=Path(self.folder.name)/'host-private-cache'/'Mini Whiteboard.exe'
+        with patch.object(Path,'resolve',return_value=backing):
+            login=WindowsLogin(self.exe,frozen=True,registry=self.registry)
+        self.assertEqual(login.command,f'"{self.exe.absolute()}" --login')
+        self.assertNotIn('host-private-cache',login.command)
+
     def test_unicode_command_enable_disable_preserves_unrelated_values(self):
         self.registry.values[RUN_KEY,'AnotherApp']='untouched'
         self.assertTrue(self.login.set_enabled(True).enabled)
-        self.assertEqual(self.registry.values[RUN_KEY,VALUE_NAME],f'"{self.exe.resolve()}" --login')
+        self.assertEqual(self.registry.values[RUN_KEY,VALUE_NAME],f'"{self.exe.absolute()}" --login')
         self.login.set_enabled(True)
         self.assertEqual(len(self.registry.writes),1)
         self.assertFalse(self.login.set_enabled(False).registered)

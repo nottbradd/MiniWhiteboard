@@ -43,7 +43,11 @@ def owned_command(command):
 
 class WindowsLogin:
     def __init__(self, executable=None, *, frozen=None, registry=None, temporary_roots=None, value_name=VALUE_NAME):
-        self.executable = Path(executable or sys.executable).resolve()
+        # Register the executable path supplied by the Windows loader. Resolving
+        # it can substitute an MSIX host's private AppData backing path, which
+        # differs from the installed path used by shortcuts and uninstall.
+        # packaged_path_issue still resolves paths when checking unsafe roots.
+        self.executable = Path(executable or sys.executable).absolute()
         self.frozen, self.temporary_roots = frozen, temporary_roots
         self.registry = registry or UserRegistry()
         self.value_name = value_name
