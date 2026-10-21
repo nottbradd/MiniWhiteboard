@@ -9,7 +9,7 @@ import time
 import sys
 
 import pefile
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from mini_whiteboard import windows
 from mini_whiteboard import APP_VERSION
 from mini_whiteboard.geometry import Rect
@@ -275,17 +275,22 @@ def main():
             area = Rect(round(paper.x+14*dpi), round(paper.y+40*dpi),
                         round(paper.width-28*dpi), round(paper.height-105*dpi))
             image = windows.capture_rect(area)
-            count = 0
-            for y in range(image.height()):
-                for x in range(image.width()):
-                    color = image.pixelColor(x,y)
-                    if color.lightness() < 150 or (color.blue()-color.red() > 5 and color.red() < 245):
-                        count += 1
-            return count
+            rgba = image.convertToFormat(QImage.Format.Format_RGBA8888)
+            pixels = rgba.constBits()
+            return sum(1 for r,g,b in zip(pixels[0::4],pixels[1::4],pixels[2::4])
+                       if max(r,g,b)+min(r,g,b) < 299 or (b-r > 5 and r < 245))
 
         text_key(ord('T'))
         click_paper(50, 80)
+        # Observe native composition within a fixed budget instead of treating
+        # one GDI snapshot as a synchronous client-paint acknowledgement. The
+        # same missed first snapshot reproduces on the preserved public build.
+        editor_observation_started=time.perf_counter()
         first_editor_pixels = dark_content()
+        while first_editor_pixels<=5 and time.perf_counter()-editor_observation_started<.25:
+            time.sleep(.01)
+            first_editor_pixels=dark_content()
+        editor_observation_ms=(time.perf_counter()-editor_observation_started)*1000
         windows.capture_rect(paper).save(str(args.output/'first-editor-observation.png'))
         if first_editor_pixels <= 5:
             windows.capture_rect(paper).save(str(args.output/'first-editor-observation.png'))
@@ -295,7 +300,9 @@ def main():
                               'modifiers':{name:bool(user32.GetAsyncKeyState(vk)&0x8000) for name,vk in
                                            (('Control',0x11),('Alt',0x12),('Shift',0x10),('W',ord('W')))},
                               'foreground':foreground(),'board':owned_board}),flush=True)
-        check('Frozen native Text click visibly opens an editor', first_editor_pixels > 5)
+        check('Frozen native Text click visibly opens an editor',
+              first_editor_pixels>5 and editor_observation_ms<=250,
+              {'pixels':first_editor_pixels,'observation_ms':editor_observation_ms,'poll_budget_ms':250})
         blink_samples = []
         for _ in range(4):
             time.sleep(.18)

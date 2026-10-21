@@ -130,6 +130,11 @@ class AppearanceTests(QtCase):
         board.resize(600, 380)
         board.show()
         board.display_policy = DisplayPolicy(motion=True)
+        stopped_at=[]
+        def record_stop(state, _previous):
+            if state==QAbstractAnimation.State.Stopped and board.emphasis.clock.isValid():
+                stopped_at.append(board.emphasis.clock.elapsed())
+        board.emphasis.animation.stateChanged.connect(record_stop)
         before = board.geometry()
         with patch.object(board, 'update') as repaint:
             board.emphasis.changed(.5)
@@ -150,10 +155,14 @@ class AppearanceTests(QtCase):
             self.assertFalse(board.emphasis.deadline.isActive())
             board.restore(activate=False)
             prefs.set_theme('Glass' if prefs.theme == 'White' else 'White')
-        self.assertTrue(wait_until(lambda: board.emphasis.animation.state() == QAbstractAnimation.State.Stopped
-                                   and not board.emphasis.deadline.isActive(), 180),
+        stopped_at.clear()
+        # Record the transition itself. qWait can finish after unrelated queued
+        # painting even when the animation stopped on time. The observation
+        # watchdog is separate from the unchanged 180 ms presentation limit.
+        self.assertTrue(wait_until(lambda: bool(stopped_at),500),
                         f'Presentation exceeded 180 ms: frame={board.emphasis.animation.currentTime()}; '
                         f'deadline={board.emphasis.deadline.remainingTime()}; elapsed={board.emphasis.clock.elapsed()}')
+        self.assertLessEqual(stopped_at[-1],180,'Actual presentation stop exceeded 180 ms')
         self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Stopped,
                          f'frame={board.emphasis.animation.currentTime()} ms; '
                          f'deadline={board.emphasis.deadline.remainingTime()} ms; '

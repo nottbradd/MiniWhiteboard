@@ -147,11 +147,8 @@ class WindowsCapture:
 
     def capture_region(self, rect, success, failure, excluded=()):
         try:
-            if native.IS_WINDOWS:
-                # Hidden translucent previews and their compositor hosts must
-                # leave the composed desktop before its one capture is read.
-                flush = native.bind(C.WinDLL('dwmapi'), 'DwmFlush', C.c_long)
-                flush()
+            # capture_rect already waits for compositor removal once before
+            # reading the original desktop pixels.
             image = native.capture_rect(rect)
         except (OSError, ValueError) as error:
             failure(error)
