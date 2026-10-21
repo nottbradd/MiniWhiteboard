@@ -1,10 +1,11 @@
 """Summarise actual runner reports without upgrading interactive acceptance."""
 import json
 from pathlib import Path
+from mini_whiteboard import APP_VERSION
 
 
 def main():
-    print("## Mini Whiteboard 1.3.1 macOS unpublished candidate\n")
+    print(f"## Mini Whiteboard {APP_VERSION} macOS Universal2 Preview candidate\n")
     print("| Check | Actual result |\n|---|---|")
     for label, filename in (("Mac imports", "macos-import-smoke.json"),
                             ("App bundle", "macos-package-check.json"),
