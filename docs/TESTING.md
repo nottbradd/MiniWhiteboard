@@ -19,8 +19,9 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.native_smoke
 .\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
 .\.venv\Scripts\python.exe -m scripts.text_input_check
-.\.venv\Scripts\python.exe -m scripts.appearance_check --output verification/review-02/native
+.\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/review-03/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
 ```
 
@@ -28,6 +29,14 @@ The hotkey and text checks use native Windows input. The general native smoke
 also uses Qt-directed events. Tests abort when ownership/focus cannot be established;
 an aborted check is not a pass. They restore the cursor/foreground and close only
 owned test processes. Reports are under ignored `.test-artifacts/` and `verification/`.
+
+`surface_input_check` saves original native captures, all four corner crops,
+nearest-neighbour 6× enlargements and control close-ups. It confirms delivery of
+real mouse presses to a separate owned process while the board remains exposed,
+and compares captured screenshot pixels with a clean reference in all four
+directions. `QT_SCALE_FACTOR=1.25`, `1.5`, `1.75` and `2` exercise fractional
+rendering in separate test processes. These are simulated application scales;
+record physical display settings and monitor transitions separately.
 
 On a Mac, run deliberately in an interactive session:
 

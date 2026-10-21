@@ -81,7 +81,7 @@ def sample_image():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=Path('verification/v131-native'))
+    parser.add_argument('--output', type=Path, default=Path('verification/review-03/appearance'))
     args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
@@ -189,7 +189,8 @@ def main():
         # occluded board is not an input-transparency failure.
         board.restore()
         QTest.qWait(100)
-        # The rounded board region excludes actual desktop points for other apps.
+        # Zero-alpha layered pixels exclude actual desktop input. The visible
+        # antialias fringe extends beyond the mathematical curve by a subpixel.
         get_at = windows.bind(windows.user32,'WindowFromPoint',W.HWND,W.POINT)
         bounds = board.physical_paper_rect()
         check('Transparent rounded corner passes through to owned background',
@@ -201,18 +202,22 @@ def main():
         path = QPainterPath()
         path.addRoundedRect(board.paper_rect(),board.corner_radius(),board.corner_radius())
         window = board.desktop.window_rect(board)
-        probes, blocked = 0, []
+        probes, fringe, blocked = 0, 0, []
+        alpha = board.grab().toImage()
         for dx in range(0,33,2):
             for dy in range(0,33,2):
                 for x,y in ((bounds.x+dx,bounds.y+dy),(bounds.right-dx-1,bounds.y+dy),
                             (bounds.x+dx,bounds.bottom-dy-1),(bounds.right-dx-1,bounds.bottom-dy-1)):
                     local = QPointF((x+.5-window.x)/board.devicePixelRatioF(),(y+.5-window.y)/board.devicePixelRatioF())
                     if not path.contains(local):
+                        if alpha.pixelColor(round(x-window.x),round(y-window.y)).alpha():
+                            fringe += 1
+                            continue
                         probes += 1
                         if ancestor(get_at(W.POINT(round(x),round(y))),2) != int(background.winId()):
                             blocked.append([x,y])
-        check('All sampled transparent corner points pass desktop input',not blocked,
-              {'outside_probes':probes,'blocked':blocked})
+        check('All sampled zero-alpha corner points pass desktop input',not blocked and probes>=200,
+              {'zero_alpha_probes':probes,'visible_fringe_samples':fringe,'blocked':blocked})
         mouse = windows.bind(windows.user32,'mouse_event',None,W.DWORD,W.DWORD,W.DWORD,W.DWORD,C.c_size_t)
         set_cursor = windows.bind(windows.user32,'SetCursorPos',W.BOOL,C.c_int,C.c_int)
         for right,bottom in ((False,False),(True,False),(False,True),(True,True)):

@@ -2,8 +2,7 @@
 import ctypes as C
 from ctypes import wintypes as W
 
-from PySide6.QtCore import QPointF, QRectF
-from PySide6.QtGui import QPainterPath
+from PySide6.QtCore import QRectF
 
 from . import native
 from ...settings import RADIUS, SHADOW
@@ -111,10 +110,10 @@ class WindowsDesktop(QtDesktop):
             board._shadow = PaperShadow(board)
         bounds = self.window_rect(board)
         scale = board.devicePixelRatioF()
-        key = (bounds.width, bounds.height, scale, board.corner_radius())
+        key = (int(board.winId()), bounds.width, bounds.height, scale, board.corner_radius())
         if key != board._region_key:
             board._region_key = key
-            native.clip_window_to_paper(board, round(SHADOW*scale), round(board.corner_radius()*scale))
+            native.clear_window_region(board)
         board._shadow.sync()
         if getattr(board, '_backdrop', None) is not None:
             try:
@@ -136,16 +135,9 @@ class WindowsDesktop(QtDesktop):
                     self.release_appearance(board)
                     board.native_glass = False
                     board.update()
-            if msg.message == 0x0084:
-                x = C.c_short(msg.lParam & 0xffff).value
-                y = C.c_short((msg.lParam >> 16) & 0xffff).value
-                bounds = self.window_rect(board)
-                scale = self.window_scale(board)
-                point = QPointF((x-bounds.x)/scale, (y-bounds.y)/scale)
-                path = QPainterPath()
-                path.addRoundedRect(board.paper_rect(), board.corner_radius(), board.corner_radius())
-                if not path.contains(point):
-                    return True, -1
+            # The layered HWND's zero-alpha pixels own cross-process hit
+            # testing. HTTRANSPARENT searches only the current thread and must
+            # not override that native alpha route at the rounded boundary.
         return None
 
 
@@ -155,6 +147,11 @@ class WindowsCapture:
 
     def capture_region(self, rect, success, failure, excluded=()):
         try:
+            if native.IS_WINDOWS:
+                # Hidden translucent previews and their compositor hosts must
+                # leave the composed desktop before its one capture is read.
+                flush = native.bind(C.WinDLL('dwmapi'), 'DwmFlush', C.c_long)
+                flush()
             image = native.capture_rect(rect)
         except (OSError, ValueError) as error:
             failure(error)

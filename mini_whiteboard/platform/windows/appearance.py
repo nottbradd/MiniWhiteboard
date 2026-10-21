@@ -49,11 +49,17 @@ class BackdropHost:
             W.HWND, W.HMENU, W.HINSTANCE, C.c_void_p)
         # NOREDIRECTIONBITMAP: this window has only a compositor visual, no GDI
         # backing rectangle. It is topmost, transparent to input and nonactivating.
-        self.handle = create(0x082000A8, _window_class, 'Mini Whiteboard glass backdrop',
+        self.handle = create(0x082800A8, _window_class, 'Mini Whiteboard glass backdrop',
                              0x80000000, 0, 0, 1, 1, None, None, None, None)
         if not self.handle:
             raise OSError('Cannot create backdrop host.')
         try:
+            # TRANSPARENT alone only affects paint order for an ordinary HWND.
+            # With LAYERED it bypasses native hit testing across processes too.
+            layered = native.bind(native.user32, 'SetLayeredWindowAttributes', W.BOOL,
+                                  W.HWND, W.DWORD, W.BYTE, W.DWORD)
+            if not layered(self.handle, 0, 255, 2):
+                raise OSError('Cannot make backdrop input transparent.')
             dwm = C.WinDLL('dwmapi')
             attribute = native.bind(dwm, 'DwmSetWindowAttribute', C.c_long,
                                    W.HWND, W.DWORD, C.c_void_p, W.DWORD)
@@ -76,6 +82,25 @@ class BackdropHost:
                                           dimensions[0], dimensions[1], 0x0050):
             raise OSError('Cannot place backdrop.')
         self.effect.resize(*dimensions, board.corner_radius()*scale)
+        if hasattr(board, 'monitor'):
+            # One preview per monitor keeps each DPI origin independent. Only
+            # the straight display seam is region-clipped; rounded alpha stays
+            # compositor-owned. A selection can cross multiple displays.
+            monitor = board.monitor.rect
+            crop = (max(0,round(monitor.x-rect.x)), max(0,round(monitor.y-rect.y)),
+                    min(dimensions[0],round(monitor.right-rect.x)),
+                    min(dimensions[1],round(monitor.bottom-rect.y)))
+            if getattr(self, '_crop', None) != crop:
+                gdi = C.WinDLL('gdi32')
+                region = native.bind(gdi, 'CreateRectRgn', W.HANDLE,
+                                     C.c_int, C.c_int, C.c_int, C.c_int)(*crop)
+                if not region:
+                    raise OSError('Cannot clip preview to its display.')
+                if not native.bind(native.user32, 'SetWindowRgn', C.c_int,
+                                   W.HWND,W.HANDLE,W.BOOL)(self.handle,region,True):
+                    native.bind(gdi, 'DeleteObject', W.BOOL, W.HANDLE)(region)
+                    raise OSError('Cannot apply preview display clip.')
+                self._crop = crop
 
     def close(self):
         if self.handle:

@@ -11,9 +11,8 @@ from tests.qt_case import APP
 from mini_whiteboard import rendering, windows
 from mini_whiteboard.document import Shape, Stroke, Text
 from mini_whiteboard.geometry import Rect
-from mini_whiteboard.placement import PreviewOverlay, dot_path
-from mini_whiteboard.settings import (BORDER_WIDTH, CANVAS_INSET, TOP_STRIP, RADIUS, SHADOW,
-                                      PREVIEW_DOT_DIAMETER, PREVIEW_DOT_GAP)
+from mini_whiteboard.placement import PreviewOverlay
+from mini_whiteboard.settings import BORDER_WIDTH, CANVAS_INSET, TOP_STRIP, RADIUS, SHADOW
 
 
 class PolishTests(CanvasCase):
@@ -197,12 +196,7 @@ class PolishTests(CanvasCase):
         self.assertEqual(self.canvas.selected_ids, {objects[0].id})
         self.assertEqual(self.canvas.document.index, 1)
 
-    def test_dot_geometry_and_unchanged_preview_does_not_repaint(self):
-        bounds = QRectF(20, 20, 340, 170)
-        dots = dot_path(bounds)
-        self.assertTrue(dots.contains(bounds.topLeft()))
-        self.assertFalse(dots.contains(bounds.center()))
-        self.assertFalse(dots.contains(QPointF(20+(PREVIEW_DOT_DIAMETER+PREVIEW_DOT_GAP)/2, 20)))
+    def test_glass_preview_fills_dirty_interior_and_unchanged_geometry_does_not_repaint(self):
         overlay = PreviewOverlay(windows.Monitor("test", Rect(0, 0, 500, 400), 1))
         self.widgets.append(overlay)
         outline = Rect(20, 20, 340, 170)
@@ -210,13 +204,12 @@ class PolishTests(CanvasCase):
             overlay.set_outline(outline)
             overlay.set_outline(outline)
             self.assertEqual(repaint.call_count, 1)
-            self.assertFalse(repaint.call_args.args[0].contains(QPoint(100, 100)))
+            self.assertTrue(repaint.call_args.args[0].contains(QPoint(100, 100)))
         overlay.show()
         image = overlay.grab().toImage()
-        self.assertEqual(image.pixelColor(100, 100).alpha(), 0)
-        self.assertGreater(image.pixelColor(20, 20).red(), 180)
-        self.assertGreater(image.pixelColor(20, 20).alpha(), 100)
-        self.assertLess(image.pixelColor(20, 20).alpha(), 245)
+        self.assertEqual(image.pixelColor(20, 20).alpha(), 0)
+        self.assertEqual(image.pixelColor(100, 100).alpha(), 0)  # transparency-disabled fallback
+        self.assertGreater(image.pixelColor(100, 21).alpha(), 0)
 
     def test_local_mask_geometry_cache_survives_transform_changes(self):
         from dataclasses import replace

@@ -112,29 +112,18 @@ def focus_window(widget):
         user32.SetForegroundWindow(int(widget.winId()))
 
 
-def clip_window_to_paper(widget, inset, radius):
-    """Exclude decorative margins from the HWND's input region.
+def clear_window_region(widget):
+    """Retain the layered window's per-pixel alpha edge and native alpha hit test.
 
-    HTTRANSPARENT alone only forwards within a thread. A native window region
-    excludes the margin for every application; a separate passive window paints
-    the shadow without intercepting desktop input.
+    SetWindowRgn rounds the curve to binary pixels and cuts off antialiasing.
+    Windows passes zero-alpha layered pixels to other processes. Native material
+    and shadow hosts must also have LAYERED | TRANSPARENT input styles.
     """
     if not IS_WINDOWS:
         return
-    bounds = window_rect(widget)
-    gdi32 = C.WinDLL("gdi32", use_last_error=True)
-    create = bind(gdi32, "CreateRoundRectRgn", W.HANDLE, C.c_int, C.c_int, C.c_int,
-                  C.c_int, C.c_int, C.c_int)
-    delete = bind(gdi32, "DeleteObject", W.BOOL, W.HANDLE)
     apply = bind(user32, "SetWindowRgn", C.c_int, W.HWND, W.HANDLE, W.BOOL)
-    region = create(inset, inset, round(bounds.width)-inset+1,
-                    round(bounds.height)-inset+1, radius*2, radius*2)
-    if not region:
+    if not apply(int(widget.winId()), None, True):
         raise C.WinError(C.get_last_error())
-    if not apply(int(widget.winId()), region, True):
-        delete(region)
-        raise C.WinError(C.get_last_error())
-    # Windows owns the region after a successful SetWindowRgn.
 
 
 @dataclass(frozen=True)

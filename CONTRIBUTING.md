@@ -84,8 +84,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v131-review02/Mini Whiteboard/` and
-`build/candidates/v1.3.1/review-02/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v131-review03/Mini Whiteboard/` and
+`build/candidates/v1.3.1/review-03/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
 
 Mac:
 
@@ -97,8 +97,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v131-review02/Mini Whiteboard.app` and
-`build/candidates/v1.3.1/review-02/MacMiniWhiteboardV1.3.1-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v131-review03/Mini Whiteboard.app` and
+`build/candidates/v1.3.1/review-03/MacMiniWhiteboardV1.3.1-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation
@@ -140,6 +140,23 @@ Production follows system motion policy. Native tests can inject a local policy
 without changing accessibility settings or adding a product override.
 Cocoa's OS-owned menus retain native presentation; app-owned palette/help windows
 use the shared surface. Standard OS colour and permission dialogs stay native.
+
+Surface edges use per-pixel alpha. Avoid binary QWidget masks and rounded
+SetWindowRgn clipping on boards/popups: they cut off antialiased pixels. Windows
+layered-window alpha provides native hit testing; the passive material host uses
+LAYERED and TRANSPARENT together to bypass input across processes. Verify actual
+mouse delivery to a separate process, as HTTRANSPARENT only searches one thread.
+`alpha_clip.py` clips boundary artwork, the screenshot display cache and temporary
+editor pixels. Interior drawing retains its direct paint path. Window actions use
+font-independent vector geometry in `window_controls.py`.
+
+Both creation modes share `PreviewOverlay`: a low-tint rounded selection with
+native frost where available, a translucent fallback, and an unfilled two-tone
+outline when transparency is disabled. Per-monitor origins and compositor clips
+stay in their native units. An unchanged pointer causes no material or paint
+update. Preview hosts are released before capture; Windows waits for composition
+once, and Mac capture retains window-ID exclusions. Never capture the desktop to
+simulate a preview's blur.
 
 Windows Hide All preferences change only H. Retrying skips bindings already
 registered, and changing the option retains the physical-H latch until release.

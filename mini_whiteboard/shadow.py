@@ -27,16 +27,18 @@ class PaperShadow(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         paper = self.board.paper_rect()
         radius = self.board.corner_radius()
-        ring = QPainterPath()
-        ring.addRect(self.rect())
         hole = QPainterPath()
         hole.addRoundedRect(paper, radius, radius)
-        painter.setClipPath(ring.subtracted(hole))
         painter.setPen(Qt.PenStyle.NoPen)
         for spread in range(SHADOW, 0, -1):
             painter.setBrush(QColor(30, 38, 45, 2 + (SHADOW-spread)//2))
             painter.drawRoundedRect(paper.adjusted(-spread, -spread+1, spread, spread+1),
                                     radius+spread, radius+spread)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOut)
+        painter.fillPath(hole, Qt.GlobalColor.white)

@@ -15,9 +15,15 @@ from mini_whiteboard.geometry import Rect
 
 
 class ControlledBackground(Background):
+    def __init__(self):
+        super().__init__()
+        self.clicks = 0
+
     def nativeEvent(self, event_type, message):
         if bytes(event_type) == b'windows_generic_MSG':
             msg = W.MSG.from_address(int(message))
+            if msg.message in (0x0201, 0x0203):
+                self.clicks += 1  # actual Win32 left press, including double-click
             if msg.message == 0x8001:
                 self.mode = ('busy','light','dark')[msg.wParam]
                 self.repaint()
@@ -25,6 +31,8 @@ class ControlledBackground(Background):
             if msg.message == 0x8002:
                 QApplication.instance().quit()
                 return True, 0
+            if msg.message == 0x8003:
+                return True, self.clicks
         return super().nativeEvent(event_type, message)
 
 

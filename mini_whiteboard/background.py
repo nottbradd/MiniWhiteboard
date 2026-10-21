@@ -4,6 +4,7 @@ This is a view cache, never document/clipboard/history data. The original image
 object remains authoritative. Pixel coordinates are multiplied by DPR once.
 """
 import math
+from dataclasses import replace
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QImage, QPainter
 from . import rendering
@@ -30,10 +31,15 @@ class ScreenshotBackground:
         image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(image)
         painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
-        if clip_spec is not None:
-            painter.setClipPath(rendering.clip_path(clip_spec))
-        rendering.paint_object(painter,record.obj,record.paint)
+        rendering.paint_object(painter,record.obj,replace(record.paint, clip=None))
         painter.end()
+        clip = rendering.clip_path(clip_spec) if clip_spec is not None else None
+        if record.paint.clip is not None:
+            original = rendering.qt_transform(record.obj.transform).map(record.paint.clip)
+            clip = clip.intersected(original) if clip is not None else original
+        if clip is not None:
+            from .alpha_clip import apply_mask, mask_image
+            apply_mask(image, mask_image(image.size(), dpr, clip))
         self.image, self.key = image, key
         self.builds += 1
 

@@ -2,16 +2,15 @@
 import math
 from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QToolButton, QWidget
+from PySide6.QtWidgets import QWidget
 
 from .platform import get_platform
-from .shortcuts import ui_font_family
 from .appearance import corner_radius, paint_surface
 from .geometry import Rect, large_enough
 from .settings import (BORDER, EDGE_GRIP, MIN_HEIGHT, MIN_WIDTH, PAPER,
                        RADIUS, SHADOW, TOP_STRIP, CANVAS_INSET, BORDER_WIDTH,
                        CONTROL_WIDTH, CONTROL_HEIGHT, CONTROL_TOP, CONTROL_GAP,
-                       CONTROL_RIGHT, CONTROL_FONT_SIZE)
+                       CONTROL_RIGHT)
 
 
 class BoardWindow(QWidget):
@@ -38,8 +37,9 @@ class BoardWindow(QWidget):
         self.activation_timer.setSingleShot(True)
         self.activation_timer.timeout.connect(self.activate_explicitly)
         self.canvas = None
-        self.minus = self.make_button("−", f"Minimise this whiteboard to the {platform.shortcuts.status_location}", "#71777d")
-        self.remove = self.make_button("×", "Delete this whiteboard and its contents", "#d75555")
+        from .window_controls import WindowControl
+        self.minus = WindowControl(self)
+        self.remove = WindowControl(self, delete=True)
         self.minus.clicked.connect(self.minimize_to_tray)
         self.remove.clicked.connect(self.close)
         from .canvas import Canvas
@@ -63,15 +63,8 @@ class BoardWindow(QWidget):
         self.layout_children()
         self._region_key = None
         self.sync_shadow()
-        glass = self.appearance_theme == 'Glass' and not self.display_policy.high_contrast
-        for button, delete in ((self.minus, False), (self.remove, True)):
-            background = '#ef5b64' if delete else 'rgba(90,94,115,32)'
-            foreground = '#ffffff' if delete else '#292c38'
-            button.setStyleSheet(
-                f"QToolButton {{ border:0; border-radius:10px; color:{foreground if glass else '#d75555' if delete else '#71777d'}; "
-                f"background:{background if glass else 'transparent'}; font:{CONTROL_FONT_SIZE}px '{ui_font_family()}'; }}"
-                "QToolButton:hover { background:rgba(120,130,155,65); }"
-                "QToolButton:pressed { background:rgba(100,110,140,90); }")
+        self.minus.update()
+        self.remove.update()
         self.canvas.stop_transient_ui()
         if theme_changed:
             self.emphasis.start()
@@ -86,21 +79,9 @@ class BoardWindow(QWidget):
 
     def event(self, event):
         result = super().event(event)
-        if event.type() == QEvent.Type.WinIdChange and hasattr(self, 'emphasis') and not self._closing:
+        if event.type() in (QEvent.Type.WinIdChange,QEvent.Type.DevicePixelRatioChange) and hasattr(self, 'emphasis') and not self._closing:
             self.refresh_appearance()
         return result
-
-    def make_button(self, text, tooltip, color):
-        button = QToolButton(self)
-        button.setText(text)
-        button.setToolTip(tooltip)
-        button.setCursor(Qt.CursorShape.ArrowCursor)
-        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(f"QToolButton {{ border: none; border-radius: 6px; color: {color}; "
-                             f"background: transparent; font: {CONTROL_FONT_SIZE}px '{ui_font_family()}'; }}"
-                             "QToolButton:hover { background: #f0f1f2; }"
-                             "QToolButton:pressed { background: #e4e6e8; }")
-        return button
 
     def paper_rect(self):
         return self.desktop.paper_rect(self)
@@ -118,12 +99,9 @@ class BoardWindow(QWidget):
 
     def layout_children(self):
         paper = self.paper_rect()
-        from .appearance import GLASS_CONTROL_TOP, GLASS_CONTROL_RIGHT
-        glass = self.appearance_theme == 'Glass' if self.canvas is not None else False
-        top, inset = (GLASS_CONTROL_TOP,GLASS_CONTROL_RIGHT) if glass else (CONTROL_TOP,CONTROL_RIGHT)
-        right = paper.right()-inset-CONTROL_WIDTH
-        self.remove.setGeometry(round(right), round(paper.top()+top), CONTROL_WIDTH, CONTROL_HEIGHT)
-        self.minus.setGeometry(round(right-CONTROL_WIDTH-CONTROL_GAP), round(paper.top()+top), CONTROL_WIDTH, CONTROL_HEIGHT)
+        right = paper.right()-CONTROL_RIGHT-CONTROL_WIDTH
+        self.remove.setGeometry(round(right), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
+        self.minus.setGeometry(round(right-CONTROL_WIDTH-CONTROL_GAP), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
         if self.canvas is not None:
             self.canvas.setGeometry(math.ceil(paper.left()+CANVAS_INSET),
                                     math.ceil(paper.top()+TOP_STRIP),

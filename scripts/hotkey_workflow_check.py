@@ -26,6 +26,7 @@ from mini_whiteboard.geometry import Rect, normalized
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--output',type=Path,default=Path('verification/review-03/hotkey-workflow.json'))
     parser.add_argument('--hide-shortcut', choices=('default','shift'), default='default',
                         help='Select and reload the shipped persisted Windows Hide All configuration.')
     args = parser.parse_args()
@@ -123,7 +124,9 @@ def main():
             QTest.qWait(80)
             actual = W.POINT(*windows.cursor_position())
             get_pid(get_at(actual), C.byref(pid))
-            check("Settled activation pointer is over the disposable helper", pid.value == helper_pid)
+            check("Settled activation pointer is over the disposable helper", pid.value == helper_pid,
+                  {'expected':[point.x,point.y],'actual':[actual.x,actual.y],
+                   'target':get_at(actual),'target_pid':pid.value,'helper_pid':helper_pid})
             mouse = windows.bind(user32, "mouse_event", None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
             mouse(0x0002, 0, 0, 0, 0)
             mouse(0x0004, 0, 0, 0, 0)
@@ -181,7 +184,11 @@ def main():
         check('Held preview follows pointer with fixed anchor', all(o.outline == expected for o in controller.placement.overlays))
         overlay = controller.placement.overlays[0]
         image = overlay.grab().toImage()
-        check('Preview interior remains transparent', image.pixelColor(a[0]-round(base.x)+20, a[1]-round(base.y)+20).alpha() == 0)
+        preview_alpha=image.pixelColor(round((a[0]+b[0])/2-base.x),round((a[1]+b[1])/2-base.y)).alpha()
+        preview_policy=overlay.display_policy
+        check('Preview keeps a low tint or unfilled accessibility fallback',
+              0<preview_alpha<130 if preview_policy.transparency and not preview_policy.high_contrast else preview_alpha==0,
+              {'alpha':preview_alpha,'policy':vars(preview_policy)})
         for _ in range(30):
             key(ord('W'))
             QTest.qWait(40)
@@ -374,8 +381,8 @@ def main():
         set_cursor(*cursor)
         if previous:
             user32.SetForegroundWindow(previous)
-        Path(".test-artifacts").mkdir(exist_ok=True)
-        Path(".test-artifacts/hotkey-workflow.json").write_text(json.dumps({"results": results, "exceptions": errors}, indent=2), encoding="utf-8")
+        args.output.parent.mkdir(parents=True,exist_ok=True)
+        args.output.write_text(json.dumps({"results": results, "exceptions": errors}, indent=2), encoding="utf-8")
     return 0
 
 

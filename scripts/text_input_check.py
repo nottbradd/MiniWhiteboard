@@ -1,5 +1,6 @@
 """Opt-in Windows textbox regression using native input in an owned board only."""
 import ctypes as C
+import argparse
 from ctypes import wintypes as W
 import json
 import os
@@ -18,6 +19,9 @@ from mini_whiteboard.geometry import Rect
 
 
 def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--output',type=Path,default=Path('verification/review-03/text-input-check.json'))
+    args=parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
     guard = windows.SingleInstance()
@@ -199,8 +203,8 @@ def main():
             windows.user32.SetForegroundWindow(previous)
         guard.close()
         sys.excepthook = old_hook
-        output = Path(".test-artifacts/text-input-check.json")
-        output.parent.mkdir(exist_ok=True)
+        output = args.output
+        output.parent.mkdir(parents=True,exist_ok=True)
         output.write_text(json.dumps(results, indent=2)+"\n", encoding="utf-8", newline="\n")
     return 0
 

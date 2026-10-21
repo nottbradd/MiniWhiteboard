@@ -10,6 +10,10 @@ toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 **V1.3.1 is available.** It refines Glass, removes OCR and adds a saved Windows
 Hide All alternative. Windows is the stable release; Mac remains a preview.
 
+> **Unpublished review 03:** this branch revises rounded edges, window controls
+> and both creation previews. It is awaiting visual approval. The public V1.3.1
+> downloads below are unchanged.
+
 ## Download V1.3.1
 
 | Download | Platform | Installation |
@@ -42,7 +46,7 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 1. Point at the first corner and hold **Ctrl+Alt+W** on Windows or
    **Control+Option+W** on Mac.
-2. Keep holding and move to the opposite corner. Dots preview the rectangle.
+2. Keep holding and move to the opposite corner. A temporary outline previews the rectangle.
 3. Release W **or any required modifier** to create a focused board.
 
 Use **S** in the same global shortcut to capture a region into a new board

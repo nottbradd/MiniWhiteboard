@@ -4,6 +4,7 @@ Run separately from offscreen tests: .venv\\Scripts\\python -m scripts.native_sm
 No synthetic input is sent to third-party applications. Cursor/focus are restored.
 """
 import ctypes as C
+import argparse
 from ctypes import wintypes as W
 import json
 import os
@@ -25,6 +26,9 @@ from mini_whiteboard.snapping import SnapPreferences
 
 
 def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--output',type=Path,default=Path('verification/review-03/native-smoke'))
+    args=parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
     results = []
@@ -39,8 +43,8 @@ def main():
     controller = WhiteboardApplication(app, SnapPreferences())
     confirmed_rectangles = []
     controller.placement.confirmed.connect(confirmed_rectangles.append)
-    artifacts = Path(".test-artifacts")
-    artifacts.mkdir(exist_ok=True)
+    artifacts = args.output
+    artifacts.mkdir(parents=True,exist_ok=True)
 
     def check(label, condition, detail=None):
         entry = {"check": label, "status": "PASS" if condition else "FAIL", "detail": detail}

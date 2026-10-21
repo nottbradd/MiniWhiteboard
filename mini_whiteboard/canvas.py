@@ -126,7 +126,9 @@ class Canvas(EditingActions, QWidget):
                          tuple(frozen(rect) for rect in self.control_rects()))
         if clip != self.clip_spec:
             self.clip_spec = clip
-            self.setMask(QRegion(rendering.clip_path(clip).toFillPolygon().toPolygon()))
+            self.clearMask()
+            if self.editor_overlay is not None:
+                self.editor_overlay.clip_effect.update()
             self.update()
         self.sync_tool_overlay()
 
@@ -432,11 +434,12 @@ class Canvas(EditingActions, QWidget):
             # rounded/control-hole clip. Interior objects use the event region.
             clipped = clip is not None and not clip.contains(bounds.adjusted(-1, -1, 1, 1))
             if clipped:
-                painter.save()
-                painter.setClipPath(clip)
-            rendering.paint_object(painter, obj, data)
-            if clipped:
-                painter.restore()
+                from .alpha_clip import paint_boundary
+                data = rendering.paint_data(obj) if data is None else data
+                dirty = bounds.adjusted(-2,-2,2,2).intersected(QRectF(event.rect())).intersected(QRectF(self.rect()))
+                paint_boundary(painter, obj, data, clip, dirty, self.devicePixelRatioF())
+            else:
+                rendering.paint_object(painter, obj, data)
 
         for record in self.scene.query(QRectF(event.rect()).adjusted(-2, -2, 2, 2)):
             if not event.region().intersects(record.bounds.adjusted(-2, -2, 2, 2).toAlignedRect()):

@@ -122,7 +122,7 @@ def run_polish_checks(board, check, artifacts):
             painter.drawPixmap(QRectF(0, 0, 700, 420), pixmap, QRectF(0, 0, 700, 420))
             painter.end()
             image.save(str(artifacts/f"preview-{name}.png"))
-        check("Native dotted preview keeps focus on board", windows.user32.GetForegroundWindow() == int(board.winId()))
+        check("Native glass preview keeps focus on board", windows.user32.GetForegroundWindow() == int(board.winId()))
     finally:
         preview.close()
         preview.deleteLater()

@@ -66,10 +66,24 @@ class MacDesktop(QtDesktop):
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
+            self.sync_material(board)
             return True
         except (AttributeError, RuntimeError, ValueError):
             self.release_appearance(board)
             return False
+
+    def sync_material(self, surface):
+        record = getattr(surface, '_visual_effect', None)
+        if record is None:
+            return
+        content, effect, _parent = record
+        paper = surface.paper_rect()
+        frame, bounds = content.frame(), content.bounds()
+        effect.setFrame_(((frame.origin.x+paper.left(),
+                           frame.origin.y+bounds.size.height-paper.bottom()),
+                          (paper.width(), paper.height())))
+        effect.layer().setCornerRadius_(surface.corner_radius())
+        effect.layer().setMasksToBounds_(True)
 
     def release_appearance(self, board):
         record = getattr(board, '_visual_effect', None)
@@ -126,6 +140,7 @@ class MacDesktop(QtDesktop):
             if record is not None and (record[0] != window.contentView()
                                         or record[2] != window.contentView().superview()):
                 board.refresh_appearance()
+            self.sync_material(board)
             window.invalidateShadow()
 
     def sync_surface(self, surface):
@@ -140,6 +155,7 @@ class MacDesktop(QtDesktop):
         record = getattr(surface, '_visual_effect', None)
         if record is not None and (record[0] != content or record[2] != content.superview()):
             surface.refresh_appearance()
+        self.sync_material(surface)
         window.invalidateShadow()
 
     def configure_overlay(self, overlay, *, interactive=False, owner=None):

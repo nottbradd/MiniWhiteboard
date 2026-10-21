@@ -25,8 +25,9 @@ class Surface:
         return QRectF(self.rect())
 
     def contains_input(self, position):
-        point = position.toPoint()
-        return self.rect().contains(point) and (self.mask().isEmpty() or self.mask().contains(point))
+        path = QPainterPath()
+        path.addRoundedRect(self.paper_rect(), self.corner_radius(), self.corner_radius())
+        return path.contains(position)
 
     def physical_paper_rect(self):
         return self.desktop.window_rect(self)
@@ -53,9 +54,9 @@ class Surface:
             return
         if not self.isVisible():
             return
-        path = QPainterPath()
-        path.addRoundedRect(self.paper_rect(), self.corner_radius(), self.corner_radius())
-        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+        # Binary widget masks cut the alpha fringe, especially at fractional
+        # DPR. The painted alpha owns the edge; explicit paths own Qt input.
+        self.clearMask()
         if self.platform.name == 'macos':
             self.desktop.sync_surface(self)
         host = getattr(self, '_backdrop', None)
@@ -99,7 +100,7 @@ class Surface:
 
     def event(self, event):
         result = super().event(event)
-        if event.type() == QEvent.Type.WinIdChange and hasattr(self, 'preferences') and self.isVisible():
+        if event.type() in (QEvent.Type.WinIdChange,QEvent.Type.DevicePixelRatioChange) and hasattr(self, 'preferences') and self.isVisible():
             self.refresh_appearance()
         return result
 

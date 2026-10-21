@@ -12,7 +12,6 @@ WHITE = '#ffffff'
 HOVER = '#e5ecfb'
 GLASS_RADIUS = 32
 POPOVER_RADIUS = 22
-GLASS_CONTROL_TOP, GLASS_CONTROL_RIGHT = 7, 10
 UI_INK = '#181b24'
 UI_SECONDARY = '#4c5261'
 
@@ -42,16 +41,16 @@ class DisplayPolicy:
     high_contrast: bool = False
 
 
-def surface(theme, native_glass, policy):
+def surface(theme, native_glass, policy, *, preview=False):
     if theme != 'Glass' or policy.high_contrast:
         return QColor(WHITE)
     color = QColor(GLASS_TINT if native_glass else GLASS_FALLBACK)
-    if native_glass and policy.transparency:
-        color.setAlpha(120)
+    if policy.transparency and (native_glass or preview):
+        color.setAlpha(32 if preview else 120)
     return color
 
 
-def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, emphasis=0):
+def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, emphasis=0, preview=False):
     """A neutral backing, broad reflected light and one continuous optical edge.
 
     The compositor supplies frost. These static gradients suggest a polished
@@ -61,7 +60,7 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
     radius = corner_radius(rect, theme, popup=popup)
     glass = theme == 'Glass' and not policy.high_contrast
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(surface(theme, native_glass, policy))
+    painter.setBrush(surface(theme, native_glass, policy, preview=preview))
     painter.drawRoundedRect(rect, radius, radius)
     if glass:
         path = QPainterPath()
@@ -105,6 +104,22 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
         painter.setPen(QPen(border, BORDER_WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         painter.drawLine(QPointF(rect.left()+radius, rect.top()+BORDER_WIDTH/2),
                          QPointF(rect.right()-radius, rect.top()+BORDER_WIDTH/2))
+
+
+def paint_preview(painter, rect, native_glass, policy):
+    if rect.isEmpty():
+        return
+    if not policy.transparency or policy.high_contrast:
+        # No translucent fill when transparency is disabled. A static two-tone
+        # perimeter remains precise and readable on both light and dark content.
+        radius = corner_radius(rect, 'Glass')
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for color, width in (('#202124', 3), ('#ffffff', 1)):
+            painter.setPen(QPen(QColor(color), width))
+            painter.drawRoundedRect(rect.adjusted(1.5,1.5,-1.5,-1.5),
+                                    max(0,radius-1.5), max(0,radius-1.5))
+        return
+    paint_surface(painter, rect, 'Glass', native_glass, policy, preview=True)
 
 
 class Emphasis:

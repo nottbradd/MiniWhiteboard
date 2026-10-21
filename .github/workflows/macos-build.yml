@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: macos-v131-review02-${{ github.ref }}
+  group: macos-v131-review03-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -95,8 +95,8 @@ jobs:
       - name: Upload the verified tester ZIP
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: MacMiniWhiteboardV1.3.1-Candidate
-          path: build/candidates/v1.3.1/review-02/MacMiniWhiteboardV1.3.1-Preview.zip
+          name: MacMiniWhiteboardV1.3.1-Review03
+          path: build/candidates/v1.3.1/review-03/MacMiniWhiteboardV1.3.1-Preview.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -105,7 +105,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: macos-v1.3.1-candidate-verification
+          name: macos-v1.3.1-review03-verification
           path: verification/
           if-no-files-found: warn
           retention-days: 30

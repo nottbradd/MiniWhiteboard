@@ -136,6 +136,9 @@ class EditorOverlay(QGraphicsView):
         self.proxy.setTransform(rendering.qt_transform(transform))
         self.setGeometry(canvas.rect())
         self.setSceneRect(QRectF(canvas.rect()))
+        from .alpha_clip import EditorClip
+        self.clip_effect = EditorClip(canvas, self)
+        self.setGraphicsEffect(self.clip_effect)
         editor.textChanged.connect(self.keep_caret_visible)
         editor.cursorPositionChanged.connect(self.keep_caret_visible)
 

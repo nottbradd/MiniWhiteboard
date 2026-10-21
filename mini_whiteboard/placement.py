@@ -1,31 +1,14 @@
 """Non-activating, input-transparent placement preview and its controller."""
 
-from PySide6.QtCore import QObject, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRegion
+from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer, Signal
+from PySide6.QtGui import QPainter, QRegion
 from PySide6.QtWidgets import QWidget
 
 from .platform import get_platform
 from .gestures import CreationSession
 from .geometry import PlacementState, normalized, local_point
-from .settings import (PREVIEW_INTERVAL_MS, PREVIEW_DOT_DIAMETER, PREVIEW_DOT_GAP,
-                       PREVIEW_DOT_OPACITY, PREVIEW_SHADOW_OPACITY, PREVIEW_SHADOW_SPREAD,
-                       PREVIEW_SHADOW_OFFSET)
-
-
-def dot_path(bounds):
-    """Real circles with an even pitch on each edge, sharing the corner dots."""
-    path = QPainterPath()
-    radius = PREVIEW_DOT_DIAMETER/2
-    pitch = PREVIEW_DOT_DIAMETER + PREVIEW_DOT_GAP
-    corners = (bounds.topLeft(), bounds.topRight(), bounds.bottomRight(), bounds.bottomLeft())
-    for a, b in zip(corners, (*corners[1:], corners[0])):
-        distance = abs(b.x()-a.x()) + abs(b.y()-a.y())
-        count = max(1, round(distance/pitch))
-        for i in range(count):
-            p = a + (b-a)*(i/count)
-            path.addEllipse(p, radius, radius)
-    path.setFillRule(Qt.FillRule.WindingFill)
-    return path
+from .settings import PREVIEW_INTERVAL_MS
+from .appearance import corner_radius, paint_preview
 
 
 class PreviewOverlay(QWidget):
@@ -39,6 +22,10 @@ class PreviewOverlay(QWidget):
         self.platform = platform or get_platform()
         self.desktop = self.platform.desktop
         self.outline = None
+        self._closing = False
+        self.appearance_theme = 'Glass'
+        self.native_glass = False
+        self.display_policy = self.desktop.display_policy()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, not interactive)
@@ -53,43 +40,80 @@ class PreviewOverlay(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.desktop.configure_overlay(self, interactive=self.interactive)
+        self.sync_material()
+
+    def paper_rect(self):
+        return self.local_bounds(self.outline) if self.outline is not None else QRectF()
+
+    def physical_paper_rect(self):
+        return self.outline
+
+    def corner_radius(self):
+        return corner_radius(self.paper_rect(), 'Glass')
+
+    def sync_material(self):
+        if (not self.isVisible() or self.outline is None or self.outline.width <= 0
+                or self.outline.height <= 0 or not self.outline.intersection_area(self.monitor.rect)):
+            self.desktop.release_appearance(self)
+            self.native_glass = False
+        else:
+            self.native_glass = self.desktop.apply_appearance(self)
+            if self.platform.name == 'macos':
+                self.desktop.sync_material(self)
+
+    def refresh_appearance(self):
+        self.desktop.release_appearance(self)
+        self.display_policy = self.desktop.display_policy()
+        self.sync_material()
+        self.update()
+
+    def hideEvent(self, event):
+        self.desktop.release_appearance(self)
+        self.native_glass = False
+        super().hideEvent(event)
+
+    def closeEvent(self, event):
+        self._closing = True
+        self.desktop.release_appearance(self)
+        super().closeEvent(event)
+
+    def nativeEvent(self, event_type, message):
+        if hasattr(self, 'desktop'):
+            result = self.desktop.native_event(self, event_type, message)
+            if result is not None:
+                return result
+        return super().nativeEvent(event_type, message)
+
+    def event(self, event):
+        result=super().event(event)
+        if event.type()==QEvent.Type.DevicePixelRatioChange and hasattr(self,'display_policy'):
+            self.refresh_appearance()
+        return result
 
     def outline_region(self, outline):
         if outline is None:
             return QRegion()
         bounds = self.local_bounds(outline)
-        padding = PREVIEW_DOT_DIAMETER/2 + PREVIEW_SHADOW_SPREAD + PREVIEW_SHADOW_OFFSET + 1
-        outer = QRegion(bounds.adjusted(-padding, -padding, padding, padding).toAlignedRect())
-        inner = bounds.adjusted(padding, padding, -padding, -padding)
-        return outer.subtracted(QRegion(inner.toRect())) if inner.width() > 0 and inner.height() > 0 else outer
+        # The selection is filled now. Invalidate its interior as well as both
+        # perimeters, otherwise moving/shrinking leaves old tint on the desktop.
+        return QRegion(bounds.adjusted(-2, -2, 2, 2).toAlignedRect()).intersected(QRegion(self.rect()))
 
     def set_outline(self, outline):
         if outline == self.outline:
             return
         dirty = self.outline_region(self.outline).united(self.outline_region(outline))
         self.outline = outline
+        self.sync_material()
         self.update(dirty)
 
     def paintEvent(self, event):
-        if self.outline is None:
-            return
-        dots = dot_path(self.local_bounds(self.outline))
         painter = QPainter(self)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        # Two faint expanding layers soften the small offset shadow. No fill,
-        # continuous border, dash pattern, or per-dot widgets are involved.
-        shadow = QColor(25, 29, 35)
-        painter.save()
-        painter.translate(PREVIEW_SHADOW_OFFSET, PREVIEW_SHADOW_OFFSET)
-        for spread, opacity in ((PREVIEW_SHADOW_SPREAD, .35), (PREVIEW_SHADOW_SPREAD*.45, .65)):
-            shadow.setAlphaF(PREVIEW_SHADOW_OPACITY*opacity)
-            painter.setPen(QPen(shadow, spread*2))
-            painter.setBrush(shadow)
-            painter.drawPath(dots)
-        painter.restore()
-        white = QColor("white")
-        white.setAlphaF(PREVIEW_DOT_OPACITY)
-        painter.fillPath(dots, white)
+        if self.outline is not None:
+            paint_preview(painter, self.paper_rect(), self.native_glass, self.display_policy)
 
 
 class PlacementController(QObject):

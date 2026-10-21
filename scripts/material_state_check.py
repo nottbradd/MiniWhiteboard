@@ -24,7 +24,7 @@ from mini_whiteboard.snapping import SnapPreferences
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/review-02/material'))
+    parser.add_argument('--output',type=Path,default=Path('verification/review-03/material'))
     args = parser.parse_args()
     output = args.output
     output.mkdir(parents=True,exist_ok=True)

@@ -1,5 +1,41 @@
 # Release notes
 
+## V1.3.1 review 03 — unpublished
+
+The public [V1.3.1 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
+is unchanged. This candidate requires visual approval before publication.
+
+- Rounded boards and temporary surfaces retain their antialiased alpha fringe.
+  Binary window/widget clipping previously cut that fringe into steps. The
+  Windows backdrop is now explicitly input-transparent across processes.
+- Minimise and delete use matching theme surfaces and centred vector icons,
+  consistent 30 × 28 logical-pixel targets and safe minimum-board insets. Delete
+  has restrained red hover/pressed feedback; tooltips and accessible names remain.
+- Both hold → move → release previews use rounded glass material, a thin rim and
+  a low tint. Native frost has a lightweight fallback; reduced transparency/high
+  contrast use an unfilled two-tone perimeter. White remains the default board.
+- Boundary artwork, cached screenshot display and the real temporary editor use
+  alpha clipping. The saved capture excludes all preview material.
+
+### Verification in progress
+
+Baseline: 244 tests discovered, 242 passed and two Mac-only skips. Revised suite:
+254 discovered, 252 passed and two Mac-only skips. New regressions cover corner
+alpha at five scales, control bounds/fonts/feedback, preview material cleanup,
+capture coordinates and real editor ownership.
+
+Native Windows surface checks passed 153 assertions at each of 100%, 125%, 150%,
+175% and 200% application scaling. These include original native captures and all
+four enlarged corner crops, separately owned cross-process mouse delivery,
+normal/minimum sizes, three backgrounds, both controls, all four preview/capture
+directions and exact original screenshot pixels. The physical monitor remained
+1920 × 1080 at 100%; physical mixed-DPI transitions remain **NOT RUN**.
+
+Final general/package checks, comparable performance measurements and fresh
+Windows/Mac candidate archives are still being verified. Interactive Mac
+acceptance, macOS 14/Intel execution, Windows 10 and clean-machine deployment
+remain **NOT RUN**. Mac remains a preview.
+
 ## V1.3.1
 
 Published [21 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1).

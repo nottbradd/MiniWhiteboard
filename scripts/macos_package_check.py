@@ -127,7 +127,7 @@ def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: bundle verification requires macOS.")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v131-review02/Mini Whiteboard.app"))
+    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v131-review03/Mini Whiteboard.app"))
     parser.add_argument("--architecture", choices=("universal2", "arm64", "x86_64"), default="universal2")
     parser.add_argument("--report", type=Path, default=Path("verification/macos-package-check.json"))
     args = parser.parse_args()

@@ -21,8 +21,10 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v131-review02/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/review-03/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v131-review03/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
+    args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
     results = []
 
@@ -274,11 +276,11 @@ def main():
         text_key(ord('T'))
         click_paper(50, 80)
         first_editor_pixels = dark_content()
-        windows.capture_rect(paper).save('verification/v131-first-editor-observation.png')
+        windows.capture_rect(paper).save(str(args.output/'first-editor-observation.png'))
         if first_editor_pixels <= 5:
-            windows.capture_rect(paper).save('verification/v131-first-editor-observation.png')
+            windows.capture_rect(paper).save(str(args.output/'first-editor-observation.png'))
             time.sleep(.5)
-            windows.capture_rect(paper).save('verification/v131-settled-editor-observation.png')
+            windows.capture_rect(paper).save(str(args.output/'settled-editor-observation.png'))
             print(json.dumps({'first_editor_pixels':first_editor_pixels,'settled_editor_pixels':dark_content(),
                               'modifiers':{name:bool(user32.GetAsyncKeyState(vk)&0x8000) for name,vk in
                                            (('Control',0x11),('Alt',0x12),('Shift',0x10),('W',ord('W')))},
@@ -366,8 +368,7 @@ def main():
         if previous:
             windows.user32.SetForegroundWindow(previous)
         windows.bind(windows.user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)(*saved_cursor)
-        Path(".test-artifacts").mkdir(exist_ok=True)
-        Path(".test-artifacts/package-check.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+        (args.output/'checks.json').write_text(json.dumps(results, indent=2), encoding="utf-8")
     return 0
 
 
