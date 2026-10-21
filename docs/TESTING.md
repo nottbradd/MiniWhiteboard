@@ -69,6 +69,9 @@ still needs the checks below. Capture can request Screen Recording permission.
   requires Login Items. Check removal of owned registrations and untouched peers.
 - Uninstall and verify files/shortcuts/owned startup cleanup. Restore temporary OS
   values and retained test preferences. Do not terminate another user's app.
+- Check fresh GUI defaults without command-line task overrides. Extract the
+  portable ZIP into a permanent Unicode folder outside the checkout, verify its
+  file hashes, launch with Python absent from PATH, and test its login option.
 - A controlled launch of the registered command is not a real login. Record an
   actual sign-out/sign-in launch only on a suitable disposable test system.
 - Inspect executable, setup, shortcut and About icons at native 16/20/24/32/48 px

@@ -10,9 +10,9 @@ toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 **V1.3.1 is available.** It refines Glass, removes OCR and adds a saved Windows
 Hide All alternative. Windows is the stable release; Mac remains a preview.
 
-> **Unpublished V1.3.2 candidate:** this branch includes review 03's smoother
-> edges, themed controls and glass previews, plus a Windows installer, new
-> branding and optional Open at login. It awaits approval; the public V1.3.1
+> **Unpublished V1.3.2 candidate:** adds a Windows installer, new branding and
+> optional Open at login, plus smoother edges, themed controls and glass
+> creation previews. It awaits approval; the public V1.3.1
 > downloads below are unchanged.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
