@@ -131,6 +131,12 @@ class AppearanceTests(QtCase):
         board.show()
         board.display_policy = DisplayPolicy(motion=True)
         before = board.geometry()
+        with patch.object(board, 'update') as repaint:
+            board.emphasis.changed(.5)
+            region = repaint.call_args[0][0]
+            paper = board.paper_rect().toAlignedRect()
+            self.assertTrue(region.contains(paper.bottomLeft() + (paper.bottomRight()-paper.bottomLeft())/2))
+            self.assertFalse(region.contains(paper.center()))
         for _ in range(10):
             board.emphasis.start()
             self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Running)

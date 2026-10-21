@@ -1,7 +1,7 @@
 """Shared visual values; native compositor and accessibility policy stay in adapters."""
 from dataclasses import dataclass
 from PySide6.QtCore import QEasingCurve, QPointF, QRectF, Qt, QVariantAnimation
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainterPath, QPen, QRegion
 
 ANIMATION_MS = 140
 ACCENT = '#2467f5'
@@ -97,7 +97,11 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
         painter.setPen(QPen(QColor(BORDER), 1))
         painter.drawRoundedRect(rect.adjusted(.5,.5,-.5,-.5), radius, radius)
     else:
-        border = QColor(ACCENT if emphasis else BORDER)
+        border = QColor(BORDER)
+        if emphasis:
+            accent = QColor(ACCENT)
+            border = QColor(*(round(base*(1-emphasis)+light*emphasis) for base,light in
+                              zip(border.getRgb()[:3],accent.getRgb()[:3])))
         painter.setPen(QPen(border, BORDER_WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         painter.drawLine(QPointF(rect.left()+radius, rect.top()+BORDER_WIDTH/2),
                          QPointF(rect.right()-radius, rect.top()+BORDER_WIDTH/2))
@@ -117,10 +121,8 @@ class Emphasis:
 
     def changed(self, value):
         self.value = value
-        self.board.update(0, 0, self.board.width(), 18)
-        self.board.update(0, self.board.height()-5, self.board.width(), 5)
-        self.board.update(0, 18, 5, self.board.height()-23)
-        self.board.update(self.board.width()-5, 18, 5, self.board.height()-23)
+        paper = self.board.paper_rect().toAlignedRect()
+        self.board.update(QRegion(paper).subtracted(QRegion(paper.adjusted(5,5,-5,-5))))
 
     def start(self):
         self.stop()
