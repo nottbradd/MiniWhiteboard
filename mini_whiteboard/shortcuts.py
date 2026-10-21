@@ -24,7 +24,13 @@ class ShortcutPolicy:
 
     def help_html(self):
         from .settings import SHORTCUT_REFERENCE
-        text = SHORTCUT_REFERENCE
+        return self.format_help(SHORTCUT_REFERENCE).replace('<br>', '<br>\n')
+
+    def help_sections(self):
+        from .settings import HELP_SECTIONS
+        return tuple((title, self.format_help(body)) for title, body in HELP_SECTIONS)
+
+    def format_help(self, text):
         if not self.mac:
             text = text.replace('Ctrl+Alt+H', self.global_label('H'))
         if self.mac:

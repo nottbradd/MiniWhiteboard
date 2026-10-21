@@ -20,9 +20,9 @@ UI_SECONDARY = '#4c5261'
 def interface_font(role='action'):
     """Interface weights never enter the shared document/editor font path."""
     from .shortcuts import ui_font_family
-    size, weight = {'heading': (12, QFont.Weight.Bold),
-                    'action': (10.5, QFont.Weight.Medium),
-                    'support': (10, QFont.Weight.Normal)}[role]
+    size, weight = {'heading': (13.5, QFont.Weight.Bold),
+                    'action': (11.5, QFont.Weight.Medium),
+                    'support': (10.5, QFont.Weight.Normal)}[role]
     font = QFont(ui_font_family())
     font.setPointSizeF(size)
     font.setWeight(weight)
@@ -47,12 +47,12 @@ def surface(theme, native_glass, policy):
         return QColor(WHITE)
     color = QColor(GLASS_TINT if native_glass else GLASS_FALLBACK)
     if native_glass and policy.transparency:
-        color.setAlpha(38)
+        color.setAlpha(120)
     return color
 
 
 def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, emphasis=0):
-    """A neutral backing, broad reflected light and a thin double optical rim.
+    """A neutral backing, broad reflected light and one continuous optical edge.
 
     The compositor supplies frost. These static gradients suggest a polished
     curved edge without a texture, desktop readback or a continuously running timer.
@@ -85,13 +85,13 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
         edge.setColorAt(.7, QColor(220,231,255,120))
         edge.setColorAt(1, QColor(255,255,255,222))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QPen(edge, 1.15 + .3*emphasis))
+        if emphasis:
+            # A brief light catch confined to the edge, beneath the fixed rim.
+            # The document is always painted at its normal opacity/position.
+            painter.setPen(QPen(QColor(255,255,255,round(85*emphasis)), 4.4))
+            painter.drawRoundedRect(rect.adjusted(2.2,2.2,-2.2,-2.2), radius-2.2, radius-2.2)
+        painter.setPen(QPen(edge, 1.35))
         painter.drawRoundedRect(rect.adjusted(.7,.7,-.7,-.7), radius-.7, radius-.7)
-        # The darker inner hairline gives the light edge visible depth over white.
-        painter.setPen(QPen(QColor(65,77,107,43), .8))
-        painter.drawRoundedRect(rect.adjusted(2.4,2.4,-2.4,-2.4), radius-2.4, radius-2.4)
-        painter.setPen(QPen(QColor(255,255,255,76), .8))
-        painter.drawRoundedRect(rect.adjusted(3.5,3.5,-3.5,-3.5), radius-3.5, radius-3.5)
     elif popup:
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(QColor(BORDER), 1))
@@ -108,7 +108,7 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
 
 
 class Emphasis:
-    """One bounded top-edge emphasis; artwork and window geometry never animate."""
+    """One bounded edge light catch; repeated triggers cannot extend its deadline."""
     def __init__(self, board):
         self.board = board
         self.value = 0
@@ -134,9 +134,13 @@ class Emphasis:
         self.board.update(QRegion(paper).subtracted(QRegion(paper.adjusted(5,5,-5,-5))))
 
     def start(self):
-        self.stop()
+        if self.clock.isValid():
+            return
         if self.board.isVisible() and self.board.display_policy.motion and not self.board.display_policy.high_contrast:
             self.clock.start()
+            # QVariantAnimation may still cache its previous first value. Make
+            # the first native paint explicit even when Qt emits no change.
+            self.changed(1.0)
             self.animation.start()
             # Qt's shared animation clock can defer its first frame under load.
             # A separate deadline bounds presentation lifetime from the trigger.

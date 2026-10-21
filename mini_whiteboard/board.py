@@ -148,6 +148,8 @@ class BoardWindow(QWidget):
         super().showEvent(event)
         self.refresh_appearance()
         self.sync_shadow()
+        if self.appearance_theme == 'Glass':
+            self.emphasis.start()
 
     def hideEvent(self, event):
         if hasattr(self, 'emphasis'):

@@ -1,4 +1,5 @@
 """Opt-in native Windows material captures and lifetime checks on owned windows."""
+import argparse
 import ctypes as C
 from ctypes import wintypes as W
 from dataclasses import replace
@@ -47,7 +48,9 @@ class Background(QWidget):
                 p.fillPath(path, gradient)
                 p.setPen(QPen(QColor(255,255,255,90),1.5))
                 p.drawPath(path)
-        p.setFont(interface_font('heading'))
+        font = interface_font('heading')
+        font.setPointSize(12)  # Keep the controlled backdrop identical across revisions.
+        p.setFont(font)
         p.setPen(QColor('#ffffff' if self.mode == 'dark' else '#242a3c'))
         p.drawText(38, 32, 'Mini Whiteboard V1.3.1 · unpublished candidate · owned demonstration background')
 
@@ -77,6 +80,9 @@ def sample_image():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', type=Path, default=Path('verification/v131-native'))
+    args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
     app.setQuitOnLastWindowClosed(False)
@@ -88,7 +94,7 @@ def main():
     controller = WhiteboardApplication(app, SnapPreferences())
     controller.notify = lambda text: None
     background = Background()
-    output = Path('verification/v131-native')
+    output = args.output
     output.mkdir(parents=True, exist_ok=True)
     results, errors = [], []
     old_hook = sys.excepthook
@@ -143,6 +149,9 @@ def main():
         capture('glass-dark')
         background.mode = 'busy'
         background.update()
+        # Separate the demonstration background's composition from popup entry.
+        # The material-state check also exercises updates while a popup is open.
+        QTest.qWait(100)
         controller.rebuild_menu()
         menu = next(a.menu() for a in controller.menu.actions() if a.text() == 'Appearance')
         menu.popup(QPoint(round(region.x+1070),round(region.y+85)))
@@ -220,7 +229,10 @@ def main():
             resized = board.desktop.window_rect(board)
             if (resized.width != old.width+(12 if right else -12)
                     or resized.height != old.height+(10 if bottom else -10)):
-                raise AssertionError('A visible Glass corner did not resize both axes')
+                raise AssertionError('A visible Glass corner did not resize both axes: '+repr(
+                    {'right':right,'bottom':bottom,'before':vars(old),'after':vars(resized),
+                     'point':[x,y], 'foreground':windows.bind(windows.user32,'GetForegroundWindow',W.HWND)(),
+                     'board':int(board.winId()), 'gesture':board._gesture}))
             board.desktop.set_window_rect(board,old)
             QTest.qWait(30)
         check('All four visible Glass corner arcs support native diagonal resizing',

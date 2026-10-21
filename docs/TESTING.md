@@ -19,6 +19,8 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.native_smoke
 .\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
 .\.venv\Scripts\python.exe -m scripts.text_input_check
+.\.venv\Scripts\python.exe -m scripts.appearance_check --output verification/review-02/native
+.\.venv\Scripts\python.exe -m scripts.material_state_check
 .\.venv\Scripts\python.exe -m scripts.package_check
 ```
 
@@ -138,6 +140,20 @@ still needs the checks below. Capture can request Screen Recording permission.
   Verify regular text, wrapping, Unicode, transformed editing, masks and exact
   clipboard pixels after a theme switch. Inspect small boards, rounded controls,
   popup navigation and outside-click dismissal.
+- The material-state check uses a separate owned background process. Verify native
+  foreground identity and that the board remains exposed before comparing pixels.
+  Compare focused/unfocused states, all three popups, changes behind open menus,
+  same-turn background change/popup entry, handle recreation and native clipping
+  at normal/minimum sizes. Retain failure captures rather than treating an enabled
+  effect flag as proof of visible material.
+- Record actual native motion frames with policy conditions. The check injects
+  motion only into its own process, tests enabled/reduced paths and saves frames
+  before PNG encoding. Global OS settings stay unchanged. Verify creation,
+  nonactivating restore and popup light catches finish within the bounded period;
+  repeated triggers, theme changes and hide/close must leave no active timers.
+- Help uses two columns on larger logical desktops and one scrolling column on
+  smaller ones. Check every section, the selected H binding, keyboard/mouse menu
+  navigation, visible check/focus states and unclipped text at larger DPI/font sizes.
 - Compare idle CPU/timers, startup, memory, package size, screenshot counters and
   median/p95 paint/input processing on the same fixture/environment. These timings
   measure processing work, not display FPS. Repeat theme/hide cycles and check

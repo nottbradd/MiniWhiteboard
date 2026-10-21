@@ -21,7 +21,7 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v131-candidate/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v131-review02/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     executable = args.executable.resolve()
     results = []

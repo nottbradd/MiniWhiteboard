@@ -1,9 +1,9 @@
 """Rounded temporary surfaces, retaining QMenu's native input and navigation."""
-from PySide6.QtCore import QEvent, QRectF, Qt
-from PySide6.QtGui import QPainter, QPainterPath, QRegion
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRegion
 from PySide6.QtWidgets import QLabel, QMenu, QWidgetAction
 
-from .appearance import corner_radius, interface_font, paint_surface
+from .appearance import Emphasis, corner_radius, interface_font, paint_surface
 
 
 class Surface:
@@ -13,6 +13,7 @@ class Surface:
         self._closing = False
         self.native_glass = False
         self.display_policy = self.desktop.display_policy()
+        self.emphasis = Emphasis(self)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.preferences.appearance_changed.connect(self.dismiss_for_theme)
 
@@ -38,6 +39,7 @@ class Surface:
         self.desktop.release_appearance(self)
 
     def refresh_appearance(self):
+        self.emphasis.stop()
         if isinstance(self, QMenu) and self.platform.shortcuts.mac:
             return
         self.desktop.release_appearance(self)
@@ -73,13 +75,17 @@ class Surface:
             self.desktop.configure_overlay(self, interactive=not bool(
                 self.windowFlags() & Qt.WindowType.WindowDoesNotAcceptFocus))
         self.refresh_appearance()
+        if self.appearance_theme == 'Glass':
+            self.emphasis.start()
 
     def hideEvent(self, event):
+        self.emphasis.stop()
         self.desktop.release_appearance(self)
         self.native_glass = False
         super().hideEvent(event)
 
     def closeEvent(self, event):
+        self.emphasis.stop()
         self.desktop.release_appearance(self)
         super().closeEvent(event)
 
@@ -111,7 +117,7 @@ class Surface:
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         paint_surface(painter, self.paper_rect(), self.appearance_theme, self.native_glass,
-                      self.display_policy, popup=True)
+                      self.display_policy, popup=True, emphasis=self.emphasis.value)
         painter.end()
 
 
@@ -125,12 +131,13 @@ class SurfaceMenu(Surface, QMenu):
         if not platform.shortcuts.mac:
             self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
             self.setStyleSheet(
-                'QMenu { background:transparent; border:0; padding:12px; color:#181b24; }'
-                'QMenu::item { background:transparent; padding:7px 20px; border-radius:9px; }'
-                'QMenu::item:selected { background:rgba(255,255,255,115); color:#123eae; }'
+                'QMenu { background:transparent; border:0; padding:14px; color:#181b24; }'
+                'QMenu::item { background:transparent; min-height:20px; padding:10px 28px 10px 18px; border-radius:10px; }'
+                'QMenu::item:checked { background:rgba(255,255,255,100); }'
+                'QMenu::item:selected { background:rgba(228,238,255,205); color:#123eae; }'
                 'QMenu::item:disabled { color:#616775; }'
-                'QMenu::separator { height:1px; background:rgba(90,105,130,35); margin:7px 4px; }'
-                'QMenu::indicator { width:16px; height:16px; }')
+                'QMenu::separator { height:1px; background:rgba(90,105,130,35); margin:9px 6px; }'
+                'QMenu::indicator { width:0; height:0; }')
 
     def addMenu(self, title):
         if not isinstance(title, str):
@@ -155,7 +162,8 @@ class SurfaceMenu(Surface, QMenu):
             action.setText(title)
             label = QLabel(title)
             label.setFont(interface_font('heading'))
-            label.setStyleSheet('color:#181b24; background:transparent; padding:5px 20px 8px;')
+            label.setMinimumWidth(206)
+            label.setStyleSheet('color:#181b24; background:transparent; padding:8px 18px 12px;')
             action.setDefaultWidget(label)
             self.addAction(action)
         else:
@@ -168,6 +176,19 @@ class SurfaceMenu(Surface, QMenu):
         if not self.platform.shortcuts.mac:
             self.paint_surface()
         super().paintEvent(event)
+        if not self.platform.shortcuts.mac:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            for action in self.actions():
+                if action.isVisible() and action.isChecked():
+                    row = self.actionGeometry(action)
+                    x, y = row.right()-18, row.center().y()
+                    pen = QPen(QColor('#2467f5' if action.isEnabled() else '#737b89'), 2.2)
+                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                    painter.setPen(pen)
+                    painter.drawPolyline([QPointF(x-5,y),QPointF(x-1,y+4),QPointF(x+6,y-4)])
+            painter.end()
 
     def mousePressEvent(self, event):
         if not self.platform.shortcuts.mac and not self.contains_input(event.position()):

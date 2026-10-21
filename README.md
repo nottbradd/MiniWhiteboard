@@ -7,7 +7,7 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-> **V1.3.1 is an unpublished candidate.** It refines Glass, removes OCR and adds
+> **V1.3.1 review 02 is an unpublished candidate.** It refines Glass, removes OCR and adds
 > a saved Windows Hide All alternative. Public downloads below remain V1.3
 > while the new appearance awaits visual approval.
 
@@ -111,12 +111,15 @@ leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the sess
 White is the default. V1.3.1 Glass uses a mostly neutral backing, native frost,
 rounded light-catching edges, subtle highlights and matching temporary surfaces.
 Interface headings are bold; document text and artwork retain their original
-weight, colours and opacity. Windows 11 build 22621+ uses DWM Acrylic; Windows 10,
+weight, colours and opacity. Windows 11 build 22621+ uses a rounded native compositor backdrop; Windows 10,
 unavailable effects and reduced transparency/high contrast use a solid surface.
 Mac uses NSVisualEffectView. This is a Liquid Glass-inspired approximation;
 it does not implement optical refraction or native Apple Liquid Glass.
 OS-owned Mac menus and standard colour/permission dialogs retain native styling.
-Reduced motion disables the brief 140 ms emphasis and feedback fades.
+Temporary menus have roomier rows and a clear selected state. F1 help groups
+shortcuts into two columns when space permits and scrolls on smaller desktops.
+Reduced motion disables the brief 140 ms edge light catch and feedback fades.
+Glass creation, restore and popup presentation never move or fade document content.
 There are no animated backgrounds or desktop-capture loops.
 
 <details>

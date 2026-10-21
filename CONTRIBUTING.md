@@ -84,8 +84,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v131-candidate/Mini Whiteboard/` and
-`build/candidates/v1.3.1/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v131-review02/Mini Whiteboard/` and
+`build/candidates/v1.3.1/review-02/WinMiniWhiteboardV1.3.1.zip`. Keep the entire runtime folder.
 
 Mac:
 
@@ -97,8 +97,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v131-candidate/Mini Whiteboard.app` and
-`build/candidates/v1.3.1/MacMiniWhiteboardV1.3.1-Preview.zip`. This is an unpublished candidate. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v131-review02/Mini Whiteboard.app` and
+`build/candidates/v1.3.1/review-02/MacMiniWhiteboardV1.3.1-Preview.zip`. This is an unpublished candidate. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation
@@ -126,11 +126,18 @@ both runtime filenames and the frozen module archive for removed OCR payload.
 `appearance.py` owns material values and explicit interface font roles. The
 document/editor family helper remains regular and preserves text metrics.
 `surfaces.py` retains QMenu navigation and owns temporary material lifetimes.
-Windows DWM offers discrete OS corner shapes rather than arbitrary radii, so the
-frosted core is inset inside a clear rounded optical edge. Qt paints the rim and
-static highlights; native adapters own frost and release every host/view on hide.
-No desktop capture or idle animation is used for the material. See Microsoft's
-[corner policy](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-rounded-corners).
+On supported Windows 11 systems, a small ABI bridge uses a
+[host backdrop brush](https://learn.microsoft.com/en-us/uwp/api/windows.ui.composition.compositor.createhostbackdropbrush)
+and a rounded compositor clip on a passive HWND. Its bounds/corner centres match
+the Qt surface; one physical pixel of antialias coverage sits under the painted
+rim. This avoids the inset rectangle and stale sampling observed with the DWM
+system Acrylic host. No additional runtime library is required. Qt paints one
+rim and static shading; adapters release native visuals/hosts on hide or handle
+replacement. There is no desktop readback, input polling or idle animation.
+The 140 ms edge light catch runs on Glass show/restore, theme changes and temporary
+surfaces. Repeated triggers retain the original deadline; hide/close cancels it.
+Production follows system motion policy. Native tests can inject a local policy
+without changing accessibility settings or adding a product override.
 Cocoa's OS-owned menus retain native presentation; app-owned palette/help windows
 use the shared surface. Standard OS colour and permission dialogs stay native.
 

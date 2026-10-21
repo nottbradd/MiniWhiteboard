@@ -19,9 +19,9 @@ class ColorPalette(Surface, QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         panel = QFrame()
         grid = QGridLayout(panel)
-        grid.setContentsMargins(20, 16, 20, 16)
-        grid.setHorizontalSpacing(9)
-        grid.setVerticalSpacing(14)
+        grid.setContentsMargins(24, 20, 24, 18)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(18)
         heading = QLabel('Colour')
         heading.setFont(interface_font('heading'))
         heading.setStyleSheet('color:#181b24; background:transparent;')
@@ -35,8 +35,9 @@ class ColorPalette(Surface, QFrame):
         custom.setText("Custom colour…")
         custom.setFont(interface_font('action'))
         custom.setStyleSheet('QToolButton { border:none; border-top:1px solid rgba(90,105,130,30); '
-                            'border-radius:8px; color:#181b24; padding:8px 0 0; background:transparent; }'
-                            'QToolButton:hover { background:rgba(255,255,255,100); }')
+                            'border-radius:9px; color:#181b24; padding:12px 4px 6px; background:transparent; }'
+                            'QToolButton:hover, QToolButton:focus { background:rgba(228,238,255,205); color:#123eae; }')
+        custom.setAccessibleName('Custom colour')
         custom.clicked.connect(self.custom_color)
         grid.addWidget(custom, 3, 0, 1, 7)
         layout.addWidget(panel)
@@ -48,12 +49,16 @@ class ColorPalette(Surface, QFrame):
 
     def swatch(self, color, label):
         button = QToolButton()
-        button.setFixedSize(30, 30)
+        button.setFixedSize(32, 32)
         button.setToolTip(label)
+        button.setAccessibleName(label)
+        button.setCheckable(True)
+        button.setChecked(QColor(color) == QColor(self.canvas.active_color))
         foreground = '#202124' if QColor(color).lightness() > 130 else '#ffffff'
-        border = '2px solid #2467f5' if QColor(color) == QColor(self.canvas.active_color) else '1px solid rgba(60,65,85,40)'
-        button.setStyleSheet(f"QToolButton {{ background:{color}; color:{foreground}; border:{border}; border-radius:15px; }}"
-                             "QToolButton:hover { border:2px solid #ffffff; }")
+        button.setStyleSheet(f"QToolButton {{ background:{color}; color:{foreground}; border:1px solid rgba(60,65,85,40); border-radius:16px; }}"
+                             'QToolButton:checked { border:3px solid #2467f5; }'
+                             'QToolButton:hover { border:3px solid #ffffff; }'
+                             'QToolButton:focus { border:3px dashed #2467f5; }')
         button.clicked.connect(lambda checked=False, c=color: self.choose(c))
         return button
 

@@ -1,10 +1,9 @@
-"""Documented DWM Acrylic on a nonlayered passive host behind Qt's artwork."""
+"""Rounded native compositor material on a passive host behind Qt's artwork."""
 import ctypes as C
 from ctypes import wintypes as W
 import sys
 
 from ...appearance import DisplayPolicy
-from ...settings import RADIUS, SHADOW
 from . import native
 
 
@@ -40,6 +39,7 @@ class BackdropHost:
     """No Qt layered-window backdrop assumptions, input, activation, or timers."""
     def __init__(self, board):
         self.handle = None
+        self.effect = None
         self.owner = int(board.winId())
         global _window_class
         if '_window_class' not in globals():
@@ -47,60 +47,45 @@ class BackdropHost:
         create = native.bind(native.user32, 'CreateWindowExW', W.HWND, W.DWORD,
             W.LPCWSTR, W.LPCWSTR, W.DWORD, C.c_int, C.c_int, C.c_int, C.c_int,
             W.HWND, W.HMENU, W.HINSTANCE, C.c_void_p)
-        # Black client pixels have zero alpha for the extended DWM frame.
-        self.handle = create(0x080000A8, _window_class, 'Mini Whiteboard glass backdrop',
-                             0x80C40000, 0, 0, 1, 1, None, None, None, None)
+        # NOREDIRECTIONBITMAP: this window has only a compositor visual, no GDI
+        # backing rectangle. It is topmost, transparent to input and nonactivating.
+        self.handle = create(0x082000A8, _window_class, 'Mini Whiteboard glass backdrop',
+                             0x80000000, 0, 0, 1, 1, None, None, None, None)
         if not self.handle:
             raise OSError('Cannot create backdrop host.')
         try:
             dwm = C.WinDLL('dwmapi')
             attribute = native.bind(dwm, 'DwmSetWindowAttribute', C.c_long,
                                    W.HWND, W.DWORD, C.c_void_p, W.DWORD)
-            margins = (C.c_int * 4)(-1, -1, -1, -1)
-            extend = native.bind(dwm, 'DwmExtendFrameIntoClientArea', C.c_long, W.HWND, C.c_void_p)
-            for identifier, value in ((2, 2), (20, 0), (33, 2), (34, 0xFFFFFFFE), (38, 3)):
-                number = C.c_int(value)
-                if attribute(self.handle, identifier, C.byref(number), C.sizeof(number)) < 0:
-                    raise OSError('DWM backdrop unavailable.')
-            if extend(self.handle, C.byref(margins)) < 0:
-                raise OSError('DWM frame unavailable.')
-            native.bind(native.user32, 'SendMessageW', C.c_ssize_t, W.HWND, W.UINT, W.WPARAM, W.LPARAM)(self.handle, 0x0086, 1, 0)
+            enabled = W.BOOL(True)
+            # DWMWA_USE_HOSTBACKDROPBRUSH, supported on Windows 11. Unlike the
+            # system Acrylic backdrop this brush has an explicit rounded clip.
+            if attribute(self.handle, 17, C.byref(enabled), C.sizeof(enabled)) < 0:
+                raise OSError('DWM host backdrop unavailable.')
+            from .composition import RoundedBackdrop
+            self.effect = RoundedBackdrop(self.handle)
         except Exception:
             self.close()
             raise
-        self.region_key = None
 
     def sync(self, board):
         rect = board.physical_paper_rect()
         scale = board.devicePixelRatioF()
-        # DWM controls its own discrete corner radius and ignores arbitrary
-        # HRGN clipping for the system backdrop. Keep its frosted core strictly
-        # inside our larger rounded optical edge instead of leaking square
-        # backdrop pixels through transparent corners. The outer edge stays clear.
-        from math import ceil, sqrt
-        inset = ceil(max(0, board.corner_radius()-8)*(1-1/sqrt(2))) + 1
-        rect = rect.expanded(-round(inset*scale))
-        dimensions = round(rect.width), round(rect.height), round(8 * scale)
+        dimensions = round(rect.width), round(rect.height)
         if not native.user32.SetWindowPos(self.handle, self.owner, round(rect.x), round(rect.y),
                                           dimensions[0], dimensions[1], 0x0050):
             raise OSError('Cannot place backdrop.')
-        if dimensions != self.region_key:
-            gdi = C.WinDLL('gdi32')
-            create_region = native.bind(gdi, 'CreateRoundRectRgn', W.HRGN,
-                C.c_int, C.c_int, C.c_int, C.c_int, C.c_int, C.c_int)
-            region = create_region(0, 0, dimensions[0]+1, dimensions[1]+1,
-                                   dimensions[2]*2, dimensions[2]*2)
-            if not region:
-                raise OSError('Cannot clip backdrop.')
-            if not native.bind(native.user32, 'SetWindowRgn', C.c_int, W.HWND, W.HRGN, W.BOOL)(self.handle, region, True):
-                native.bind(gdi, 'DeleteObject', W.BOOL, W.HGDIOBJ)(region)
-                raise OSError('Cannot clip backdrop.')
-            self.region_key = dimensions
+        self.effect.resize(*dimensions, board.corner_radius()*scale)
 
     def close(self):
         if self.handle:
-            native.bind(native.user32, 'DestroyWindow', W.BOOL, W.HWND)(self.handle)
-            self.handle = None
+            try:
+                if self.effect is not None:
+                    self.effect.close()
+                    self.effect = None
+            finally:
+                native.bind(native.user32, 'DestroyWindow', W.BOOL, W.HWND)(self.handle)
+                self.handle = None
 
 
 def _register_class():
