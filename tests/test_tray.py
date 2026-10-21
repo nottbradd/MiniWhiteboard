@@ -61,10 +61,11 @@ class TrayTests(QtCase):
     def test_hotkey_failure_shows_warning_and_can_retry(self):
         with patch("mini_whiteboard.windows.NativeHotkeys", FakeNativeHotkeys), \
              patch.object(FakeNativeHotkeys, "start", side_effect=OSError("in use")), \
-             patch("mini_whiteboard.app.QMessageBox.warning") as warning:
+             patch.object(WhiteboardApplication, 'notify') as warning:
             controller = WhiteboardApplication(APP)
             APP.processEvents()
             self.assertTrue(warning.called)
+            self.assertIn('in use', warning.call_args[0][0])
             controller.rebuild_menu()
             self.assertIn("Retry global shortcut", [a.text() for a in controller.menu.actions()])
         controller.retry_hotkey()

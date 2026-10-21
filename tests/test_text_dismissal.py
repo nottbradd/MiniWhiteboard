@@ -108,22 +108,29 @@ class TextDismissalTests(CanvasCase):
         self.canvas.document.redo()
         self.assertEqual(self.canvas.document.objects, (first, last))
 
-    def test_meaningful_text_retains_whitespace_and_single_click_continuation(self):
+    def test_meaningful_outside_click_commits_and_deselects_without_replacement(self):
         editor, _ = self.draft("  words\t\n next  ")
         obj = self.canvas.editing_object
         self.outside()
         self.assertEqual(self.canvas.document.objects[0].text, "  words\t\n next  ")
         self.assertEqual(self.canvas.document.objects[0].id, obj.id)
         self.assertEqual(self.canvas.document.index, 1)
-        self.assertIsNotNone(self.canvas.editor)
-        self.assertIsNot(self.canvas.editor, editor)
+        self.assertIsNone(self.canvas.editor)
+        self.assertEqual(self.canvas.selected_ids, set())
+        self.assertIsNone(self.canvas.frame)
+        QTest.mouseClick(self.canvas, Qt.MouseButton.LeftButton, pos=QPoint(40, 270))
+        self.settle()
         self.assertEqual(self.canvas.editing_object.position, (40, 270))
 
-    def test_meaningful_continuation_can_edit_existing_text(self):
+    def test_dismissal_over_existing_text_requires_a_separate_click_to_edit(self):
         other = Text((40, 270), "other")
         self.canvas.document.add(other)
         self.draft("first")
         self.outside(QPoint(55, 280))
+        self.assertIsNone(self.canvas.editor)
+        self.assertEqual(self.canvas.selected_ids, set())
+        QTest.mouseClick(self.canvas, Qt.MouseButton.LeftButton, pos=QPoint(55, 280))
+        self.settle()
         self.assertEqual(self.canvas.editing_object, other)
         self.assertEqual(self.canvas.editor.toPlainText(), "other")
         self.assertEqual(len(self.canvas.document.objects), 2)
@@ -155,7 +162,7 @@ class TextDismissalTests(CanvasCase):
         self.assertEqual(len(self.canvas.document.objects), 1)
         self.assertIsInstance(self.canvas.document.objects[0], Text)
 
-    def test_nonempty_text_continuation_cannot_start_a_transform_handle(self):
+    def test_nonempty_dismissal_cannot_start_a_transform_handle(self):
         obj = Text((80, 120), "word", size=28, layout_width=120)
         self.canvas.document.add(obj)
         self.canvas.set_tool("Text")
@@ -166,7 +173,8 @@ class TextDismissalTests(CanvasCase):
         self.outside(point, drag=True)
         self.assertEqual(self.canvas.document.objects[0], obj)
         self.assertEqual(self.canvas.document.index, 1)
-        self.assertIsNotNone(self.canvas.editor)
+        self.assertIsNone(self.canvas.editor)
+        self.assertIsNone(self.canvas.frame)
 
     def test_repeated_fast_dismissals_leave_no_editors_or_history(self):
         from mini_whiteboard.text_editor import EditorOverlay
@@ -202,6 +210,22 @@ class TextDismissalTests(CanvasCase):
         self.settle()
         self.assertIs(self.canvas.editor, new)
         self.assertEqual([obj.text for obj in self.canvas.document.objects], ["first"])
+
+    def test_native_style_double_click_retargeted_to_canvas_does_not_reopen_text(self):
+        from mini_whiteboard.document import Text
+        obj = Text((40, 270), 'target under outside click')
+        self.canvas.document.add(obj)
+        self.draft('commit this')
+        overlay = self.canvas.editor_overlay
+        QTest.mouseClick(overlay.viewport(), Qt.MouseButton.LeftButton, pos=QPoint(45, 275))
+        self.settle()
+        self.assertIsNone(self.canvas.editor)
+        QTest.mouseDClick(self.canvas, Qt.MouseButton.LeftButton, pos=QPoint(45, 275))
+        QTest.mouseRelease(self.canvas, Qt.MouseButton.LeftButton, pos=QPoint(45, 275))
+        self.settle()
+        self.assertIsNone(self.canvas.editor)
+        self.assertIsNone(self.canvas.gesture)
+        self.assertEqual(self.canvas.selected_ids, set())
 
     def test_controls_and_other_boards_receive_one_click(self):
         self.draft()
@@ -324,7 +348,7 @@ class TextDismissalTests(CanvasCase):
         self.assertIsNone(self.canvas.editor)
         self.assertEqual(self.canvas.document.objects, (obj,))
 
-    def test_panned_text_continuation_maps_to_the_canvas_not_the_scene(self):
+    def test_panned_text_dismissal_then_separate_canvas_click(self):
         obj = Text((10, 10), "wrapped line\n"*70, layout_width=95,
                    transform=translation(140, 35) @ rotation(15) @ Affine(a=1.2, d=1.2))
         self.canvas.document.add(obj)
@@ -336,6 +360,10 @@ class TextDismissalTests(CanvasCase):
         self.assertNotEqual(view.mapToScene(point).toPoint(), point)
         self.outside(point)
         self.assertEqual(self.canvas.document.objects, (obj,))
+        self.assertIsNone(self.canvas.editor)
+        self.assertEqual(self.canvas.selected_ids, set())
+        QTest.mouseClick(self.canvas, Qt.MouseButton.LeftButton, pos=point)
+        self.settle()
         self.assertEqual(self.canvas.editing_object.position, (600, 50))
         self.assertEqual(self.canvas.editor.toPlainText(), "")
 

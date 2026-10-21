@@ -12,6 +12,35 @@ from ..base import Platform, QtDesktop, QtRuntime
 
 
 class WindowsDesktop(QtDesktop):
+    def display_policy(self):
+        from .appearance import display_policy
+        return display_policy()
+
+    def apply_appearance(self, board):
+        from .appearance import BackdropHost, capable
+        if board.canvas.preferences.theme != 'Glass' or not capable(board.display_policy):
+            self.release_appearance(board)
+            return False
+        try:
+            host = getattr(board, '_backdrop', None)
+            if host is not None and host.owner != int(board.winId()):
+                self.release_appearance(board)
+                host = None
+            if host is None:
+                board._backdrop = host = BackdropHost(board)
+            if board.isVisible():
+                host.sync(board)
+            return True
+        except (OSError, AttributeError):
+            self.release_appearance(board)
+            return False
+
+    def release_appearance(self, board):
+        host = getattr(board, '_backdrop', None)
+        if host is not None:
+            host.close()
+            board._backdrop = None
+
     @property
     def paints_shadow(self):
         return not native.IS_WINDOWS
@@ -44,6 +73,27 @@ class WindowsDesktop(QtDesktop):
     def focus_window(self, widget):
         native.focus_window(widget)
 
+    def show_without_activating(self, widget):
+        super().show_without_activating(widget)
+        if native.IS_WINDOWS:
+            show = native.bind(native.user32, 'ShowWindow', W.BOOL, W.HWND, C.c_int)
+            show(int(widget.winId()), 4)  # SW_SHOWNOACTIVATE
+            native.user32.SetWindowPos(int(widget.winId()), W.HWND(-1), 0, 0, 0, 0, 0x0013)
+
+    def board_order(self, boards):
+        if not native.IS_WINDOWS:
+            return list(boards)
+        lookup = {int(board.winId()): board for board in boards}
+        result = []
+        callback_type = C.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
+        @callback_type
+        def visit(handle, _):
+            if int(handle) in lookup:
+                result.append(lookup[int(handle)])
+            return True
+        native.bind(native.user32, 'EnumWindows', W.BOOL, callback_type, W.LPARAM)(visit, 0)
+        return list(reversed(result))
+
     def paper_rect(self, board):
         dpr = board.devicePixelRatioF()
         pad = round(SHADOW*dpr)/dpr
@@ -66,10 +116,26 @@ class WindowsDesktop(QtDesktop):
             board._region_key = key
             native.clip_window_to_paper(board, round(SHADOW*scale), round(RADIUS*scale))
         board._shadow.sync()
+        if getattr(board, '_backdrop', None) is not None:
+            try:
+                board._backdrop.sync(board)
+            except OSError:
+                self.release_appearance(board)
+                board.native_glass = False
+                board.update()
 
     def native_event(self, board, event_type, message):
         if native.IS_WINDOWS and bytes(event_type) == b"windows_generic_MSG":
             msg = W.MSG.from_address(int(message))
+            if msg.message in (0x001A, 0x031A, 0x031E):
+                board.refresh_appearance()
+            if msg.message == 0x0047 and getattr(board, '_backdrop', None) is not None:
+                try:
+                    board._backdrop.sync(board)
+                except OSError:
+                    self.release_appearance(board)
+                    board.native_glass = False
+                    board.update()
             if msg.message == 0x0084:
                 x = C.c_short(msg.lParam & 0xffff).value
                 y = C.c_short((msg.lParam >> 16) & 0xffff).value

@@ -8,7 +8,7 @@ Qt-delivered. Mark each unperformed check **NOT RUN**. Current results belong in
 
 ## Automated and native checks
 
-The portable suite uses Qt offscreen and fake platform services.
+The GUI suite uses Qt offscreen and fake platform services; real OCR tests also exercise the installed platform engine.
 `scripts.run_tests` runs the complete suite with a 300-second diagnostic watchdog.
 It does not establish native focus, global shortcuts, permissions or display behaviour.
 
@@ -66,8 +66,10 @@ still needs the checks below. Capture can request Screen Recording permission.
   separate click immediately starts one editor; redo survives a discarded draft.
 - Clear existing text to whitespace, finish and undo/redo. Exact text, width,
   transforms, masks, colour and order return. Meaningful whitespace is preserved.
-- Commit nonempty text and start/edit the next textbox in Text mode with one
-  outside click. Dismissing into Draw/Shape/Eraser/Select must not start an action.
+- Dismiss nonempty text with an outside click: it commits, deselects and leaves
+  no editor or transform frame. A separate next click creates/edits one textbox.
+  Repeat a full native double-click retargeted from the old overlay to the canvas;
+  no drawing/shape/erase/transform action may start.
 - Check Escape and Ctrl+Enter / Command+Return, repeated finish callbacks, outside
   controls, another board and a disposable other app. Each clicked target acts once.
 - Right-click inside the real editor. Copy/paste and dismiss its menu without
@@ -104,6 +106,35 @@ still needs the checks below. Capture can request Screen Recording permission.
 - Minimize retains contents/history; restore returns the same board and focus.
   Closing the last board keeps the tray/menu alive; Exit/Quit clears all resources.
   Launch twice: one owner. Observe idle CPU for at least 60 seconds.
+
+### Hide All, appearance and OCR
+
+- H with mixed visible/minimized boards records only the visible set. Check held
+  repeats, each release order, no-board/all-minimized cases, individual restore
+  followed by minimize, deletion and a new board during the hidden batch.
+- Restore with another owned app focused: its foreground and keyboard focus must
+  stay unchanged, including after queued callbacks settle. Check every board's
+  geometry, selection, content/history and normal clicking afterward.
+- Hide active text, previews, transforms, help, palettes, menus, animations and OCR.
+  No late popup/result, shadow, native host, mouse grab or activation timer may remain.
+- White is the first-launch default. Persist Glass, switch existing/new boards and
+  compare source PNG bytes, document state, masks and clipboard artwork output.
+- Verify actual Windows frost with an owned changing bright/dark/busy background;
+  successful API calls or offscreen renders alone do not prove blur. Check native
+  failure/unsupported-system fallback, reduced transparency/motion and high contrast.
+- OCR locked screenshots and explicit/selected images. Review/correct multiline
+  text; only Copy changes clipboard, only Insert adds one wrapped text action.
+  Check exact undo/redo, long results, source change/removal, no text, corruption,
+  unsupported language, missing data, queue limits, cancellation, timeout and exit.
+- Run `scripts.ocr_check` against source and the frozen executable. It uses exact
+  clean/dark/transparent fixtures, restricted PATH, an invalid external data path,
+  spaces/Unicode in temporary paths and a Python socket audit guard. Native engine
+  imports/data are bundled; a clean machine disconnected from a network is a
+  separate acceptance check. Real-world recognition errors must be reported.
+- Compare idle CPU/timers, startup, memory, package size, screenshot counters and
+  median/p95 paint/input processing on the same fixture/environment. These timings
+  measure processing work, not display FPS. Repeat OCR/theme/hide cycles and check
+  process/widget/native resources return to a stable count.
 
 ## Platform and hardware acceptance
 

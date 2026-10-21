@@ -1,4 +1,4 @@
-name: macOS V1.2.1
+name: macOS V1.3
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: macos-v121-${{ github.ref }}
+  group: macos-v13-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -84,6 +84,11 @@ jobs:
         run: |
           "$MINIWHITEBOARD_PYTHON" -m scripts.macos_startup_check
 
+      - name: Verify offline source and packaged Vision OCR
+        run: |
+          "$MINIWHITEBOARD_PYTHON" -m scripts.ocr_check --output verification/macos-source-ocr.json
+          "$MINIWHITEBOARD_PYTHON" -m scripts.ocr_check --executable 'dist/macos-v13/Mini Whiteboard.app/Contents/MacOS/Mini Whiteboard' --output verification/macos-frozen-ocr.json
+
       - name: Create and verify the Mac ZIP with ditto
         run: |
           "$MINIWHITEBOARD_PYTHON" -m scripts.macos_package_release
@@ -95,8 +100,8 @@ jobs:
       - name: Upload the verified tester ZIP
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: MacMiniWhiteboardV1.2.1
-          path: build/releases-v1.2.1/MacMiniWhiteboardV1.2.1.zip
+          name: MacMiniWhiteboardV1.3
+          path: build/releases-v1.3/MacMiniWhiteboardV1.3.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -105,7 +110,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: macos-v1.2.1-verification
+          name: macos-v1.3-verification
           path: verification/
           if-no-files-found: warn
           retention-days: 30

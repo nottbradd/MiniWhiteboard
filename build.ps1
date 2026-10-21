@@ -1,5 +1,5 @@
 param([string]$Python = "$PSScriptRoot\.venv\Scripts\python.exe",
-      [string]$DistPath = 'dist\windows-v121')
+      [string]$DistPath = 'dist\windows-v13')
 $ErrorActionPreference = 'Stop'
 Push-Location -LiteralPath $PSScriptRoot
 try {
@@ -14,7 +14,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed.' }
     & $Python -m scripts.make_version
     if ($LASTEXITCODE -ne 0) { throw 'Version resource generation failed.' }
-    & $Python -m unittest discover -v
+    & $Python -m scripts.run_tests
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed; build stopped.' }
     # OneDrive can mark generated directories read-only. PowerShell's -Force
     # handles those attributes when replacing a previous distribution.
@@ -33,7 +33,7 @@ try {
         }
         Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
     }
-    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v121'
+    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v13'
     if (Test-Path -LiteralPath $buildWorkOutput) {
         $resolvedBuildWork = (Resolve-Path -LiteralPath $buildWorkOutput).Path
         if (-not $resolvedBuildWork.StartsWith($workspaceRoot, [StringComparison]::OrdinalIgnoreCase)) {

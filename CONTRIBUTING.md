@@ -42,6 +42,8 @@ have different Screen Recording permission identities.
 | `canvas.py`, `text_editor.py` | Tool gestures, selection, focus routing and transformed plain-text editing |
 | `rendering.py`, `scene.py`, `background.py` | Shaped text/painted geometry, cached bounds, sparse previews, dirty painting and screenshot display cache |
 | `editing_actions.py`, `clipboard.py`, `snapping.py` | Shared commands, validated editable MIME and alignment |
+| `ocr.py`, `ocr_worker.py`, `ocr_panel.py` | Bounded process queue, immutable image input, offline adapters and explicit result review |
+| `appearance.py`, native appearance adapters | Shared style values, accessibility policy and passive compositor effects |
 | `tests/`, `scripts/` | Portable regressions, opt-in native checks and package validation |
 
 Shared tools and document logic belong outside native adapters. Portable tests
@@ -59,7 +61,7 @@ Keep these invariants covered:
   Finish callbacks belong to one session. Embedded popup menus retain the editor.
 - A new blank/whitespace draft changes no document history or redo branch.
   Clearing existing text is one deletion. Canvas dismissal consumes that press;
-  meaningful Text-mode continuation is routed once using viewport/global coordinates.
+  every outside canvas dismissal deselects and consumes the complete click, including a retargeted double-click. A separate click can start editing.
 - One gesture commits one document action. Escape restores the captured state.
   Selection and previews stay outside history. Object identity, original image
   bytes, masks, text width and stacking survive transforms/undo.
@@ -69,7 +71,7 @@ Keep these invariants covered:
 - Annotation work reuses the original locked screenshot's display cache at
   viewport × DPR. It must not decode/resample source pixels per pointer event.
 - Last-board close leaves the utility running. Documents remain session-only;
-  only guide/grid/shortcut preferences persist.
+  only guide/grid/shortcut/appearance preferences persist.
 
 ## Tests and builds
 
@@ -83,8 +85,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v121/Mini Whiteboard/` and
-`build/releases-v1.2.1/WinMiniWhiteboardV1.2.1.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v13/Mini Whiteboard/` and
+`build/releases-v1.3/WinMiniWhiteboardV1.3.zip`. Keep the entire runtime folder.
 
 Mac:
 
@@ -96,8 +98,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v121/Mini Whiteboard.app` and
-`build/releases-v1.2.1/MacMiniWhiteboardV1.2.1.zip`. Rename the ZIP with
+Output: `dist/macos-v13/Mini Whiteboard.app` and
+`build/releases-v1.3/MacMiniWhiteboardV1.3.zip`. Rename the ZIP with
 `-Preview` for public preview downloads without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
@@ -114,8 +116,28 @@ automated startup does not establish interactive Mac acceptance.
 
 `APP_VERSION` is the application version. Generate Windows resources with
 `scripts.make_version`; patch versions have four numeric Windows components
-(for example 1.2.1.0). Keep Mac plist versions, defaults, download names and checks
+(for example 1.3.0.0). Keep Mac plist versions, defaults, download names and checks
 consistent. Use a fresh versioned staging directory to preserve earlier packages.
+
+OCR is lazy: the GUI process does not import Tesseract or Vision. One worker
+process handles each immutable image snapshot; cancellation kills only that owned
+process. Results are queued to the GUI and checked against request, source object
+identity and board visibility. Keep Python worker streams optional: the windowed
+executable uses bounded temporary request/result files, removed after its process
+has exited. Do not log OCR images or text.
+
+Windows development/builds use Python **3.12 x64** for the pinned standalone OCR
+wheel. `requirements.txt` pins its URL and SHA-256. Mac uses the pinned Vision
+bridge from `requirements-macos.txt`. Run `python -m scripts.ocr_check` for the
+actual source engine, and pass `--executable` with the built EXE or Mac bundle's
+`Contents/MacOS/Mini Whiteboard` for the restricted-path frozen diagnostic. It
+blocks Python socket operations; it does not simulate a clean, physically offline
+machine. `assets/ocr/MANIFEST.json` pins every Windows OCR binary and model hash.
+
+Hide All is separate from ordinary focused restore. Keep native nonactivation,
+restore-batch membership, stopped activation timers and transient cleanup covered.
+Glass is a background compositor effect; never animate whole-window opacity or
+capture the desktop to fake blur. Native adapters own effect/view cleanup.
 
 Both build scripts stage dependency notices before packaging; package checkers
 verify their manifest. See [dependency sources and rebuilding](assets/licenses/SOURCES.md).

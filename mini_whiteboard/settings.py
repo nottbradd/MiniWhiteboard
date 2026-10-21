@@ -54,6 +54,9 @@ TOOL_KEYS = {"D": "Draw", "T": "Text", "S": "Shape", "A": "Select", "V": "Select
 SHORTCUT_REFERENCE = f"""<b>Mini Whiteboard · Version {APP_VERSION}</b><br>
 Ctrl+Alt+W — hold at first corner → move → release to place<br>
 Ctrl+Alt+S — hold → move → release for screenshot board · Esc cancels<br><br>
+Ctrl+Alt+H — Hide All / Restore All without taking focus<br>
+Tray → Appearance: White (default) / Glass<br>
+Right-click an image → Extract Text · offline English · review / Copy / Insert<br><br>
 <b>D</b> Draw · 1–5: 2 / 4 / 6 / 9 / 14 px<br>
 <b>T</b> Text · 1–3: 14 / 20 / 28 pt (finish editing first)<br>
 <b>S</b> Shapes · 1 Rectangle · 2 Rounded rectangle · 3 Ellipse<br>
@@ -82,7 +85,8 @@ Esc — cancel interaction / clear selection · F1 — toggle this reference<br>
 Text wraps to its stored width. Tool letters, C and numbers type normally.<br>
 Enter adds a real new line; soft wraps leave the text unchanged.<br>
 Ctrl+Enter / Esc / click outside — finish editing.<br>
-Blank text dismisses without creating a replacement. Click again to insert.<br>
+Every outside click finishes and deselects text. Click separately to insert/edit.<br>
+Blank drafts disappear without history; clearing existing text is undoable.<br>
 Double-click text to edit. Text undo stays inside the editor.<br><br>
 Drag the empty top edge to move; edges/corners to resize the board.<br>
 − hides to tray · × deletes this board · tray menu exits the application.

@@ -1,6 +1,6 @@
 """Controllable platform services with no native global registration or capture."""
 from mini_whiteboard.platform.base import (Platform, QtDesktop, QtRuntime, Display,
-                                         HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY)
+                                         HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY)
 from mini_whiteboard.geometry import Rect
 from mini_whiteboard.shortcuts import ShortcutPolicy
 
@@ -29,7 +29,7 @@ class FakeHotkeys:
         self.preset = preset
 
     def start(self):
-        self.registered.update((CREATE_HOTKEY, CAPTURE_HOTKEY))
+        self.registered.update((CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY))
 
     def enable_escape(self):
         self.escape = True

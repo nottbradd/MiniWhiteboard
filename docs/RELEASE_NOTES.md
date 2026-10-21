@@ -1,5 +1,55 @@
 # Release notes
 
+## V1.3
+
+- Every outside textbox click now finishes editing and deselects it. The same
+  press/release/double-click cannot start another editor or tool action. A separate
+  click can create/edit text. Blank drafts preserve history/redo; clearing existing
+  text remains one deletion. Keyboard finish retains useful selection/presets.
+- Added global saved **White / Glass** appearance. Windows 11 22621+ uses native
+  DWM Acrylic behind the artwork; Mac uses NSVisualEffectView. Unsupported effects,
+  reduced transparency and high contrast use a solid readable fallback. Artwork,
+  original image pixels, masks, geometry and clipboard output remain unchanged.
+- Brief 140 ms top-edge emphasis and feedback fades respect reduced motion.
+  Hide is immediate. No animated backgrounds, idle repaint or desktop-capture loop.
+- Added offline **Extract Text…** for existing images, including locked screenshots.
+  Review/correct, then explicitly Copy or Insert as wrapped text. Insertion is one
+  undo action. Windows bundles Tesseract 5.5.3 and English data; Mac uses Vision.
+  English is the guaranteed language. OCR is fallible and never automatically
+  changes clipboard or document. Original-resolution input is rectified from display
+  transforms, masked/clipped, composited on white and normalized for dark backgrounds.
+- Added **Ctrl+Alt+H** / **Control+Option+H** Hide All / Restore All. Only the visible
+  recorded batch returns; manually minimized, individually restored/deleted and new
+  boards follow the rules in README. Restore preserves the foreground application.
+  Conflict warnings are nonblocking and retain working W/S bindings.
+- OCR has one process plus one queued request across the app, a 20-second timeout,
+  16-million-pixel/32-MiB input and 100,000-character output limits. Hide/close,
+  source changes and cancellation invalidate results and stop owned worker processes.
+
+### Verification and limitations
+
+Windows source checks: 235 tests discovered, 233 passed and two Mac-only symlink
+checks skipped. The final Windows executable passed 34 packaged checks and exact OCR for all
+three clean/dark/transparent fixtures with restricted PATH and the socket audit guard.
+Actual Windows captures verify native background-dependent frost
+and unchanged opaque ink. Thirty theme/hide cycles returned to the same GDI/user
+resource counts. Real OCR matches clean printed multiline, punctuation, number,
+URL, dark and transparent fixtures exactly; scaled/rotated/masked fixtures and
+service cancellation/limits are covered. Difficult layouts and handwriting can
+still produce recognition errors.
+
+On this machine another application already owns Ctrl+Alt+H (Windows error 1409).
+The actual default conflict path preserves W/S. Native H dispatch, held repeats,
+release orders and external-focus restore passed using a temporary
+Ctrl+Alt+Shift+H test binding; the shipped Windows binding remains Ctrl+Alt+H.
+The original failed default-binding test is retained in local verification records.
+
+Mac remains a preview. Interactive Glass, native shortcuts/focus, Screen Recording
+permissions, Spaces, Retina and physical multi-monitor behaviour remain **NOT RUN**.
+Execution on macOS 14 and Intel hardware, Windows 10, clean-machine disconnected
+operation and physical mixed-DPI testing are also **NOT RUN**. Restricted-path OCR
+checks with a Python network audit guard are separate from clean-machine testing.
+
 ## V1.2.1
 
 Windows bug-fix release with a clearly labelled macOS 14+ preview.

@@ -1,0 +1,81 @@
+{
+  "wheel_url": "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.11.0-tesseract-5.5.3/tesserocr-2.11.0-cp312-cp312-win_amd64.whl",
+  "wheel_sha256": "74604b65547b6e988dcdab0d6d7366964ec588a9fd28a526b2ca9b9f8b8d3dea",
+  "architecture": "AMD64",
+  "tesserocr": "2.11.0",
+  "tesseract": "5.5.3",
+  "leptonica": "1.87.0",
+  "cysignals": "1.12.6",
+  "files": [
+    {
+      "path": "tesserocr/leptonica-1.87.0.dll",
+      "sha256": "d51863d4ff9c528af568e231b6fab0a59b7ce55167c4b13d8f9bae2d743c89a2",
+      "bytes": 3224576
+    },
+    {
+      "path": "tesserocr/org.sw.demo.facebook.zstd.zstd-1.5.7.dll",
+      "sha256": "61c8ecaed0d8386a6f84a711ac63e069a8a3096daf0ec9df5457809b098b0be1",
+      "bytes": 559616
+    },
+    {
+      "path": "tesserocr/org.sw.demo.gif-6.1.3.dll",
+      "sha256": "529ae0751b83f99fa353d4a71613f0498fa053fb2b7391727de8810781480cb7",
+      "bytes": 48640
+    },
+    {
+      "path": "tesserocr/org.sw.demo.glennrp.png-1.6.58.dll",
+      "sha256": "c884af3aca5164f5457a452718a05f6829adb08b548db0195ad29cd10fbf2c74",
+      "bytes": 197632
+    },
+    {
+      "path": "tesserocr/org.sw.demo.jpeg-10.0.0.dll",
+      "sha256": "2811963786652f3720ee6977678214e66a79d350929ca37ffeafe87835bab08b",
+      "bytes": 305664
+    },
+    {
+      "path": "tesserocr/org.sw.demo.madler.zlib-1.3.2.dll",
+      "sha256": "0ff27d83f44654de45c568505e842ba994256cd9ae1ea0febbb961c33c80a55a",
+      "bytes": 90112
+    },
+    {
+      "path": "tesserocr/org.sw.demo.tiff-4.7.1.dll",
+      "sha256": "c0a29f23c90a9a0c15b3ba189f298ac9c880dcf68f3c2d81c4b801ecead30d08",
+      "bytes": 506880
+    },
+    {
+      "path": "tesserocr/org.sw.demo.uclouvain.openjpeg.openjp2-2.5.4.dll",
+      "sha256": "1eb5645d662f54669c6adaffb0004a864eee1cf3f09e097612b18a6421b0f0f2",
+      "bytes": 357376
+    },
+    {
+      "path": "tesserocr/org.sw.demo.webmproject.webp-1.6.0.dll",
+      "sha256": "cfecc98f20c227ac74999368baed864205b963b1482c0d14eeec3fca8f31155a",
+      "bytes": 564736
+    },
+    {
+      "path": "tesserocr/org.sw.demo.xz_utils.lzma-5.8.3.dll",
+      "sha256": "58f63fbc92b82662a45fc21e393e7d0548cc792b6db63e499126bd650b31fe0b",
+      "bytes": 183296
+    },
+    {
+      "path": "tesserocr/tesseract55.dll",
+      "sha256": "cd8ac2e94618b012539415b4ffac02433d183dbf23e89a65a6cde7d8c0773904",
+      "bytes": 2903552
+    },
+    {
+      "path": "tesserocr/tesserocr.cp312-win_amd64.pyd",
+      "sha256": "d05804f3610046c328433d29000724e5edc1f7eec0d4ce21734f254262b538fb",
+      "bytes": 424448
+    },
+    {
+      "path": "tesserocr/cysignals/signals.cp312-win_amd64.pyd",
+      "sha256": "6b31a83edc14a1e8cd5a4c95caa8aecd32d5f01e758545fbfb8b04c27f2a6f14",
+      "bytes": 66048
+    }
+  ],
+  "data": {
+    "path": "eng.traineddata",
+    "source": "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/4.1.0/eng.traineddata",
+    "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+  }
+}

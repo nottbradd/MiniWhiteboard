@@ -11,6 +11,8 @@ from PySide6.QtGui import QGuiApplication
 from ...geometry import Rect
 from ..base import HotkeyEvents
 from ..hold import HoldTracker
+from ..toggle import ToggleLatch
+from ..base import HIDE_HOTKEY
 
 IS_WINDOWS = sys.platform == "win32"
 WM_HOTKEY = 0x0312
@@ -190,6 +192,9 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         self.events = HotkeyEvents()
         self.registered = set()
         self.hold = HoldTracker(app, self.events, self.sample)
+        self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
+                                      lambda: bool(user32.GetAsyncKeyState(ord('H')) & 0x8000))
+        self.hide_latch.released.connect(lambda: self.record_release(HIDE_HOTKEY))
         self.last_activation = {}
         self.last_release = {}
         self.events.create_released.connect(lambda: self.record_release(CREATE_HOTKEY))
@@ -216,7 +221,7 @@ class NativeHotkeys(QAbstractNativeEventFilter):
 
     def start(self):
         failures = []
-        for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S")):
+        for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"), (HIDE_HOTKEY, "H")):
             try:
                 self.register(identifier, 0x0001 | 0x0002, ord(key))
             except OSError as error:
@@ -255,13 +260,17 @@ class NativeHotkeys(QAbstractNativeEventFilter):
                     stamp = (msg.time, msg.lParam)
                     if self.last_activation.get(msg.wParam) != stamp:
                         self.last_activation[msg.wParam] = stamp
-                        self.hold.activate(msg.wParam)
+                        if msg.wParam == HIDE_HOTKEY:
+                            self.hide_latch.activate()
+                        else:
+                            self.hold.activate(msg.wParam)
                 return True, 0
         return False, 0
 
     def close(self):
         self.events.cancel.emit()
         self.hold.close()
+        self.hide_latch.close()
         for identifier in tuple(self.registered):
             user32.UnregisterHotKey(None, identifier)
         self.registered.clear()

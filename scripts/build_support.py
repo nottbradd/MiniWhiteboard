@@ -1,5 +1,6 @@
 """Shared PyInstaller policy for the desktop widget application."""
 from pathlib import Path
+import sys
 
 
 def configure_qt_plugins():
@@ -55,3 +56,28 @@ def verify_release_files(root):
         raise RuntimeError('Unused Qt products found in package: ' + ', '.join(unexpected))
     return {'license_files': len(report['files']), 'licenses_verified': True,
             'unused_qt_products_absent': True}
+
+
+def verify_ocr_runtime(root):
+    import hashlib
+    import json
+    root = Path(root)
+    if sys.platform == 'win32':
+        resources = next(root.rglob('assets/ocr/MANIFEST.json'), None)
+        if resources is None:
+            raise RuntimeError('Missing bundled OCR resources.')
+        ocr = json.loads(resources.read_text(encoding='utf-8'))
+        data = resources.parent / ocr['data']['path']
+        if hashlib.sha256(data.read_bytes()).hexdigest() != ocr['data']['sha256']:
+            raise RuntimeError('English OCR data hash mismatch.')
+        for entry in ocr['files']:
+            matches = [path for path in root.rglob(Path(entry['path']).name) if path.is_file()]
+            if not matches or any(hashlib.sha256(path.read_bytes()).hexdigest() != entry['sha256'] for path in matches):
+                raise RuntimeError('OCR binary missing or changed: ' + entry['path'])
+            import pefile
+            for path in matches:
+                binary = pefile.PE(str(path), fast_load=True)
+                if binary.FILE_HEADER.Machine != 0x8664:
+                    raise RuntimeError('OCR needs x64 binaries: ' + entry['path'])
+                binary.close()
+    return True

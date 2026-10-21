@@ -215,6 +215,11 @@ class EditingActions:
         if hit and not hit.locked and hit.id not in self.selected_ids:
             self.set_selection({hit.id})
         menu = QMenu(self)
+        selected_images = [obj for obj in self.selected_objects if isinstance(obj, ImageObject)]
+        image_target = hit if isinstance(hit, ImageObject) else selected_images[0] if len(selected_images) == 1 else None
+        if image_target is not None:
+            menu.addAction('Extract Text…', lambda: self.extract_text(image_target)).setEnabled(self.ocr_service is not None)
+            menu.addSeparator()
         has_selection = bool(self.editable_selection())
         commands = (("Cut", self.cut_selection), ("Copy", self.copy_selection), ("Paste", self.paste),
                     ("Duplicate", self.duplicate_selection), ("Delete", self.delete_selection))
@@ -234,6 +239,22 @@ class EditingActions:
                 name = "Image" if isinstance(obj, ImageObject) else type(obj).__name__
                 submenu.addAction(f"Unlock {name} {index}", lambda checked=False, identifier=obj.id: self.set_locked({identifier}, False))
         return menu
+
+    def extract_text(self, image):
+        if self.ocr_service is None or self.suspended or self.document.get(image.id) is not image:
+            return
+        self.finish_editing()
+        self.cancel_interaction()
+        if self.ocr_panel is not None:
+            self.ocr_panel.close()
+        from .ocr_panel import OcrPanel
+        panel = OcrPanel(self, image)
+        self.ocr_panel = panel
+        try:
+            panel.start()
+        except ValueError as error:
+            panel.close()
+            self.show_feedback(str(error))
 
     def contextMenuEvent(self, event):
         if self.editor is not None:

@@ -4,11 +4,13 @@ from pathlib import Path
 
 
 def main():
-    print("## Mini Whiteboard 1.2.1 macOS tester build\n")
+    print("## Mini Whiteboard 1.3 macOS tester build\n")
     print("| Check | Actual result |\n|---|---|")
     for label, filename in (("Mac imports", "macos-import-smoke.json"),
                             ("App bundle", "macos-package-check.json"),
                             ("Limited startup", "macos-startup-check.json"),
+                            ("Source Vision OCR", "macos-source-ocr.json"),
+                            ("Frozen Vision OCR", "macos-frozen-ocr.json"),
                             ("Extracted app", "macos-extracted-package-check.json"),
                             ("ditto ZIP", "macos-release.json")):
         report = json.loads((Path("verification")/filename).read_text(encoding="utf-8"))
@@ -21,8 +23,8 @@ def main():
           "Escape with another app focused, menu mouse interaction, always-on-top, permission "
           "prompts, screenshot selection, Spaces, Mission Control, Stage Manager, real Retina "
           "and physical multi-monitor behaviour remain on docs/TESTING.md.")
-    print("\nDownload **MacMiniWhiteboardV1.2.1** below. Extract GitHub's outer artifact archive "
-          "to obtain **MacMiniWhiteboardV1.2.1.zip**; transfer that inner ZIP unchanged.")
+    print("\nDownload **MacMiniWhiteboardV1.3** below. Extract GitHub's outer artifact archive "
+          "to obtain **MacMiniWhiteboardV1.3.zip**; transfer that inner ZIP unchanged.")
 
 
 if __name__ == "__main__":

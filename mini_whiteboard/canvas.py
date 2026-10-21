@@ -1,6 +1,7 @@
 """Canvas gestures, transient selection, and focus-scoped keyboard routing."""
 from dataclasses import replace
 import math
+import time
 
 from PySide6.QtCore import QEvent, QRectF, Qt
 from PySide6.QtGui import QCursor, QPainter, QRegion
@@ -25,6 +26,8 @@ class Canvas(EditingActions, QWidget):
         self.document = Document()
         self.scene = Scene()
         self.background_cache = None
+        self.suspended = False
+        self.ocr_service = self.ocr_panel = None
         self.tool_overlay = None
         self.clip_spec = None
         self.preferences = preferences if preferences is not None else SnapPreferences()
@@ -39,6 +42,7 @@ class Canvas(EditingActions, QWidget):
         self.selected_ids = set()
         self.frame = None
         self.editor = self.editor_overlay = self.editing_object = None
+        self.dismissed_click = None
         self.gesture = None
         self.gesture_before = None
         self.gesture_sources = ()
@@ -94,6 +98,8 @@ class Canvas(EditingActions, QWidget):
         return self.scene.after() if self.scene.previews else None
 
     def sync_scene(self):
+        if self.ocr_panel is not None and self.document.get(self.ocr_panel.image.id) is not self.ocr_panel.image:
+            self.ocr_panel.close()
         self.scene.sync(self.document.objects)
 
     def set_screenshot_background(self, obj):
@@ -349,6 +355,7 @@ class Canvas(EditingActions, QWidget):
         self.editor = TextEditor(obj, None)
         editor = self.editor
         self.editor.committed.connect(lambda: self.finish_editing(editor))
+        self.editor.focus_finished.connect(lambda: self.finish_editing(editor, refocus=False, deselect=True))
         self.editor.help_requested.connect(self.toggle_help)
         self.editor_overlay = EditorOverlay(obj, self.editor, self)
         self.editor_overlay.show()
@@ -357,7 +364,7 @@ class Canvas(EditingActions, QWidget):
         self.sync_tool_overlay()
         self.update()
 
-    def finish_editing(self, session=None, *, refocus=True):
+    def finish_editing(self, session=None, *, refocus=True, deselect=False):
         if self.editor is None or (session is not None and session is not self.editor):
             return
         editor, overlay = self.editor, self.editor_overlay
@@ -376,7 +383,10 @@ class Canvas(EditingActions, QWidget):
                 self.document.delete({obj.id}, "Delete text")
         elif meaningful:
             self.document.add(obj, "Create text")
-        self.sync_selection()
+        if deselect:
+            self.set_selection(set())
+        else:
+            self.sync_selection()
         if refocus and self.window().isActiveWindow():
             self.setFocus(Qt.FocusReason.OtherFocusReason)
         self.update_cursor()
@@ -386,14 +396,8 @@ class Canvas(EditingActions, QWidget):
         """Own one outside canvas press; its move/release has no gesture to finish."""
         if session is not self.editor:
             return
-        # Continue meaningful text with one intentional Text-tool press. Empty
-        # dismissal and other tools never replay a press into canvas gestures.
-        continue_text = (bool(session.toPlainText().strip()) and self.tool == "Text"
-                         and event.button() == Qt.MouseButton.LeftButton)
-        local = self.mapFromGlobal(event.globalPosition().toPoint()).toPointF()
-        self.finish_editing(session)
-        if continue_text:
-            self.edit_text_at((local.x(), local.y()))
+        self.dismissed_click = (time.monotonic(), event.globalPosition())
+        self.finish_editing(session, deselect=True)
         event.accept()
 
     def edit_text_at(self, position):
@@ -416,7 +420,7 @@ class Canvas(EditingActions, QWidget):
                     self.editor_outside_press(self.editor, event)
                     return True
                 # Controls, other boards and other applications keep their own input.
-                self.finish_editing(self.editor, refocus=False)
+                self.finish_editing(self.editor, refocus=False, deselect=True)
         return False
 
     def paintEvent(self, event):
@@ -664,6 +668,14 @@ class Canvas(EditingActions, QWidget):
         self.update_cursor(self.position(event))
 
     def mouseDoubleClickEvent(self, event):
+        if self.dismissed_click is not None:
+            stamp, point = self.dismissed_click
+            delta = event.globalPosition()-point
+            if (time.monotonic()-stamp <= QApplication.doubleClickInterval()/1000
+                    and delta.manhattanLength() <= QApplication.startDragDistance()):
+                event.accept()
+                return
+        self.dismissed_click = None
         if event.button() == Qt.MouseButton.LeftButton:
             if self.tool == "Eraser":
                 self.mousePressEvent(event)
@@ -725,6 +737,8 @@ class Canvas(EditingActions, QWidget):
         super().resizeEvent(event)
 
     def stop_transient_ui(self):
+        if self.ocr_panel is not None:
+            self.ocr_panel.close()
         if self.palette is not None:
             self.palette.close()
         if self.context_menu is not None:

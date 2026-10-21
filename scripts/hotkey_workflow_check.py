@@ -5,6 +5,7 @@ unowned window; aborts if the foreground window is unexpected. Restores cursor
 and foreground on exit, and closes only the disposable windows it created.
 """
 import ctypes as C
+import argparse
 from ctypes import wintypes as W
 import json
 import os
@@ -23,6 +24,10 @@ from mini_whiteboard.geometry import Rect, normalized
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test-hide-with-shift', action='store_true',
+                        help='Verify native H dispatch with Ctrl+Alt+Shift+H when another app owns Ctrl+Alt+H.')
+    args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
     guard = windows.SingleInstance()
@@ -35,6 +40,15 @@ def main():
     set_cursor = windows.bind(user32, "SetCursorPos", W.BOOL, C.c_int, C.c_int)
     key_event = windows.bind(user32, "keybd_event", None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
     controller = WhiteboardApplication(app, SnapPreferences())
+    warnings = []
+    controller.notify = warnings.append
+    hide_modifiers = (0x11, 0x12, 0x10) if args.test_hide_with_shift else (0x11, 0x12)
+    if args.test_hide_with_shift:
+        from mini_whiteboard.platform.base import HIDE_HOTKEY
+        if HIDE_HOTKEY in controller.hotkeys.registered:
+            user32.UnregisterHotKey(None, HIDE_HOTKEY)
+            controller.hotkeys.registered.remove(HIDE_HOTKEY)
+        controller.hotkeys.register(HIDE_HOTKEY, 7, ord('H'))
     messages = []
     controller.placement.message.connect(messages.append)
     confirmed_rectangles = []
@@ -293,6 +307,50 @@ def main():
               and not controller.capture.active)
         board.canvas.stop_transient_ui()
         idle('Editor and popup creation audits leave no tracking resources')
+        from mini_whiteboard.platform.base import HIDE_HOTKEY
+        check('Native H registers alongside W and S', HIDE_HOTKEY in controller.hotkeys.registered,
+              {'test_chord': 'Ctrl+Alt+Shift+H' if args.test_hide_with_shift else 'Ctrl+Alt+H',
+               'default_registration_warnings': warnings})
+        manually_hidden = controller.boards[0]
+        manually_hidden.minimize_to_tray()
+        visible = [b for b in controller.boards if b.isVisible()]
+        snapshot = {b: (b.geometry(), b.canvas.document.objects, list(b.canvas.document.history),
+                        set(b.canvas.selected_ids)) for b in visible}
+        focus_target()
+        for vk in (*hide_modifiers, ord('H')):
+            key(vk)
+        QTest.qWait(140)
+        check('Native H hides exactly the visible batch', set(controller.hidden_batch) == set(visible)
+              and all(not b.isVisible() for b in visible))
+        for _ in range(6):
+            key(ord('H'))
+            QTest.qWait(20)
+        key(0x11, True)
+        key(ord('H'))
+        QTest.qWait(60)
+        check('Native H held repeats and modifier-first release cannot restore',
+              all(not b.isVisible() for b in visible))
+        key(ord('H'), True)
+        key(0x12, True)
+        if args.test_hide_with_shift:
+            key(0x10, True)
+        QTest.qWait(80)
+        check('Native H physical release stops its tracker without toggling',
+              not controller.hotkeys.hide_latch.timer.isActive() and all(not b.isVisible() for b in visible))
+        focus_target()
+        for vk in (*hide_modifiers, ord('H')):
+            key(vk)
+        QTest.qWait(180)
+        check('Native Restore All preserves the external foreground application', foreground() == helper_id)
+        check('Native Restore All excludes manually minimized boards',
+              all(b.isVisible() for b in visible) and not manually_hidden.isVisible())
+        for vk in (ord('H'), *reversed(hide_modifiers)):
+            key(vk, True)
+        QTest.qWait(300)
+        check('Native restore has no late activation or geometry/history/selection changes',
+              foreground() == helper_id and all(not b.activation_timer.isActive() for b in visible)
+              and all(snapshot[b] == (b.geometry(), b.canvas.document.objects,
+                                      b.canvas.document.history, b.canvas.selected_ids) for b in visible))
         check('No callback exceptions', not errors, errors)
     finally:
         if mouse_down:

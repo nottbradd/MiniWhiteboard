@@ -16,6 +16,7 @@ from .settings import (BORDER, EDGE_GRIP, MIN_HEIGHT, MIN_WIDTH, PAPER,
 class BoardWindow(QWidget):
     deleted = Signal(object)
     minimized = Signal(object)
+    restored = Signal(object)
 
     def __init__(self, name, preferences=None, platform=None):
         platform = platform or get_platform()
@@ -42,6 +43,26 @@ class BoardWindow(QWidget):
         self.remove.clicked.connect(self.close)
         from .canvas import Canvas
         self.install_canvas(Canvas(self, preferences))
+        from .appearance import Emphasis
+        self.display_policy = self.desktop.display_policy()
+        self.native_glass = False
+        self.emphasis = Emphasis(self)
+        self.canvas.preferences.appearance_changed.connect(self.refresh_appearance)
+
+    def refresh_appearance(self):
+        if self.canvas is None or not hasattr(self, 'emphasis') or self._closing:
+            return
+        self.emphasis.stop()
+        self.display_policy = self.desktop.display_policy()
+        self.desktop.release_appearance(self)
+        self.native_glass = self.desktop.apply_appearance(self)
+        self.update()
+
+    def event(self, event):
+        result = super().event(event)
+        if event.type() == QEvent.Type.WinIdChange and hasattr(self, 'emphasis') and not self._closing:
+            self.refresh_appearance()
+        return result
 
     def make_button(self, text, tooltip, color):
         button = QToolButton(self)
@@ -96,9 +117,15 @@ class BoardWindow(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        self.refresh_appearance()
+        if hasattr(self, 'emphasis'):
+            self.emphasis.start()
         self.sync_shadow()
 
     def hideEvent(self, event):
+        if hasattr(self, 'emphasis'):
+            self.emphasis.stop()
+        self.desktop.release_appearance(self)
         if self._shadow is not None:
             self._shadow.hide()
         if self.canvas is not None and self.canvas.tool_overlay is not None:
@@ -110,6 +137,9 @@ class BoardWindow(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         paper = self.paper_rect()
         painter.setPen(Qt.PenStyle.NoPen)
@@ -119,10 +149,18 @@ class BoardWindow(QWidget):
                 painter.setBrush(QColor(30, 38, 45, 2 + (SHADOW-spread)//2))
                 painter.drawRoundedRect(paper.adjusted(-spread, -spread+1, spread, spread+1),
                                         RADIUS+spread, RADIUS+spread)
-        painter.setBrush(QColor(PAPER))
+        from .appearance import surface, ACCENT, GLASS_BORDER
+        painter.setBrush(surface(self.canvas.preferences.theme, self.native_glass, self.display_policy))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(paper, RADIUS, RADIUS)
-        painter.setPen(QPen(QColor(BORDER), BORDER_WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        emphasized = getattr(self, 'emphasis', None)
+        border = QColor(GLASS_BORDER if self.canvas.preferences.theme == 'Glass' else BORDER)
+        if emphasized and emphasized.value and not self.display_policy.high_contrast:
+            accent = QColor(ACCENT)
+            amount = emphasized.value
+            border = QColor(*(round(base*(1-amount)+highlight*amount) for base, highlight in
+                              zip(border.getRgb()[:3], accent.getRgb()[:3])))
+        painter.setPen(QPen(border, BORDER_WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         painter.drawLine(QPointF(paper.left()+RADIUS, paper.top()+BORDER_WIDTH/2),
                          QPointF(paper.right()-RADIUS, paper.top()+BORDER_WIDTH/2))
 
@@ -135,18 +173,30 @@ class BoardWindow(QWidget):
         self.activation_timer.start(0)
 
     def minimize_to_tray(self):
-        self.activation_timer.stop()
-        if self.canvas is not None:
-            self.canvas.finish_editing()
-            self.canvas.cancel_interaction()
-            self.canvas.stop_transient_ui()
+        self.prepare_hide()
         self.hide()
         self.minimized.emit(self)
 
-    def restore(self):
-        self.desktop.focus_window(self)
-        (self.canvas or self).setFocus()
-        self.activation_timer.start(0)
+    def prepare_hide(self):
+        self.activation_timer.stop()
+        self.cancel_window_gesture()
+        if self.canvas is not None:
+            self.canvas.suspended = True
+            self.canvas.finish_editing(refocus=False)
+            self.canvas.cancel_interaction()
+            self.canvas.stop_transient_ui()
+
+    def restore(self, *, activate=True):
+        self.activation_timer.stop()
+        if self.canvas is not None:
+            self.canvas.suspended = False
+        if activate:
+            self.desktop.focus_window(self)
+            (self.canvas or self).setFocus()
+            self.activation_timer.start(0)
+        else:
+            self.desktop.show_without_activating(self)
+        self.restored.emit(self)
 
     def activate_explicitly(self):
         if self.isVisible():
@@ -155,6 +205,9 @@ class BoardWindow(QWidget):
 
     def closeEvent(self, event):
         self.activation_timer.stop()
+        self.desktop.release_appearance(self)
+        if hasattr(self, 'emphasis'):
+            self.emphasis.stop()
         if self._shadow is not None:
             self._shadow.close()
         if self.canvas is not None and self.canvas.tool_overlay is not None:

@@ -23,7 +23,8 @@ class ShortcutPolicy:
         from .settings import SHORTCUT_REFERENCE
         text = SHORTCUT_REFERENCE
         if self.mac:
-            text = text.replace("Ctrl+Alt+W", self.global_label("W")).replace("Ctrl+Alt+S", self.global_label("S"))
+            for key in ('W', 'S', 'H'):
+                text = text.replace('Ctrl+Alt+' + key, self.global_label(key))
             text = text.replace("Ctrl+Y / Ctrl+Shift+Z", "Command+Shift+Z")
             text = text.replace("Ctrl+Enter", "Command+Return").replace("Ctrl+", "Command+")
             text = text.replace("Alt", "Option").replace("tray", "menu bar").replace("F1", "F1 / Fn+F1")

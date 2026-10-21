@@ -7,15 +7,15 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-## Download V1.2.1
+## Download V1.3
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/WinMiniWhiteboardV1.2.1.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.2.1/MacMiniWhiteboardV1.2.1-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
+| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/WinMiniWhiteboardV1.3.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/MacMiniWhiteboardV1.3-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
 
 Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this patch. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.2.1)
+describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3)
 accompany the downloads.
 
 Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
@@ -44,7 +44,7 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 Use **S** in the same global shortcut to capture a region into a new board
 with a locked screenshot background, ready to annotate. Mac's **Global shortcuts**
-menu also offers **Command+Option+Shift+W/S** when the default conflicts.
+menu also offers **Command+Option+Shift+W/S/H** when the default conflicts.
 
 Both gestures support four directions and negative desktop coordinates. A board
 below 160 × 100 logical pixels, or a capture below 4 × 4 desktop units, cancels.
@@ -83,10 +83,10 @@ the caret for tall content. Resizing the board preserves objects and text width.
 While editing, letters, numbers, clipboard commands, arrows, deletion and undo
 belong exclusively to the text editor.
 
-Clicking outside blank or whitespace-only text dismisses it without starting a
-canvas action. A separate next click immediately creates text. Meaningful text
-keeps its whitespace; in Text mode an outside click can commit it and start or
-edit the next textbox. Clearing existing text removes it with one board undo.
+Clicking outside **any** active textbox finishes editing and deselects it. That
+click cannot start another editor, transform or drawing action. A separate next
+click can create or edit text. Meaningful text keeps its whitespace; blank new
+drafts disappear without history. Clearing existing text is one undoable deletion.
 
 Selection has shared move, resize and rotation controls. Corners preserve ratio;
 edges scale one axis unless Shift is held or the group contains text or images.
@@ -101,6 +101,51 @@ The minus button hides a board while preserving contents and history; the red
 × deletes that board. The tray/menu restores boards. Closing the last board
 leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the session.
 
+<details>
+<summary>V1.3 on Windows: White, native Glass and offline OCR</summary>
+
+![White appearance](docs/media/white-v13.png)
+![Native Glass over an owned test background](docs/media/glass-v13.png)
+![Editable offline OCR review](docs/media/ocr-v13.png)
+
+These are actual Windows captures. Glass appearance varies with the desktop and
+system accessibility settings.
+
+</details>
+
+## Appearance, Hide All and offline OCR
+
+**Appearance → White / Glass** is a global saved preference in the tray/menu.
+White is the default. Glass adds a pale backing, restrained cyan accents and
+native background frost while artwork stays sharp and fully opaque. Windows 11
+build 22621+ uses DWM Acrylic; Windows 10, unavailable effects and reduced
+transparency/high contrast use a readable solid surface. Mac uses a native
+visual-effect view. System reduced motion disables the brief 140 ms emphasis
+and feedback fades. There are no animated backgrounds or desktop-capture loops.
+
+**Ctrl+Alt+H** on Windows, **Control+Option+H** on Mac, or the matching menu action
+hides all visible boards immediately. Press again to restore that recorded set
+without taking focus from your current app. Already minimized boards stay hidden.
+New boards remain visible outside an older hidden batch. Individually restored
+or deleted boards leave the batch; a later manual minimize is respected. Held H
+repeats and key release cannot toggle again. Mac's alternate preset includes H;
+normal Command+H remains a system shortcut.
+
+Right-click an image and choose **Extract Text…**, including on a locked screenshot.
+Review/correct the result, then choose **Copy** or **Insert as Text**. Recognition
+alone changes neither clipboard nor document. Insertion creates wrapped editable
+text in one undo action and retains every line. Cancel or hide the board to stop
+its request. Original pixels and the image's lock state are preserved.
+
+OCR is offline and guarantees **English only**. Windows bundles Tesseract 5.5.3,
+its native libraries and English data; Mac uses system Vision. Nothing is uploaded
+or downloaded at first use. The engine runs outside the GUI process. Display
+rotation/scale is rectified to original image orientation/resolution; local masks
+and creation clips are applied. Transparent regions become white, and predominantly
+dark images are inverted temporarily. Limits: 16 million source pixels, 32 MiB
+PNG input, 100,000 output characters, 20 seconds per job, one running request plus
+one queued across the app. OCR can misread small, handwritten or complex layouts.
+
 ## Limitations and development
 
 - Documents are session-only. Only preferences are saved.
@@ -111,7 +156,7 @@ leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the sess
   use normal Space membership; coverage over every full-screen app is not guaranteed.
 - Linux is unsupported. Images are limited to 64 million pixels and editable
   clipboard data to 96 MB. Protected desktop content may be unavailable to capture.
-- The app has no accounts, network service or telemetry.
+- The app has no accounts, network service or telemetry. OCR results are not saved in logs.
 
 [CONTRIBUTING](CONTRIBUTING.md) covers source setup, architecture and rebuilding.
 [Testing and troubleshooting](docs/TESTING.md) covers native checks and remaining

@@ -16,7 +16,7 @@ def build_environment():
     versions = {}
     for name in ("PySide6", "PyInstaller", "pyobjc-core", "pyobjc-framework-Cocoa",
                  "pyobjc-framework-Quartz", "pyobjc-framework-ScreenCaptureKit",
-                 "pyobjc-framework-CoreMedia"):
+                 "pyobjc-framework-CoreMedia", "pyobjc-framework-Vision", "pyobjc-framework-CoreML"):
         try:
             versions[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
@@ -39,7 +39,7 @@ def build_environment():
 def run_smoke():
     if sys.platform != "darwin":
         raise RuntimeError("Mac import smoke checks must run on macOS.")
-    modules = ("objc", "Foundation", "AppKit", "Quartz", "CoreMedia", "ScreenCaptureKit")
+    modules = ("objc", "Foundation", "AppKit", "Quartz", "CoreMedia", "ScreenCaptureKit", "Vision", "CoreML")
     for name in modules:
         importlib.import_module(name)
     for name in ("runtime", "desktop", "hotkeys", "capture"):

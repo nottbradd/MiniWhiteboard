@@ -80,7 +80,7 @@ class ColorPalette(QFrame):
 
     def closeEvent(self, event):
         self.canvas.palette = None
-        if self.canvas.window().isActiveWindow():
+        if not self.canvas.suspended and self.canvas.window().isActiveWindow():
             self.canvas.setFocus(Qt.FocusReason.PopupFocusReason)
         self.canvas.sync_tool_overlay()
         super().closeEvent(event)

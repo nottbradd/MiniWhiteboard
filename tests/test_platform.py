@@ -11,7 +11,7 @@ from mini_whiteboard.geometry import Rect
 from mini_whiteboard.placement import PlacementController
 from mini_whiteboard.screenshot import ScreenshotController
 from mini_whiteboard.snapping import SnapPreferences
-from mini_whiteboard.platform.base import CapturePermissionError, CREATE_HOTKEY, ESCAPE_HOTKEY, CAPTURE_HOTKEY
+from mini_whiteboard.platform.base import CapturePermissionError, CREATE_HOTKEY, ESCAPE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY
 from mini_whiteboard.platform.capture_geometry import plan_capture
 from mini_whiteboard.platform.macos.hotkeys import MacHotkeys
 from mini_whiteboard.platform.macos.runtime import MacInstance
@@ -174,6 +174,9 @@ class FakeCarbon:
     def clock(self):
         return 0
 
+    def hide_key_down(self):
+        return HIDE_HOTKEY in self.down
+
     def add(self, identifier, key, modifiers):
         if identifier in self.fail:
             raise OSError("conflict")
@@ -223,7 +226,7 @@ class MacHotkeyTests(QtCase):
         native.fail.add(CAPTURE_HOTKEY)
         with self.assertRaisesRegex(OSError, "Command\\+Option\\+Shift\\+S"):
             self.keys.start()
-        self.assertEqual(self.keys.registered, {CREATE_HOTKEY})
+        self.assertEqual(self.keys.registered, {CREATE_HOTKEY, HIDE_HOTKEY})
         native.fail.clear()
         self.keys.start()
         self.assertEqual(native.active[CREATE_HOTKEY], (13, 2816))

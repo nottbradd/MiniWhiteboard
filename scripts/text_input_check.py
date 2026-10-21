@@ -132,6 +132,17 @@ def main():
         board.canvas.set_selection(set())
         click(55, 75)
         check("Native text click reopens committed content", board.canvas.editor is not None)
+        click(590, 340)
+        check('Native meaningful outside click commits and deselects without a replacement',
+              board.canvas.editor is None and board.canvas.editor_overlay is None
+              and not board.canvas.selected_ids and board.canvas.frame is None
+              and board.canvas.gesture is None and board.canvas.document.objects == original
+              and board.canvas.document.index == 1)
+        click(410, 320)
+        check('Native separate next click creates exactly one new editor',
+              board.canvas.editor is not None and board.canvas.editing_object.position == (410, 320))
+        click(590, 100)
+        click(55, 75)
         press(ord('A'), ctrl=True)
         press(0x08)
         press(0x0D, ctrl=True)

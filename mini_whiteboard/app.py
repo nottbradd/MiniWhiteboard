@@ -41,9 +41,12 @@ class WhiteboardApplication:
         self.platform = platform or get_platform()
         self.boards = []
         self.minimized_order = []
+        self.hidden_batch = []
         self.next_number = 1
         self.exiting = False
         self.preferences = preferences if preferences is not None else SnapPreferences(persist=self.platform.runtime.persist_preferences)
+        from .ocr import OcrService
+        self.ocr_service = OcrService(app)
         self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset)
         app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
@@ -56,6 +59,7 @@ class WhiteboardApplication:
         self.tray.activated.connect(self.tray_activated)
         self.menu.aboutToShow.connect(self.rebuild_menu)
         self.hotkeys = self.platform.create_hotkeys(app, self.preferences.shortcut_preset)
+        self.hotkeys.events.hide_toggle.connect(self.toggle_visibility)
         if hasattr(self.hotkeys.events, "warning"):
             self.hotkeys.events.warning.connect(self.notify)
         self.placement = PlacementController(self.hotkeys, platform=self.platform)
@@ -89,14 +93,12 @@ class WhiteboardApplication:
         screen.logicalDotsPerInchChanged.connect(self.displays_changed)
 
     def hotkey_error(self, detail):
-        QMessageBox.warning(None, APP_NAME,
-                            "A Mini Whiteboard shortcut could not be registered. Another application may "
-                            "use it. Release the conflicting shortcut, then choose Retry global "
-                            f"shortcut from the {self.platform.shortcuts.status_location} menu.\n\n{detail}")
+        self.notify('A global shortcut is unavailable. Working shortcuts remain registered. '
+                    f'Use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.\n{detail}')
 
     def update_shortcut_labels(self):
         policy = self.platform.shortcuts
-        self.tray.setToolTip(f"Mini Whiteboard {APP_VERSION} · {policy.global_label('W')} / {policy.global_label('S')}")
+        self.tray.setToolTip(f"Mini Whiteboard {APP_VERSION} · {policy.global_label('W')} / {policy.global_label('S')} / {policy.global_label('H')}")
 
     def change_shortcut_preset(self, preset):
         self.placement.cancel()
@@ -119,7 +121,7 @@ class WhiteboardApplication:
         try:
             self.hotkeys.start()
             policy = self.platform.shortcuts
-            self.notify(f"{policy.global_label('W')} and {policy.global_label('S')} are ready.")
+            self.notify(f"{policy.global_label('W')}, {policy.global_label('S')} and {policy.global_label('H')} are ready.")
         except OSError as error:
             self.hotkey_error(str(error))
 
@@ -128,6 +130,7 @@ class WhiteboardApplication:
 
     def create_board(self, rect):
         board = BoardWindow(f"Whiteboard {self.next_number}", self.preferences, self.platform)
+        board.canvas.ocr_service = self.ocr_service
         try:
             board.place(rect)
         except (OSError, ValueError) as error:
@@ -138,6 +141,7 @@ class WhiteboardApplication:
         self.next_number += 1
         board.deleted.connect(self.delete_board)
         board.minimized.connect(self.remember_minimized)
+        board.restored.connect(self.forget_hidden_board)
         self.boards.append(board)
         return board
 
@@ -171,6 +175,7 @@ class WhiteboardApplication:
         return board
 
     def delete_board(self, board):
+        self.forget_hidden_board(board)
         if board in self.boards:
             self.boards.remove(board)
         if board in self.minimized_order:
@@ -186,6 +191,25 @@ class WhiteboardApplication:
         if board in self.minimized_order:
             self.minimized_order.remove(board)
         board.restore()
+
+    def forget_hidden_board(self, board):
+        if board in self.hidden_batch:
+            self.hidden_batch.remove(board)
+
+    def toggle_visibility(self):
+        self.placement.cancel()
+        self.capture.cancel()
+        if self.hidden_batch:
+            restore, self.hidden_batch = self.hidden_batch, []
+            for board in restore:
+                if board in self.boards and not board._closing and not board.isVisible():
+                    board.restore(activate=False)
+            return
+        visible = [board for board in self.boards if board.isVisible() and not board._closing]
+        self.hidden_batch = self.platform.desktop.board_order(visible)
+        for board in self.hidden_batch:
+            board.prepare_hide()
+            board.hide()
 
     def tray_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick and self.minimized_order:
@@ -204,11 +228,13 @@ class WhiteboardApplication:
         if self.exiting:
             return
         self.exiting = True
+        self.hidden_batch.clear()
         self.placement.cancel()
         self.capture.cancel()
         self.hotkeys.close()
         for board in tuple(self.boards):
             board.close()
+        self.ocr_service.close()
         self.tray.hide()
 
 

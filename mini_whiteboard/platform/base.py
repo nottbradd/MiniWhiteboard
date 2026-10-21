@@ -11,6 +11,7 @@ from ..settings import MIN_HEIGHT, MIN_WIDTH, SHADOW
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
 CAPTURE_HOTKEY = 0x4D03
+HIDE_HOTKEY = 0x4D07
 
 
 class HotkeyEvents(QObject):
@@ -19,6 +20,7 @@ class HotkeyEvents(QObject):
     cancel = Signal()
     capture = Signal()
     capture_released = Signal()
+    hide_toggle = Signal()
     warning = Signal(str)
 
 
@@ -42,6 +44,16 @@ class CaptureService(Protocol):
 
 
 class QtDesktop:
+    def display_policy(self):
+        from ..appearance import DisplayPolicy
+        return DisplayPolicy(transparency=False)
+
+    def apply_appearance(self, board):
+        return False
+
+    def release_appearance(self, board):
+        pass
+
     """Logical-coordinate implementation for injected tests and common helpers."""
     shadow_margin = SHADOW
     paints_shadow = True
@@ -113,6 +125,15 @@ class QtDesktop:
         widget.show()
         widget.raise_()
         widget.activateWindow()
+
+    def show_without_activating(self, widget):
+        previous = widget.testAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        widget.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        widget.show()
+        widget.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, previous)
+
+    def board_order(self, boards):
+        return list(boards)
 
     def place_board(self, board, rect):
         scale = self.placement_scale(rect)

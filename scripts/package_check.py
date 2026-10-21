@@ -14,14 +14,14 @@ from mini_whiteboard import windows
 from mini_whiteboard import APP_VERSION
 from mini_whiteboard.geometry import Rect
 from mini_whiteboard.settings import BORDER, SHADOW
-from .build_support import verify_release_files
+from .build_support import verify_release_files, verify_ocr_runtime
 
 
 def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v121/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v13/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     executable = args.executable.resolve()
     results = []
@@ -34,6 +34,7 @@ def main():
             raise AssertionError(label)
 
     notices = verify_release_files(executable.parent)
+    verify_ocr_runtime(executable.parent)
     check('License notices are complete and unused Qt products are absent', True, notices)
     pe = pefile.PE(str(executable))
     check("Executable is Windows GUI subsystem (no console)", pe.OPTIONAL_HEADER.Subsystem == 2)
@@ -62,7 +63,7 @@ def main():
                     data = language.data.struct
                     manifests.append(pe.get_data(data.OffsetToData, data.Size).decode("utf-8", errors="replace"))
     check("Embedded manifest is PerMonitorV2 and asInvoker",
-          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.2.1.0"' in text for text in manifests))
+          any("PerMonitorV2" in text and 'level="asInvoker"' in text and 'assemblyIdentity version="1.3.0.0"' in text for text in manifests))
     initial = windows.SingleInstance()
     if not initial.acquired:
         initial.close()

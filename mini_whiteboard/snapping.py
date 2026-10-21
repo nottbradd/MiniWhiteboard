@@ -11,6 +11,7 @@ from .document import ImageObject
 
 class SnapPreferences(QObject):
     changed = Signal()
+    appearance_changed = Signal()
 
     def __init__(self, persist=False, settings=None):
         super().__init__()
@@ -19,6 +20,19 @@ class SnapPreferences(QObject):
         self.grid_snap = self.settings.value("snap/grid", False, type=bool) if self.settings else False
         preset = self.settings.value("shortcuts/preset", "default") if self.settings else "default"
         self.shortcut_preset = preset if preset in ("default", "alternate") else "default"
+        theme = self.settings.value('appearance/theme', 'White') if self.settings else 'White'
+        self.theme = theme if theme in ('White', 'Glass') else 'White'
+
+    def set_theme(self, theme):
+        if theme not in ('White', 'Glass'):
+            raise ValueError('Unknown appearance.')
+        if theme == self.theme:
+            return
+        self.theme = theme
+        if self.settings is not None:
+            self.settings.setValue('appearance/theme', theme)
+            self.settings.sync()
+        self.appearance_changed.emit()
 
     def set_shortcut_preset(self, preset):
         if preset not in ("default", "alternate"):

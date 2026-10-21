@@ -18,6 +18,65 @@ class MacDesktop(QtDesktop):
     shadow_margin = 0
     paints_shadow = False
 
+    def display_policy(self):
+        import AppKit
+        from ...appearance import DisplayPolicy
+        workspace = AppKit.NSWorkspace.sharedWorkspace()
+        high = bool(workspace.accessibilityDisplayShouldIncreaseContrast())
+        return DisplayPolicy(
+            transparency=not workspace.accessibilityDisplayShouldReduceTransparency() and not high,
+            motion=not workspace.accessibilityDisplayShouldReduceMotion(), high_contrast=high)
+
+    def apply_appearance(self, board):
+        import AppKit
+        if board.canvas.preferences.theme != 'Glass' or not board.display_policy.transparency:
+            self.release_appearance(board)
+            return False
+        try:
+            window = native_window(board)
+            content = window.contentView()
+            record = getattr(board, '_visual_effect', None)
+            if record is not None and record[0] != content:
+                self.release_appearance(board)
+                record = None
+            if record is None:
+                parent = content.superview()
+                if parent is None:
+                    return False
+                effect = AppKit.NSVisualEffectView.alloc().initWithFrame_(content.frame())
+                effect.setMaterial_(AppKit.NSVisualEffectMaterialUnderWindowBackground)
+                effect.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
+                effect.setState_(AppKit.NSVisualEffectStateActive)
+                effect.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
+                effect.setAutoresizingMask_(AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
+                effect.setWantsLayer_(True)
+                effect.layer().setCornerRadius_(RADIUS)
+                effect.layer().setMasksToBounds_(True)
+                parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
+                board._visual_effect = (content, effect)
+                def policy_changed(_notification):
+                    if not board._closing:
+                        board.refresh_appearance()
+                centre = AppKit.NSWorkspace.sharedWorkspace().notificationCenter()
+                board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
+                    AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
+                    AppKit.NSOperationQueue.mainQueue(), policy_changed)
+            return True
+        except (AttributeError, RuntimeError, ValueError):
+            self.release_appearance(board)
+            return False
+
+    def release_appearance(self, board):
+        record = getattr(board, '_visual_effect', None)
+        if record is not None:
+            record[1].removeFromSuperview()
+            board._visual_effect = None
+        observer = getattr(board, '_appearance_observer', None)
+        if observer is not None:
+            import AppKit
+            AppKit.NSWorkspace.sharedWorkspace().notificationCenter().removeObserver_(observer)
+            board._appearance_observer = None
+
     def board_flags(self):
         # A Window can receive keyboard focus; floating level is set explicitly.
         return Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint
@@ -91,3 +150,16 @@ class MacDesktop(QtDesktop):
 
     def capture_window_identifier(self, widget):
         return int(native_window(widget).windowNumber())
+
+    def show_without_activating(self, widget):
+        super().show_without_activating(widget)
+        self.configure_board(widget)
+        native_window(widget).orderFrontRegardless()
+
+    def board_order(self, boards):
+        import AppKit
+        lookup = {int(native_window(board).windowNumber()): board for board in boards}
+        ordered = [lookup[int(window.windowNumber())] for window in
+                   AppKit.NSApplication.sharedApplication().orderedWindows()
+                   if int(window.windowNumber()) in lookup]
+        return list(reversed(ordered))

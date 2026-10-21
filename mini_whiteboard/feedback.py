@@ -3,6 +3,7 @@ from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QLabel, QVBoxLayout
 
 from .shortcuts import ui_font_family
+from .appearance import ANIMATION_MS
 
 
 class FeedbackLabel(QLabel):
@@ -15,7 +16,7 @@ class FeedbackLabel(QLabel):
         self.opacity = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity)
         self.fade = QPropertyAnimation(self.opacity, b"opacity", self)
-        self.fade.setDuration(350)
+        self.fade.setDuration(ANIMATION_MS)
         self.fade.setStartValue(1.0)
         self.fade.setEndValue(0.0)
         self.fade.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -23,8 +24,15 @@ class FeedbackLabel(QLabel):
         self.delay = QTimer(self)
         self.delay.setSingleShot(True)
         self.delay.setInterval(1000)
-        self.delay.timeout.connect(self.fade.start)
+        self.delay.timeout.connect(self.finish_delay)
         self.hide()
+
+    def finish_delay(self):
+        policy = getattr(self.window(), 'display_policy', None)
+        if policy is not None and not policy.motion:
+            self.hide()
+        else:
+            self.fade.start()
 
     def show_message(self, text):
         self.fade.stop()

@@ -6,8 +6,9 @@ without Accessibility must pass scripts.macos_escape_probe on actual hardware.
 import ctypes as C
 import sys
 
-from ..base import HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, ESCAPE_HOTKEY
+from ..base import HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, ESCAPE_HOTKEY, HIDE_HOTKEY
 from ..hold import HoldTracker
+from ..toggle import ToggleLatch
 from ...shortcuts import ShortcutPolicy
 
 
@@ -93,6 +94,11 @@ class Carbon:
         complete = self.modifiers() & required == required
         return down, down if complete else set(), bool(keys[53//32] & (1 << (53 % 32)))
 
+    def hide_key_down(self):
+        keys = (C.c_uint32*4)()
+        self.keys(keys)
+        return bool(keys[0] & (1 << 4))
+
     def close(self):
         if self.handler:
             self.remove(self.handler)
@@ -109,6 +115,9 @@ class MacHotkeys:
         self.backend = None
         self.escape_available = None
         self.hold = HoldTracker(app, self.events, self.sample)
+        self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
+                                      lambda: self.backend.hide_key_down())
+        self.hide_latch.released.connect(lambda: self.record_release(HIDE_HOTKEY))
         self.last_activation = {}
         self.press_time = {}
         self.last_release = {}
@@ -141,7 +150,10 @@ class MacHotkeys:
             self.down.discard(identifier)
             if stamp is not None:
                 self.last_release[identifier] = max(stamp, self.last_release.get(identifier, 0))
-            self.hold.release(identifier)
+            if identifier == HIDE_HOTKEY:
+                self.hide_latch.poll()
+            else:
+                self.hold.release(identifier)
             return
         if identifier not in self.handles:
             return
@@ -149,6 +161,9 @@ class MacHotkeys:
             if stamp <= max(self.last_activation.get(identifier, -1), self.last_release.get(identifier, -1)):
                 return
             self.last_activation[identifier] = self.press_time[identifier] = stamp
+        if identifier == HIDE_HOTKEY:
+            self.hide_latch.activate()
+            return
         if identifier != ESCAPE_HOTKEY:
             self.hold.activate(identifier)
             return
@@ -161,7 +176,7 @@ class MacHotkeys:
         self._ensure_backend()
         modifiers = self.modifiers
         failures = []
-        for identifier, key, label in ((CREATE_HOTKEY, 13, "W"), (CAPTURE_HOTKEY, 1, "S")):
+        for identifier, key, label in ((CREATE_HOTKEY, 13, "W"), (CAPTURE_HOTKEY, 1, "S"), (HIDE_HOTKEY, 4, "H")):
             if identifier in self.handles:
                 continue
             try:
@@ -205,6 +220,7 @@ class MacHotkeys:
     def close(self):
         self.events.cancel.emit()
         self.hold.close()
+        self.hide_latch.close()
         for identifier in tuple(self.handles):
             self._unregister(identifier)
         if self.backend is not None:

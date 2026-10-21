@@ -38,6 +38,8 @@ def stage(project=PROJECT, destination=None):
                 'pyside-setup-6.11.2.txt', 'SOURCES.md', 'openssl-3.txt'}
     if sys.platform == 'win32':
         required.add('libffi.txt')
+        required.update({'ocr-cysignals-1.12.6-LICENSE.txt', 'ocr-cysignals-GPL-3.0.txt',
+                         'ocr-tesseract-5.5.3.txt', 'ocr-tessdata-fast-4.1.0.txt', 'OCR-SOURCES.json'})
     if sys.platform == 'darwin':
         required.add('pyobjc-12.2.2.txt')
     if not required.issubset({p.name for p in (project / 'assets' / 'licenses').glob('*')}):
@@ -54,7 +56,10 @@ def stage(project=PROJECT, destination=None):
     packages = ['PySide6','PySide6-Essentials','PySide6-Addons','shiboken6','PyInstaller']
     if sys.platform == 'darwin':
         packages += ['pyobjc-core','pyobjc-framework-Cocoa','pyobjc-framework-Quartz',
-                     'pyobjc-framework-ScreenCaptureKit','pyobjc-framework-CoreMedia']
+                     'pyobjc-framework-ScreenCaptureKit','pyobjc-framework-CoreMedia','pyobjc-framework-Vision',
+                     'pyobjc-framework-CoreML']
+    if sys.platform == 'win32':
+        packages += ['tesserocr']
     versions = {}
     for name in packages:
         dist = metadata.distribution(name)

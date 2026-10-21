@@ -13,6 +13,7 @@ from . import rendering
 
 class TextEditor(QTextEdit):
     committed = Signal()
+    focus_finished = Signal()
     help_requested = Signal()
 
     def __init__(self, obj, parent):
@@ -82,7 +83,7 @@ class TextEditor(QTextEdit):
     def commit_if_unfocused(self):
         if (not self.closing and self.isVisible() and not self.hasFocus()
                 and not self.popup_active()):
-            self.committed.emit()
+            self.focus_finished.emit()
 
     def popup_active(self):
         # A proxy embeds QTextEdit's menus in its scene. Such menus are visible
