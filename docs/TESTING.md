@@ -21,7 +21,7 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.text_input_check
 .\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
-.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v132-review01/native-100
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v132-review02/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
 ```
 
@@ -66,14 +66,19 @@ still needs the checks below. Capture can request Screen Recording permission.
   executable path, quiet launch, manual/automatic overlap, persistence, permission
   errors and external OS disables. Reads/restarts must never reenroll the app.
   Unknown Windows approval records require Startup apps; Mac pending approval
-  requires Login Items. Check removal of owned registrations and untouched peers.
+  requires Login Items. **Turn off Open at login** must remove the owned
+  registration in either state and leave unrelated startup entries untouched.
 - Uninstall and verify files/shortcuts/owned startup cleanup. Restore temporary OS
   values and retained test preferences. Do not terminate another user's app.
 - Check fresh GUI defaults without command-line task overrides. Extract the
   portable ZIP into a permanent Unicode folder outside the checkout, verify its
   file hashes, launch with Python absent from PATH, and test its login option.
-- A controlled launch of the registered command is not a real login. Record an
-  actual sign-out/sign-in launch only on a suitable disposable test system.
+- A controlled launch of the registered command is not a real login. Before
+  publishing V1.3.2, use a disposable Windows session or test system for two actual
+  sign-ins: enabled must produce one quiet tray instance with a working creation
+  shortcut; disabled must leave the app closed after the next sign-in. Record the
+  package hash, environment and observed results. Do not sign out, reboot or
+  disrupt an active user desktop. Hold publication if this check is unavailable.
 - Inspect executable, setup, shortcut and About icons at native 16/20/24/32/48 px
   and larger sizes on light/dark backgrounds. Mac: inspect the bundle ICNS and
   actual menu-bar template appearance, including Retina, where hardware permits.

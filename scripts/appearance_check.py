@@ -82,7 +82,7 @@ def sample_image():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default=Path('verification/v132-review01/appearance'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v132-review02/appearance'))
     args = parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])

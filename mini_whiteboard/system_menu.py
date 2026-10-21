@@ -77,7 +77,7 @@ def rebuild_menu(controller):
     if state.approval_required:
         menu.addAction('Open startup settings…', c.open_login_settings)
     if state.registered and not state.enabled:
-        menu.addAction('Remove login registration', lambda: c.change_login(False))
+        menu.addAction('Turn off Open at login', lambda: c.change_login(False))
     menu.addSeparator()
     menu.addAction("Keyboard shortcuts", c.show_shortcuts)
     menu.addAction("About Mini Whiteboard", c.show_about)

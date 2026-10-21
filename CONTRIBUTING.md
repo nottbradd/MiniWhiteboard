@@ -84,8 +84,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v132-review01/Mini Whiteboard/` and
-`build/candidates/v1.3.2/review-01/WinMiniWhiteboardV1.3.2.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v132-review02/Mini Whiteboard/` and
+`build/candidates/v1.3.2/review-02/WinMiniWhiteboardV1.3.2.zip`. Keep the entire runtime folder.
 
 Build the recommended installer with the pinned, free Inno Setup compiler:
 
@@ -111,8 +111,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v132-review01/Mini Whiteboard.app` and
-`build/candidates/v1.3.2/review-01/MacMiniWhiteboardV1.3.2-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v132-review02/Mini Whiteboard.app` and
+`build/candidates/v1.3.2/review-02/MacMiniWhiteboardV1.3.2-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation

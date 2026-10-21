@@ -58,9 +58,9 @@ jobs:
 
       - name: Build the Windows application bundle
         run: |
-          New-Item -ItemType Directory -Force verification/v132-review01 | Out-Null
-          & .\build.ps1 -Python (Get-Command python).Source *> verification/v132-review01/windows-build.txt
-          if ($LASTEXITCODE -ne 0) { Get-Content verification/v132-review01/windows-build.txt -Tail 50; exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force verification/v132-review02 | Out-Null
+          & .\build.ps1 -Python (Get-Command python).Source *> verification/v132-review02/windows-build.txt
+          if ($LASTEXITCODE -ne 0) { Get-Content verification/v132-review02/windows-build.txt -Tail 50; exit $LASTEXITCODE }
 
       - name: Package portable ZIP and per-user installer
         run: |
@@ -74,10 +74,10 @@ jobs:
       - name: Upload unpublished Windows candidates
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: WinMiniWhiteboardV1.3.2-Review01
+          name: WinMiniWhiteboardV1.3.2-Review02
           path: |
-            build/candidates/v1.3.2/review-01/WinMiniWhiteboardV1.3.2.zip
-            build/candidates/v1.3.2/review-01/MiniWhiteboard-1.3.2-Setup.exe
+            build/candidates/v1.3.2/review-02/WinMiniWhiteboardV1.3.2.zip
+            build/candidates/v1.3.2/review-02/MiniWhiteboard-1.3.2-Setup.exe
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -86,10 +86,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: windows-v1.3.2-review01-verification
+          name: windows-v1.3.2-review02-verification
           path: |
             verification/*.json
-            verification/v132-review01/*.json
-            verification/v132-review01/*.txt
+            verification/v132-review02/*.json
+            verification/v132-review02/*.txt
           if-no-files-found: warn
           retention-days: 30

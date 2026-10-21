@@ -197,8 +197,13 @@ class LoginMenuTests(QtCase):
         action().trigger();self.assertEqual(self.choices,[True]);self.assertTrue(action().isChecked())
         self.current=LoginState(registered=True,approval_required=True,detail='Requires OS approval')
         controller.rebuild_menu();self.assertFalse(action().isChecked());self.assertEqual(self.choices,[True])
-        remove=next(a for a in controller.menu.actions() if a.text()=='Remove login registration')
+        self.assertEqual(action().toolTip(),'Requires OS approval')
+        settings=next(a for a in controller.menu.actions() if a.text()=='Open startup settings…')
+        settings.trigger();controller.platform.login.open_settings.assert_called_once()
+        remove=next(a for a in controller.menu.actions() if a.text()=='Turn off Open at login')
         remove.trigger();self.assertEqual(self.choices,[True,False])
+        self.assertFalse(self.current.registered);self.assertFalse(action().isChecked())
+        self.assertNotIn('Turn off Open at login',[a.text() for a in controller.menu.actions()])
         self.assertEqual(controller.boards,[])
 
     def test_failed_choice_shows_error_and_remains_off(self):
