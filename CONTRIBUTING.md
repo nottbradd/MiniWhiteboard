@@ -98,7 +98,7 @@ bash build_macos.sh
 ```
 
 Output: `dist/macos-v131-review02/Mini Whiteboard.app` and
-`build/candidates/v1.3.1/review-02/MacMiniWhiteboardV1.3.1-Preview.zip`. This is an unpublished candidate. Transfer the ZIP without changing its bytes.
+`build/candidates/v1.3.1/review-02/MacMiniWhiteboardV1.3.1-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation

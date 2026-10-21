@@ -7,19 +7,18 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-> **V1.3.1 review 02 is an unpublished candidate.** It refines Glass, removes OCR and adds
-> a saved Windows Hide All alternative. Public downloads below remain V1.3
-> while the new appearance awaits visual approval.
+**V1.3.1 is available.** It refines Glass, removes OCR and adds a saved Windows
+Hide All alternative. Windows is the stable release; Mac remains a preview.
 
-## Download V1.3
+## Download V1.3.1
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/WinMiniWhiteboardV1.3.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/MacMiniWhiteboardV1.3-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
+| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/WinMiniWhiteboardV1.3.1.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/MacMiniWhiteboardV1.3.1-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
 
 Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3)
+describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
 accompany the downloads.
 
 Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
@@ -123,9 +122,9 @@ Glass creation, restore and popup presentation never move or fade document conte
 There are no animated backgrounds or desktop-capture loops.
 
 <details>
-<summary>V1.3.1 candidate: actual Windows Glass and Appearance menu</summary>
+<summary>V1.3.1: actual Windows Glass and Appearance menu</summary>
 
-![Unpublished Glass candidate over an owned demonstration background](docs/media/glass-v131-candidate.png)
+![V1.3.1 Glass over an owned demonstration background](docs/media/glass-v131-candidate.png)
 
 This is a native Windows capture. The caption and backdrop belong to the test
 window; the board has no title bar or permanent toolbar.

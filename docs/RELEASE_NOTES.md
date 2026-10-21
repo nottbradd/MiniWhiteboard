@@ -1,6 +1,9 @@
 # Release notes
 
-## V1.3.1 candidate, review 02 — unpublished
+## V1.3.1
+
+Published [21 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1).
+Stable Windows release with a clearly labelled Mac preview download.
 
 - Glass uses one rounded native backdrop and one continuous light-catching edge.
   The smaller rectangular frosted core and parallel perimeter lines are removed.
@@ -21,8 +24,7 @@
 - Queued placement activation now preserves a textbox opened immediately after
   creation. Help text is laid out when requested, avoiding that work during placement.
 
-This candidate has not been tagged or published. Public downloads remain V1.3
-pending visual approval. Mac remains a preview. Glass uses supported compositor
+Mac remains a preview. Glass uses supported compositor
 frost, static shading and an edge highlight; it has no optical refraction,
 desktop-capture loop or native Apple Liquid Glass dependency.
 
@@ -47,7 +49,8 @@ Built from [`8d0f10a`](https://github.com/nottbradd/MiniWhiteboard/commit/8d0f10
 on `codex/v1.3.1-liquid-glass`.
 [Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39570524574) and
 [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39570529848) passed
-for that exact source. Later receipt changes affect documentation only.
+for that exact source. The release tag includes subsequent documentation changes;
+application code, build inputs and the approved package bytes are unchanged.
 
 | Check | Actual result |
 |---|---|
@@ -78,7 +81,7 @@ Mac acceptance is not established by CI or bundle validation.
 Both preserved and revised packages ran on the same Windows machine. Startup
 uses five alternating warm launches per package; these small samples vary by run.
 
-| Measurement | Previous candidate | Review 02 |
+| Measurement | Previous candidate | V1.3.1 |
 |---|---:|---:|
 | Median launch to tray | 399.5 ms | 411.3 ms |
 | Tray working set / private memory | 56.59 / 26.66 MiB | 56.71 / 26.93 MiB |
@@ -104,16 +107,16 @@ White 1080p marquee median was 0.71 → 0.93 ms. Every screenshot cache built on
 source-image paint/decode work stayed zero. The long-text geometry and pixel
 fixtures were unchanged. Detailed samples remain in local verification evidence.
 
-### Unpublished packages
+### Downloads
 
-Staging: `build/candidates/v1.3.1/review-02/`. Previous candidate archives and
-screenshots remain intact, with their original hashes rechecked. Public downloads
-remain V1.3; no V1.3.1 release/tag or promotion has been made.
+The approved Windows archive and the Mac-created preview archive are published
+unchanged. [Checksums, dependency notices and exact dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
+accompany the downloads.
 
 | Package | Bytes | SHA-256 |
 |---|---:|---|
-| `WinMiniWhiteboardV1.3.1.zip` | 37,822,209 | `9cbebd8f864430637e659c47a76227c988ef9d3c75fb6e5e285dc7d55c466b60` |
-| `MacMiniWhiteboardV1.3.1-Preview.zip` | 56,452,627 | `caefb39d524e3102685209fcdf7c016ffaa4f35e28c5d74fa48c2972df33c392` |
+| [WinMiniWhiteboardV1.3.1.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/WinMiniWhiteboardV1.3.1.zip) | 37,822,209 | `9cbebd8f864430637e659c47a76227c988ef9d3c75fb6e5e285dc7d55c466b60` |
+| [MacMiniWhiteboardV1.3.1-Preview.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/MacMiniWhiteboardV1.3.1-Preview.zip) | 56,452,627 | `caefb39d524e3102685209fcdf7c016ffaa4f35e28c5d74fa48c2972df33c392` |
 
 Windows is unsigned. Mac is ad-hoc signed and not notarized.
 
@@ -121,7 +124,7 @@ Windows is unsigned. Mac is ad-hoc signed and not notarized.
 Spaces, Retina and physical multi-monitor acceptance; macOS 14 and Intel execution;
 Windows 10, clean-machine deployment, physical mixed-DPI arrangements and extended
 hand-operated IME/RTL/handle ergonomics. Mac native animation/performance were not
-measured. Visual approval remains required before publication.
+measured.
 
 
 ## V1.3
