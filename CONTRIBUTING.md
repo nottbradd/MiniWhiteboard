@@ -150,7 +150,8 @@ No helper, launch plist or paid signing service is required. Actual acceptance
 under the current ad hoc signature remains a separate Mac check.
 
 The vector masters are `assets/mini_whiteboard.svg` and `assets/tray_symbol.svg`.
-`scripts.make_icon` regenerates the committed PNGs and multi-resolution ICO;
+`scripts.make_icon` regenerates the committed PNGs, multi-resolution ICO and
+installer wizard artwork in `assets/installer/`;
 `scripts.make_macos_icon` produces the ICNS on Mac. Runtime icons use cached PNGs.
 The Mac status icon is a template mask; Windows selects contrasting status
 symbols from system appearance and refreshes on OS broadcasts without polling.

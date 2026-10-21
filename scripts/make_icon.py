@@ -4,7 +4,7 @@ from pathlib import Path
 import struct
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from PySide6.QtCore import QByteArray, QRectF, Qt
-from PySide6.QtGui import QImage, QPainter
+from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
 from mini_whiteboard.branding import APP_SIZES, TRAY_SIZES
@@ -36,6 +36,21 @@ def generate(project=None):
         entries.append(struct.pack('<BBBBHHII',side%256,side%256,0,0,1,32,len(data),offset))
         offset+=len(data)
     (assets/'mini_whiteboard.ico').write_bytes(struct.pack('<HHH',0,1,len(sides))+b''.join(entries)+b''.join(chunks))
+    # Installer-only artwork stays outside the runtime branding directory.
+    installer=assets/'installer';installer.mkdir(exist_ok=True)
+    renderer=QSvgRenderer(QByteArray(master))
+    for filename,width,height,rectangle in (
+            ('wizard.png',492,942,QRectF(36,280,420,420)),
+            ('wizard-small.png',232,232,QRectF(10,10,212,212))):
+        image=QImage(width,height,QImage.Format.Format_RGB32)
+        image.fill(Qt.GlobalColor.white)
+        painter=QPainter(image);painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if height>width:
+            gradient=QLinearGradient(0,0,width,height)
+            gradient.setColorAt(0,QColor('#edf8fc'));gradient.setColorAt(1,QColor('#dbeaf7'))
+            painter.fillRect(image.rect(),gradient)
+        renderer.render(painter,rectangle);painter.end()
+        if not image.save(str(installer/filename),'PNG'):raise OSError('Cannot save installer artwork')
     return output
 
 
