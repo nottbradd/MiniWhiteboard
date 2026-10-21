@@ -29,8 +29,20 @@ class MacDesktop(QtDesktop):
 
     def apply_appearance(self, board):
         import AppKit
+        if getattr(board, '_appearance_observer', None) is None:
+            from Foundation import NSOperationQueue
+            def policy_changed(_notification):
+                if not board._closing:
+                    board.refresh_appearance()
+            centre = AppKit.NSWorkspace.sharedWorkspace().notificationCenter()
+            board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
+                AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
+                NSOperationQueue.mainQueue(), policy_changed)
         if board.canvas.preferences.theme != 'Glass' or not board.display_policy.transparency:
-            self.release_appearance(board)
+            record = getattr(board, '_visual_effect', None)
+            if record is not None:
+                record[1].removeFromSuperview()
+                board._visual_effect = None
             return False
         try:
             window = native_window(board)
@@ -54,13 +66,6 @@ class MacDesktop(QtDesktop):
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect)
-                def policy_changed(_notification):
-                    if not board._closing:
-                        board.refresh_appearance()
-                centre = AppKit.NSWorkspace.sharedWorkspace().notificationCenter()
-                board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
-                    AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
-                    AppKit.NSOperationQueue.mainQueue(), policy_changed)
             return True
         except (AttributeError, RuntimeError, ValueError):
             self.release_appearance(board)
