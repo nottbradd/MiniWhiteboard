@@ -2,6 +2,8 @@
 
 ## V1.3
 
+Published [21 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3).
+
 - Every outside textbox click now finishes editing and deselects it. The same
   press/release/double-click cannot start another editor or tool action. A separate
   click can create/edit text. Blank drafts preserve history/redo; clearing existing
@@ -26,17 +28,57 @@
   16-million-pixel/32-MiB input and 100,000-character output limits. Hide/close,
   source changes and cancellation invalidate results and stop owned worker processes.
 
-### Verification and limitations
+### Release verification
 
-Windows source checks: 235 tests discovered, 233 passed and two Mac-only symlink
-checks skipped. The final Windows executable passed 34 packaged checks and exact OCR for all
-three clean/dark/transparent fixtures with restricted PATH and the socket audit guard.
-Actual Windows captures verify native background-dependent frost
-and unchanged opaque ink. Thirty theme/hide cycles returned to the same GDI/user
-resource counts. Real OCR matches clean printed multiline, punctuation, number,
-URL, dark and transparent fixtures exactly; scaled/rotated/masked fixtures and
-service cancellation/limits are covered. Difficult layouts and handwriting can
-still produce recognition errors.
+Release source: [`60e8f15`](https://github.com/nottbradd/MiniWhiteboard/commit/60e8f1534aef4870d3694482cc9f4d6032d1ed59).
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39551606504) and
+[Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39551606590) passed for that source.
+
+| Check | Actual result |
+|---|---|
+| Windows automated suite | 236 discovered; 234 passed, two Mac-only symlink skips |
+| Mac automated suite | All 236 passed, repeated before packaging |
+| Windows desktop checks | 112 general checks, 20 native text checks, 60 hotkey/focus checks with the H conflict/test-chord limitation below; 9 native Glass/OCR/resource checks |
+| Final Windows executable | 35 packaged checks plus exact clean/dark/transparent OCR; restricted PATH, invalid external data path, Unicode/space paths and Python socket audit guard |
+| Windows ZIP | 219 runtime files, every CRC/file SHA-256 checked; 35 notice hashes; strings 1.3, numeric/manifest 1.3.0.0 |
+| Mac runner | macOS 15.7.9 arm64; Python 3.13.15, Qt/PySide6 6.11.2, PyInstaller 6.22.3, PyObjC 12.2.2 |
+| Mac bundle | Universal2, 14.0 minimum; 829 architecture/linkage/signature/symlink/notice checks before packaging and after ditto extraction; 32 notice hashes |
+| Mac startup and OCR | Limited startup passed; source and frozen Vision matched all three clean/dark/transparent fixtures exactly |
+| Mac ZIP | 402 entries; CRC, metadata roundtrip and complete extracted-app revalidation passed; transferred unchanged from Mac |
+| Other checks | Source compilation, dependencies, workflow lint and local documentation links passed |
+
+Windows measurements used Windows 11 build 26200 x64, Python 3.12.14 and
+Qt/PySide6 6.11.2. Compared with the preserved V1.2.1 package on the same machine:
+
+| Measurement | V1.2.1 | V1.3 |
+|---|---:|---:|
+| Median warm startup to tray, five samples | 275.6 ms | 282.9 ms |
+| Median working set | 53.2 MiB | 56.8 MiB |
+| Median private memory | 25.3 MiB | 27.6 MiB |
+| CPU time in a 60-second idle sample | 0.0 s | 0.0 s |
+| Median of 28 event-latency medians | 1.303 ms | 1.252 ms |
+| Worst event p95 across those cases | 4.586 ms | 2.974 ms |
+| Windows ZIP size | 37,783,789 bytes | 44,755,989 bytes |
+
+The annotation fixture uses 20 strokes, 20 shapes and 10 text objects on blank,
+1080p, 1440p and 4K backgrounds (120 samples per case). Each screenshot cache
+built once; source decode/image-paint counters stayed zero during annotation.
+These are processing timings, not display FPS. A 24,400-character wrapped textbox
+had a 0.046 ms median / 0.063 ms p95 hit path. Six real OCR jobs left GDI/user counts,
+history and clipboard unchanged (971 ms median including review-window lifecycle).
+A noisy 24.9 MB 4K input cancelled cleanly; maximum GUI heartbeat gap was 77.7 ms.
+Thirty native theme/hide cycles returned to unchanged GDI/user counts.
+
+### Downloads
+
+| Package | Bytes | SHA-256 |
+|---|---:|---|
+| [WinMiniWhiteboardV1.3.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/WinMiniWhiteboardV1.3.zip) | 44,755,989 | `15e870dca619f25f198b5cde4b3dcaa44be0b369da1d4918bf03c4b137a226ff` |
+| [MacMiniWhiteboardV1.3-Preview.zip](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/MacMiniWhiteboardV1.3-Preview.zip) | 56,918,634 | `aa559058e7d1ed68b2239a57f7975c5202a59bb0ddf1e05dbfae057b27c5d9c9` |
+
+[Checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3/SHA256SUMS.txt), dependency notices and exact dependency sources accompany the [V1.3 release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3). The Mac preview is ad-hoc signed, not notarized; Windows is unsigned.
+
+### Limitations and checks not run
 
 On this machine another application already owns Ctrl+Alt+H (Windows error 1409).
 The actual default conflict path preserves W/S. Native H dispatch, held repeats,
