@@ -17,24 +17,68 @@ is unchanged. This candidate requires visual approval before publication.
 - Boundary artwork, cached screenshot display and the real temporary editor use
   alpha clipping. The saved capture excludes all preview material.
 
-### Verification in progress
+### Verification
 
-Baseline: 244 tests discovered, 242 passed and two Mac-only skips. Revised suite:
-255 discovered, 253 passed and two Mac-only skips. New regressions cover corner
-alpha at five scales, control bounds/fonts/feedback, preview material cleanup,
-capture coordinates and real editor ownership.
+Both candidates were built from
+[`2e12042`](https://github.com/nottbradd/MiniWhiteboard/commit/2e120427199d5a8c013dc47800adfc687087ac46).
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39590095270) and
+[Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39590098031) passed.
+Packages, raw captures and earlier attempts remain in the local review directories.
 
-Native Windows surface checks passed 177 assertions at each of 100%, 125%, 150%,
-175% and 200% application scaling. These include original native captures and all
-four enlarged corner crops, separately owned cross-process mouse delivery,
-normal/minimum sizes, three backgrounds, both controls, all four preview/capture
-directions and exact original screenshot pixels. The physical monitor remained
-1920 × 1080 at 100%; physical mixed-DPI transitions remain **NOT RUN**.
+| Check | Actual result |
+|---|---|
+| Baseline / revised suite | 244 discovered, Windows 242 passed plus two Mac-only skips; revised 255 discovered, Windows 253 passed plus two skips; Mac all 255 passed twice |
+| Windows native | 112 general, 61 hotkey/focus, 24 textbox, 15 appearance and 49 material/state/motion checks passed |
+| Surface checks | 177 at each of 100%, 125%, 150%, 175% and 200% application scaling; another 177 on final source. Normal/minimum sizes, light/dark/busy backgrounds, controls, all four preview/capture directions and actual cross-process click delivery passed |
+| Final executable | 36 package checks and 38 supplementary native checks per theme passed. All 620 × 340 saved screenshot pixels matched the clean reference in both themes |
+| Windows archive | 174 runtime files, 155 frozen modules, 17 verified notices; all ZIP CRCs and file SHA-256 values matched the distribution; version remains 1.3.1 / 1.3.1.0 |
+| Mac archive | Standard macos-15 runner; Universal2 and macOS 14 minimum. 770 bundle checks before and after Mac extraction, 15 notices and 375 ZIP entries passed; finished ZIP transferred unchanged |
+| Mac startup | Eight-second Cocoa launch and normal exit passed; interactive acceptance remains NOT RUN |
+| Retained content | Three font/layout/glyph/clipboard fixtures, including 24,000 wrapped Unicode characters, remained byte-identical to the published candidate |
+| Other checks | Dependency consistency, compilation, workflow lint, documentation links and OCR absence checks passed |
 
-Final general/package checks, comparable performance measurements and fresh
-Windows/Mac candidate archives are still being verified. Interactive Mac
-acceptance, macOS 14/Intel execution, Windows 10 and clean-machine deployment
-remain **NOT RUN**. Mac remains a preview.
+Raw native captures include all four original/enlarged corners, control states
+and both previews from the final Windows executable. The local review gallery
+also includes fractional application scales. The monitor stayed at 1920 × 1080
+and 100% physical scaling; this does not establish physical mixed-DPI transitions.
+
+Early verification failures were resolved: fixed initial editor snapshots also
+missed painting in the preserved published executable; both packages pass the
+same bounded native observation. Offscreen animation tests now measure the
+actual stop signal and still enforce 180 ms. The screenshot test now activates
+Unlock inside its submenu. Final checks pass without changing those product rules.
+
+### Comparable Windows measurements
+
+The published review-02 package and this candidate ran on the same Windows 11
+machine with Qt/PySide6 6.11.2. Startup uses five alternating warm launches per
+package. Preview measurements use three alternating runs of 20 movements each.
+
+| Measurement | Published package | Review 03 |
+|---|---:|---:|
+| Median launch to tray | 332.5 ms | 320.3 ms |
+| Tray working set / private memory | 56.55 / 26.51 MiB | 56.54 / 26.48 MiB |
+| CPU time in separate 60-second tray-idle samples | 0.0 s | 0.0 s |
+| Held preview working set / private memory | 80.76 / 37.01 MiB | 81.97 / 36.38 MiB |
+| Preview observed movement median / worst p95 | 29.29 / 45.23 ms | 26.08 / 44.03 ms |
+| Stationary held preview CPU time across three 10-second samples | 1.09 s | 1.09 s |
+
+Preview latency includes shortcut polling, composition and GDI readback; it does
+not isolate display latency. Stationary holds retain input tracking but do no
+material/paint updates. These small samples do not establish a universal speedup.
+
+Glass uses compositor frost, static shading and a thin rim, without optical
+refraction or desktop-capture polling. Partially covered antialiased edge pixels
+receive board input; zero-alpha corners/margins pass through. Reduced transparency
+and high contrast use an unfilled static two-tone preview perimeter.
+
+**NOT RUN:** interactive Mac appearance, focus, global shortcuts, capture
+permissions, Spaces/Mission Control/Stage Manager, Retina or physical multi-monitor
+acceptance; macOS 14 and Intel execution; Windows physical mixed-DPI transitions,
+Windows 10, clean-machine acceptance and extended IME/RTL or long-session ergonomics.
+Windows OS motion stayed disabled; enabled-motion native checks injected a local
+test policy. Windows is unsigned; Mac remains a preview with an ad hoc signature
+and no notarization.
 
 ## V1.3.1
 

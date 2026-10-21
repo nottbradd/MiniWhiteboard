@@ -63,8 +63,9 @@ still needs the checks below. Capture can request Screen Recording permission.
   with Escape again. Menu cancel, display changes and exit remove previews/timers.
 - Test undersized/stationary release, then a fresh valid gesture immediately.
   Board minimum is 160 × 100 logical pixels; capture minimum is 4 × 4 desktop units.
-- Preview dots remain visible over bright/dark backgrounds and let normal
-  desktop clicks through. Final paper matches preview; shadow may extend outside.
+- Both rounded glass previews remain legible over bright/dark backgrounds and
+  let desktop clicks through. Reduced transparency/high contrast use an unfilled
+  two-tone perimeter. Final paper matches the selection; its shadow may extend outside.
 - Mac: test both shortcut presets and conflict/retry without overwriting system
   bindings. Check bare external-focus Escape separately; menu cancellation is
   available if delivery is unreliable.
