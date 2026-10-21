@@ -1,7 +1,8 @@
 """Presentation geometry and typography stay separate from immutable artwork."""
 from dataclasses import replace
+from types import SimpleNamespace
 from unittest.mock import patch
-from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtCore import QPoint, QPointF, QRect, Qt
 from PySide6.QtGui import QFont, QPainterPath
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLabel
@@ -130,3 +131,17 @@ class GlassSurfaceTests(QtCase):
         self.assertIsNone(canvas.editor)
         self.assertIsNone(canvas.gesture)
         self.assertEqual(canvas.document.history,[])
+
+    def test_shortcut_reference_fits_a_small_logical_desktop_without_smaller_text(self):
+        board = self.board()
+        panel = board.canvas.help_panel
+        font = panel.label.font().toString()
+        screen = SimpleNamespace(availableGeometry=lambda:QRect(0,0,800,500))
+        with patch.object(board,'screen',return_value=screen):
+            panel.show()
+            APP.processEvents()
+            self.assertLessEqual(panel.height(),476)
+            self.assertGreater(panel.scroll.verticalScrollBar().maximum(),0)
+            self.assertEqual(panel.label.font().toString(),font)
+            panel.scroll.verticalScrollBar().setValue(100)
+            self.assertEqual(panel.scroll.verticalScrollBar().value(),100)

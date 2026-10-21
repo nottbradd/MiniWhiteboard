@@ -175,6 +175,10 @@ def main():
               shot_board.canvas.background_cache is not None
               and shot_board.canvas.document.objects[0].png == images.from_image(sample_image()).png)
         shot_board.close()
+        # Closing the second tool window may activate the owned topmost
+        # backdrop. Expose the board before testing its input region; an
+        # occluded board is not an input-transparency failure.
+        board.restore()
         QTest.qWait(100)
         # The rounded board region excludes actual desktop points for other apps.
         get_at = windows.bind(windows.user32,'WindowFromPoint',W.HWND,W.POINT)

@@ -1,6 +1,6 @@
 """Temporary feedback and an on-demand reference; no permanent tool controls."""
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
-from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QLabel, QScrollArea, QVBoxLayout
 
 from .appearance import ANIMATION_MS, interface_font
 from .surfaces import Surface
@@ -67,14 +67,31 @@ class ShortcutReference(Surface, QFrame):
         self.setWindowTitle("Mini Whiteboard shortcuts")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(22, 18, 22, 18)
-        label = QLabel(board.platform.shortcuts.help_html(), self)
-        label.setFont(interface_font('support'))
-        label.setStyleSheet('color:#181b24; background:transparent;')
-        label.setWordWrap(True)
-        label.setTextFormat(Qt.TextFormat.RichText)
-        layout.addWidget(label)
-        self.setFixedWidth(560)
-        self.adjustSize()
+        self.label = QLabel()
+        self.label.setFont(interface_font('support'))
+        self.label.setStyleSheet('color:#181b24; background:transparent;')
+        self.label.setWordWrap(True)
+        self.label.setTextFormat(Qt.TextFormat.RichText)
+        self.scroll = QScrollArea(self)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setStyleSheet('QScrollArea { background:transparent; border:0; }')
+        self.scroll.viewport().setAutoFillBackground(False)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll.setWidget(self.label)
+        self.scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.scroll.verticalScrollBar().setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        layout.addWidget(self.scroll)
+        self.fit_reference()
+
+    def fit_reference(self):
+        board = self.parentWidget()
+        available = board.screen().availableGeometry()
+        width = min(560, available.width()-24)
+        self.setFixedWidth(width)
+        self.label.setText(board.platform.shortcuts.help_html())
+        self.label.setFixedWidth(width-62)
+        self.label.setFixedHeight(self.label.heightForWidth(self.label.width()))
+        self.setFixedHeight(min(self.label.height()+36, available.height()-24))
 
     def paintEvent(self, event):
         self.paint_surface()
@@ -82,8 +99,7 @@ class ShortcutReference(Surface, QFrame):
 
     def showEvent(self, event):
         board = self.parentWidget()
-        self.findChild(QLabel).setText(board.platform.shortcuts.help_html())
-        self.adjustSize()
+        self.fit_reference()
         available = board.screen().availableGeometry()
         origin = board.frameGeometry().topRight()
         x = min(origin.x()+8, available.right()-self.width())
