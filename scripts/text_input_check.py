@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 os.environ["QT_QPA_PLATFORM"] = "windows"
-from PySide6.QtCore import QPoint, QTimer
+from PySide6.QtCore import QPoint, QRectF, QTimer
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMenu
 
@@ -100,6 +100,21 @@ def main():
         check("Native T and canvas click creates one focused editor",
               board.canvas.tool == "Text" and board.canvas.editor is not None
               and board.canvas.editor.hasFocus())
+        observed=windows.capture_rect(board.desktop.canvas_region(board.canvas,QRectF(48,63,300,38)))
+        frame_pixels=sum(observed.pixelColor(x,y).blue()-observed.pixelColor(x,y).red()>5
+                         and observed.pixelColor(x,y).red()<245
+                         for y in range(observed.height()) for x in range(observed.width()))
+        check('First native editor frame is visible before a caret-blink repaint',frame_pixels>5,
+              {'pixels':frame_pixels,'clip_effect_enabled':board.canvas.editor_overlay.clip_effect.isEnabled()})
+        press(0x1b)
+        click(10,board.canvas.height()-25)
+        observed=windows.capture_rect(board.desktop.canvas_region(board.canvas,
+                    QRectF(8,board.canvas.height()-27,300,27)))
+        boundary_pixels=sum(observed.pixelColor(x,y).blue()-observed.pixelColor(x,y).red()>5
+                            and observed.pixelColor(x,y).red()<245
+                            for y in range(observed.height()) for x in range(observed.width()))
+        check('First clipped editor frame is visible at the rounded boundary',boundary_pixels>5
+              and board.canvas.editor_overlay.clip_effect.isEnabled(),{'pixels':boundary_pixels})
         click(60, 270)
         check("Native outside press/release leaves no replacement editor",
               board.canvas.editor is None and board.canvas.editor_overlay is None)

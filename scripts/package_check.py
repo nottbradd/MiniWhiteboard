@@ -151,18 +151,28 @@ def main():
             user32.SetForegroundWindow(identity['hwnd'])
             time.sleep(.2)
             if foreground() != identity['hwnd']:
-                user32.SetWindowPos(identity['hwnd'], W.HWND(-1), 0, 0, 0, 0, 0x0053)
-                time.sleep(.4)
-                set_cursor(100, 130)
+                # An unrelated foreground app can constrain the cursor. Place
+                # only our disposable helper under the existing pointer rather
+                # than changing global cursor confinement or clicking elsewhere.
+                helper_rect=W.RECT();get_rect(identity['hwnd'],C.byref(helper_rect))
+                pointer=windows.cursor_position()
+                user32.SetWindowPos(identity['hwnd'], W.HWND(-1),
+                    pointer[0]-(helper_rect.right-helper_rect.left)//2,
+                    pointer[1]-(helper_rect.bottom-helper_rect.top)//2,0,0,0x0051)
+                time.sleep(.2)
                 get_at = windows.bind(user32, 'WindowFromPoint', W.HWND, W.POINT)
                 owner = W.DWORD()
-                get_pid(get_at(W.POINT(*windows.cursor_position())), C.byref(owner))
-                check('Packaged external activation target is owned', owner.value == identity['pid'])
+                pointer=windows.cursor_position()
+                target=get_at(W.POINT(*pointer))
+                get_pid(target, C.byref(owner))
+                check('Packaged external activation target is owned', owner.value == identity['pid'],
+                      {'pointer':pointer,'target':target,'actual_pid':owner.value,'wanted_pid':identity['pid'],
+                       'helper':identity['hwnd']})
                 mouse = windows.bind(user32, 'mouse_event', None, W.DWORD, W.DWORD, W.DWORD, W.DWORD, C.c_size_t)
                 mouse(2, 0, 0, 0, 0)
                 mouse(4, 0, 0, 0, 0)
                 time.sleep(.2)
-                user32.SetWindowPos(identity['hwnd'], W.HWND(-2), 0, 0, 0, 0, 0x0013)
+                user32.SetWindowPos(identity['hwnd'], W.HWND(-2),helper_rect.left,helper_rect.top,0,0,0x0011)
             check('Packaged test has external helper focus', foreground() == identity['hwnd'])
 
         focus_helper()

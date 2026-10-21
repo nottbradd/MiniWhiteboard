@@ -187,6 +187,7 @@ class SurfaceEdgeTests(QtCase):
         before=tuple(canvas.document.history)
         canvas.begin_editing(Text((0,canvas.height()-35),'',layout_width=150))
         APP.processEvents()
+        self.assertTrue(canvas.editor_overlay.clip_effect.isEnabled())
         QTest.keyClicks(canvas.editor,'A V E 12345')
         self.assertEqual(canvas.editor.toPlainText(),'A V E 12345')
         self.assertEqual(tuple(canvas.document.history),before)
@@ -198,6 +199,22 @@ class SurfaceEdgeTests(QtCase):
         canvas.finish_editing()
         self.assertEqual(canvas.document.objects[-1].text,'A V E 12345')
         self.assertEqual(len(canvas.document.history),len(before)+1)
+
+    def test_interior_editor_uses_direct_viewport_paint_until_content_reaches_a_boundary(self):
+        board=self.board();canvas=board.canvas
+        canvas.begin_editing(Text((50,60),'',layout_width=140))
+        APP.processEvents()
+        overlay=canvas.editor_overlay
+        self.assertIs(overlay.viewport().graphicsEffect(),overlay.clip_effect)
+        self.assertFalse(overlay.clip_effect.isEnabled())
+        canvas.editor.setPlainText('A V E 12345\n' * 45)
+        APP.processEvents()
+        self.assertTrue(overlay.clip_effect.isEnabled())
+        canvas.editor.setPlainText('Short again')
+        overlay.horizontalScrollBar().setValue(0)
+        overlay.verticalScrollBar().setValue(0)
+        overlay.keep_caret_visible();APP.processEvents()
+        self.assertFalse(overlay.clip_effect.isEnabled())
 
     def test_dpr_notification_refreshes_material_without_replacing_an_active_editor(self):
         board=self.board();canvas=board.canvas

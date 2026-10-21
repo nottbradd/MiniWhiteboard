@@ -20,11 +20,11 @@ is unchanged. This candidate requires visual approval before publication.
 ### Verification in progress
 
 Baseline: 244 tests discovered, 242 passed and two Mac-only skips. Revised suite:
-254 discovered, 252 passed and two Mac-only skips. New regressions cover corner
+255 discovered, 253 passed and two Mac-only skips. New regressions cover corner
 alpha at five scales, control bounds/fonts/feedback, preview material cleanup,
 capture coordinates and real editor ownership.
 
-Native Windows surface checks passed 153 assertions at each of 100%, 125%, 150%,
+Native Windows surface checks passed 177 assertions at each of 100%, 125%, 150%,
 175% and 200% application scaling. These include original native captures and all
 four enlarged corner crops, separately owned cross-process mouse delivery,
 normal/minimum sizes, three backgrounds, both controls, all four preview/capture

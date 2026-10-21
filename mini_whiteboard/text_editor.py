@@ -138,7 +138,11 @@ class EditorOverlay(QGraphicsView):
         self.setSceneRect(QRectF(canvas.rect()))
         from .alpha_clip import EditorClip
         self.clip_effect = EditorClip(canvas, self)
-        self.setGraphicsEffect(self.clip_effect)
+        self.clip_effect.setEnabled(False)
+        # The viewport owns scene paints. An effect on the outer scroll-area
+        # widget can cache its empty initial frame until the next caret blink.
+        self.viewport().setGraphicsEffect(self.clip_effect)
+        self.scene().changed.connect(self.update_clip)
         editor.textChanged.connect(self.keep_caret_visible)
         editor.cursorPositionChanged.connect(self.keep_caret_visible)
 
@@ -149,6 +153,16 @@ class EditorOverlay(QGraphicsView):
         self.setSceneRect(QRectF(self.canvas.rect()).united(extent.adjusted(-12, -12, 12, 12)))
         caret = self.proxy.mapRectToScene(QRectF(self.editor.cursorRect()))
         self.ensureVisible(caret, 12, 12)
+        self.update_clip()
+
+    def update_clip(self, *_args):
+        if not hasattr(self,'clip_effect') or self.canvas.clip_spec is None:
+            return
+        bounds=QRectF(self.mapFromScene(self.scene().itemsBoundingRect()).boundingRect()).adjusted(-1,-1,1,1)
+        needed=not rendering.clip_path(self.canvas.clip_spec).contains(bounds)
+        self.clip_effect.setEnabled(needed)
+        if needed:
+            self.clip_effect.update()
 
     def activate_editor(self):
         self.setFocus(Qt.FocusReason.MouseFocusReason)
@@ -200,3 +214,4 @@ class EditorOverlay(QGraphicsView):
     def resizeEvent(self, event):
         self.setSceneRect(QRectF(self.viewport().rect()))
         super().resizeEvent(event)
+        self.update_clip()
