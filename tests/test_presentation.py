@@ -27,7 +27,22 @@ class PresentationTests(QtCase):
         board = BoardWindow('Presentation', prefs, platform)
         self.widgets.append(board)
         board.resize(640, 440)
+        board.observed_stops = []
+        def record_stop(state, _previous):
+            if state == QAbstractAnimation.State.Stopped and board.emphasis.clock.isValid():
+                board.observed_stops.append(board.emphasis.clock.elapsed())
+        board.emphasis.animation.stateChanged.connect(record_stop)
         return board
+
+    def assert_presentation_finishes(self, board):
+        # A queued paint can delay qWait's return after the animation stopped.
+        # Check the transition's own timestamp against the presentation budget.
+        self.assertTrue(wait_until(lambda: bool(board.observed_stops), 500),
+                        'No presentation stop observed within the test watchdog')
+        self.assertLessEqual(max(board.observed_stops), 180,
+                             'Actual presentation stop exceeded 180 ms')
+        self.assertFalse(board.emphasis.deadline.isActive())
+        board.observed_stops.clear()
 
     def test_creation_restore_and_popups_follow_motion_without_changing_artwork(self):
         board = self.board()
@@ -37,7 +52,7 @@ class PresentationTests(QtCase):
         board.place(Rect(board.x(),board.y(),board.width(),board.height()))
         self.assertEqual(board.emphasis.animation.state(), QAbstractAnimation.State.Running)
         self.assertEqual(board.emphasis.value, 1)
-        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
+        self.assert_presentation_finishes(board)
         self.assertFalse(board.emphasis.deadline.isActive())
         board.prepare_hide()
         board.hide()
@@ -51,7 +66,7 @@ class PresentationTests(QtCase):
         self.assertTrue(menu.emphasis.deadline.isActive())
         menu.hide()
         self.assertFalse(menu.emphasis.deadline.isActive())
-        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
+        self.assert_presentation_finishes(board)
         self.assertEqual(before, (board.geometry(), board.canvas.document.objects, board.canvas.document.history))
         self.assertEqual(board.windowOpacity(), 1)
         self.assertFalse(board.activation_timer.isActive())
@@ -88,7 +103,7 @@ class PresentationTests(QtCase):
     def test_native_show_notifications_cannot_restart_a_completed_presentation(self):
         board = self.board()
         board.place(Rect(board.x(),board.y(),board.width(),board.height()))
-        self.assertTrue(wait_until(lambda: not board.emphasis.deadline.isActive(),180))
+        self.assert_presentation_finishes(board)
         self.assertFalse(board.emphasis.deadline.isActive())
         APP.sendEvent(board,QShowEvent())
         board.restore(activate=False)  # Already visible: only restore focus/state.
