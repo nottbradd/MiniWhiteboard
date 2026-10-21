@@ -119,6 +119,16 @@ OS-owned Mac menus and standard colour/permission dialogs retain native styling.
 Reduced motion disables the brief 140 ms emphasis and feedback fades.
 There are no animated backgrounds or desktop-capture loops.
 
+<details>
+<summary>V1.3.1 candidate: actual Windows Glass and Appearance menu</summary>
+
+![Unpublished Glass candidate over an owned demonstration background](docs/media/glass-v131-candidate.png)
+
+This is a native Windows capture. The caption and backdrop belong to the test
+window; the board has no title bar or permanent toolbar.
+
+</details>
+
 **Ctrl+Alt+H** on Windows, **Control+Option+H** on Mac, or the matching menu action
 hides all visible boards immediately. Press again to restore that recorded set
 without taking focus from your current app. Already minimized boards stay hidden.

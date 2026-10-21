@@ -160,6 +160,21 @@ def main():
         check("Native palette dismissal does not create text or a canvas action",
               board.canvas.editor is None and board.canvas.gesture is None
               and not board.canvas.document.objects)
+        press(ord('C'))
+        palette = board.canvas.palette
+        palette.move(board.canvas.mapToGlobal(QPoint(150,150)))
+        QTest.qWait(40)
+        click(151,151)
+        check('Native rounded palette corner dismisses without click replay',
+              board.canvas.palette is None and board.canvas.editor is None and board.canvas.gesture is None)
+        board.canvas.context_menu = board.canvas.make_context_menu((200,150))
+        context = board.canvas.context_menu
+        context.popup(board.canvas.mapToGlobal(QPoint(250,150)))
+        QTest.qWait(40)
+        click(251,151)
+        check('Native rounded context-menu corner dismisses without click replay',
+              not context.isVisible() and board.canvas.editor is None and board.canvas.gesture is None
+              and not board.canvas.document.objects)
         check("Native textbox audit has no callback exceptions or mouse grab",
               not errors and board.mouseGrabber() is None and board.canvas.gesture is None)
     finally:

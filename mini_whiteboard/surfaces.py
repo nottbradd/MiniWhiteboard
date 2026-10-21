@@ -23,6 +23,10 @@ class Surface:
     def paper_rect(self):
         return QRectF(self.rect())
 
+    def contains_input(self, position):
+        point = position.toPoint()
+        return self.rect().contains(point) and (self.mask().isEmpty() or self.mask().contains(point))
+
     def physical_paper_rect(self):
         return self.desktop.window_rect(self)
 
@@ -164,3 +168,11 @@ class SurfaceMenu(Surface, QMenu):
         if not self.platform.shortcuts.mac:
             self.paint_surface()
         super().paintEvent(event)
+
+    def mousePressEvent(self, event):
+        if not self.platform.shortcuts.mac and not self.contains_input(event.position()):
+            self.setAttribute(Qt.WidgetAttribute.WA_NoMouseReplay)
+            self.close()
+            event.accept()
+            return
+        super().mousePressEvent(event)

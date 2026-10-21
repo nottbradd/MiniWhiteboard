@@ -51,7 +51,7 @@ def screenshot(width,height):
     return images.from_image(image,locked=True)
 
 
-def run(frames=40, repeats=3, native=False):
+def run(frames=40, repeats=3, native=False, theme='White'):
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
     rows = []
@@ -64,6 +64,7 @@ def run(frames=40, repeats=3, native=False):
         board.canvas.deleteLater()
         canvas = MeasuredCanvas(board)
         board.install_canvas(canvas)
+        canvas.preferences.set_theme(theme)
         board.resize(1280,820)
         board.show()
         if native:
@@ -171,15 +172,17 @@ def main():
     parser.add_argument('--frames',type=int,default=40)
     parser.add_argument('--repeats',type=int,default=3)
     parser.add_argument('--native',action='store_true')
+    parser.add_argument('--theme',choices=('White','Glass'),default='White')
     args = parser.parse_args()
     if args.native:
         get_platform().runtime.prepare()
-    rows = run(args.frames,args.repeats,args.native)
+    rows = run(args.frames,args.repeats,args.native,args.theme)
     Path(args.output).write_text(json.dumps({'annotations':{'strokes':20,'shapes':20,'text':10},
-                                           'canvas_outer_size':[1280,820],'platform':os.environ['QT_QPA_PLATFORM'],'timings':rows},indent=2),encoding='utf-8')
+                                           'canvas_outer_size':[1280,820],'theme':args.theme,
+                                           'platform':os.environ['QT_QPA_PLATFORM'],'timings':rows},indent=2),encoding='utf-8')
     if args.profile:
         profiler = cProfile.Profile()
-        profiler.runcall(run,24,1,args.native)
+        profiler.runcall(run,24,1,args.native,args.theme)
         with Path(args.profile).open('w',encoding='utf-8') as stream:
             pstats.Stats(profiler,stream=stream).sort_stats('cumulative').print_stats(55)
     print(json.dumps({'results':args.output,'blank':rows[:7],'4K':rows[-7:]},indent=2))

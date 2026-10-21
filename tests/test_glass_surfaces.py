@@ -111,3 +111,22 @@ class GlassSurfaceTests(QtCase):
             self.assertIsNone(getattr(widget,'_backdrop',None))
         self.assertFalse(canvas.feedback.delay.isActive())
         self.assertEqual(canvas.document.history,[])
+
+    def test_transparent_popup_corners_dismiss_without_replaying_the_press(self):
+        board = self.board()
+        canvas = board.canvas
+        canvas.set_tool('Text')
+        canvas.open_palette()
+        palette = canvas.palette
+        QTest.mouseClick(palette,Qt.MouseButton.LeftButton,pos=QPoint(1,1))
+        self.assertFalse(palette.isVisible())
+        self.assertIsNone(canvas.editor)
+        menu = canvas.make_context_menu((200,150))
+        self.widgets.append(menu)
+        menu.popup(board.mapToGlobal(QPoint(220,150)))
+        APP.processEvents()
+        QTest.mouseClick(menu,Qt.MouseButton.LeftButton,pos=QPoint(1,1))
+        self.assertFalse(menu.isVisible())
+        self.assertIsNone(canvas.editor)
+        self.assertIsNone(canvas.gesture)
+        self.assertEqual(canvas.document.history,[])
