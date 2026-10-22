@@ -7,19 +7,34 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.1 is available.** It refines Glass, removes OCR and adds a saved Windows
-Hide All alternative. Windows is the stable release; Mac remains a preview.
-
-> **Unpublished V1.3.2 candidate:** adds a Windows installer, new branding and
-> optional Open at login, plus smoother edges, themed controls and glass
-> creation previews. Publication awaits the required Windows sign-in test;
-> the public V1.3.1 downloads below are unchanged.
+**V1.3.2 is available.** It adds a recommended Windows installer, updated
+branding and optional Open at login. Windows is the stable release; Mac remains
+a **Universal2 Preview**.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
-### V1.3.2 installation and startup
+## Download V1.3.2
 
-The **Windows installer is recommended** for the candidate. It installs for your
+| Download | Platform | Installation |
+|---|---|---|
+| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/MiniWhiteboard-1.3.2-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/WinMiniWhiteboardV1.3.2.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/MacMiniWhiteboardV1.3.2-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
+
+Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
+describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.2)
+accompany the downloads. [Earlier releases](https://github.com/nottbradd/MiniWhiteboard/releases)
+remain available.
+
+Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
+For a trusted Mac download blocked by Gatekeeper, follow
+[Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
+Interactive Mac acceptance, execution on macOS 14 and Intel hardware remain
+**NOT RUN**. Universal2 bundle checks and limited startup do not establish those results.
+
+### Installation and Open at login
+
+The **Windows installer is recommended**. It installs for your
 account without an administrator prompt, adds Mini Whiteboard to Start/Search,
 and offers a desktop shortcut. The portable ZIP remains available: extract it
 and keep its entire folder together. Both launch quietly into the tray.
@@ -34,28 +49,13 @@ the app does not silently enable it again. Choose **Turn off Open at login** to
 remove the app's registration while startup is disabled or approval is pending.
 Keep portable copies in a permanent folder before enabling startup.
 Development and temporary copies cannot register.
+Startup registration and controlled command launches were tested. Automatic
+launch during an actual Windows sign-in is **NOT RUN (not tested)**.
 
 To update or uninstall Windows, first choose Exit from the tray menu after
 keeping any work you need. Setup and uninstall refuse to proceed while the app
 is running. Updates retain preferences and startup choice. Uninstall removes its
 own shortcuts and login registration; preferences remain for a later reinstall.
-
-## Download V1.3.1
-
-| Download | Platform | Installation |
-|---|---|---|
-| [Windows ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/WinMiniWhiteboardV1.3.1.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.1/MacMiniWhiteboardV1.3.1-Preview.zip) | macOS 14+; preview | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. |
-
-Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
-accompany the downloads.
-
-Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
-For a trusted Mac download blocked by Gatekeeper, follow
-[Apple's Open Anyway instructions](https://support.apple.com/en-au/102445).
-Interactive Mac acceptance, execution on macOS 14 and Intel hardware remain
-**NOT RUN**. Universal2 bundle checks and limited startup do not establish those results.
 
 ![Hold, move and release to place a whiteboard](docs/media/placement.gif)
 

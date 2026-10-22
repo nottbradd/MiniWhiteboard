@@ -1,10 +1,10 @@
 # Release notes
 
-## V1.3.2 candidate — unpublished
+## V1.3.2
 
-The public [V1.3.1 downloads](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1)
-remain available. V1.3.2 publication is on hold for the required Windows sign-in
-acceptance check. The Mac package remains a **Universal2 Preview**.
+Published [22 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.2).
+Stable Windows release with a recommended installer and a clearly labelled
+Mac **Universal2 Preview** download.
 
 - Adds a recommended per-user Windows installer with a Start menu shortcut,
   optional desktop shortcut and normal uninstall. The complete portable ZIP is
@@ -17,7 +17,8 @@ acceptance check. The Mac package remains a **Universal2 Preview**.
   registration, external disables, approval requirements and errors.
   **Turn off Open at login** removes the app's registration when startup is
   disabled externally or OS approval is pending.
-- Manual and automatic launches stay quiet. Windows updates retain preferences
+- Manual launches and controlled launches of the registered startup command stay
+  quiet. Windows updates retain preferences
   and startup choice; uninstall removes the registration belonging to that copy.
 - Smooths rounded board edges, aligns themed window controls and adds glass
   previews to both hold → move → release placement modes. Boundary artwork,
@@ -25,7 +26,7 @@ acceptance check. The Mac package remains a **Universal2 Preview**.
 
 ### Verification
 
-All three candidate packages use source
+All three released application packages use source
 [`04d9627`](https://github.com/nottbradd/MiniWhiteboard/commit/04d962786345fe2c9bf48f892271502b0d03e198).
 [Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39680288687)
 and [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/39680293467)
@@ -54,11 +55,10 @@ The upgrade fixture wrapped the preserved V1.3.1 portable bundle in a test insta
 
 ### Acceptance limits
 
-**Required before publication — NOT RUN:** two actual Windows sign-ins on an
-isolated test system. With Open at login enabled, one tray instance must appear
-quietly and the creation shortcut must work. After disabling it, the next sign-in
-must leave the app closed. No suitable isolated Windows environment is available.
-Launching the registered command does not establish sign-in acceptance.
+**Windows automatic launch during actual sign-in: NOT RUN (not tested).**
+Startup registration, external-disable handling, removal, persistence, controlled
+launches of the registered command and manual/login instance overlap were tested.
+Those checks do not establish automatic launch during a real Windows sign-in.
 
 **Other NOT RUN checks:** interactive Mac appearance, menu-bar icon, global
 shortcuts, capture permissions, login registration/approval or real login; macOS

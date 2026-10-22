@@ -73,12 +73,13 @@ still needs the checks below. Capture can request Screen Recording permission.
 - Check fresh GUI defaults without command-line task overrides. Extract the
   portable ZIP into a permanent Unicode folder outside the checkout, verify its
   file hashes, launch with Python absent from PATH, and test its login option.
-- A controlled launch of the registered command is not a real login. Before
-  publishing V1.3.2, use a disposable Windows session or test system for two actual
-  sign-ins: enabled must produce one quiet tray instance with a working creation
-  shortcut; disabled must leave the app closed after the next sign-in. Record the
-  package hash, environment and observed results. Do not sign out, reboot or
-  disrupt an active user desktop. Hold publication if this check is unavailable.
+- Automatic launch during an actual Windows sign-in is **NOT RUN (not tested)**
+  for V1.3.2. A controlled launch of the registered command does not establish it.
+  To test later, use a disposable Windows session or separate system for two
+  actual sign-ins: enabled must produce one quiet tray instance with a working
+  creation shortcut; disabled must leave the app closed after the next sign-in.
+  Record the package hash, environment and observed results. Do not sign out,
+  reboot or disrupt an active user desktop.
 - Inspect executable, setup, shortcut and About icons at native 16/20/24/32/48 px
   and larger sizes on light/dark backgrounds. Mac: inspect the bundle ICNS and
   actual menu-bar template appearance, including Retina, where hardware permits.
