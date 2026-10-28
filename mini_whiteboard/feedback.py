@@ -1,9 +1,11 @@
 """Temporary feedback and an on-demand reference; no permanent tool controls."""
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QRect, QRectF, Qt, QTimer
+from PySide6.QtGui import QFontMetrics, QPainter
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from .appearance import ANIMATION_MS, interface_font
 from .surfaces import Surface
+from .chrome import ChromeSample, paint_chrome
 
 
 class FeedbackLabel(QLabel):
@@ -11,7 +13,10 @@ class FeedbackLabel(QLabel):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setFont(interface_font('support'))
+        font = interface_font('support')
+        font.setPointSizeF(9)
+        self.setFont(font)
+        self.chrome_sample = ChromeSample()
         self.opacity = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity)
         self.fade = QPropertyAnimation(self.opacity, b"opacity", self)
@@ -36,13 +41,7 @@ class FeedbackLabel(QLabel):
     def show_message(self, text):
         self.fade.stop()
         self.delay.stop()
-        board = self.window()
-        glass = board.appearance_theme == 'Glass' and board.display_policy.transparency
-        self.setStyleSheet('color:#303644; border:1px solid rgba(255,255,255,170); '
-                           'border-radius:10px; padding:6px 11px; '
-                           f"background:{'rgba(247,248,252,220)' if glass else '#f0f2f4'};")
         self.setText(text)
-        self.adjustSize()
         self.reposition()
         self.opacity.setOpacity(1)
         self.show()
@@ -50,7 +49,30 @@ class FeedbackLabel(QLabel):
         self.delay.start()
 
     def reposition(self):
-        self.move(8, max(4, self.parentWidget().height()-self.height()-8))
+        parent = self.parentWidget()
+        margin = 10
+        width = max(20, min(320, parent.width()-2*margin))
+        fm = QFontMetrics(self.font())
+        width = min(width, fm.horizontalAdvance(self.text())+16)
+        flags = Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignLeft
+        text_rect = fm.boundingRect(QRect(0, 0, max(4, width-16), 10000), flags, self.text())
+        height = min(max(22, text_rect.height()+8), max(22, parent.height()-2*margin))
+        self.resize(width, height)
+        self.move(margin, max(margin, parent.height()-height-margin))
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        ink = paint_chrome(painter, self, QRectF(self.rect()), self.chrome_sample, radius=7)
+        painter.setPen(ink)
+        painter.setFont(self.font())
+        painter.drawText(self.rect().adjusted(8, 4, -8, -4),
+                         Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                         self.text())
+
+    def hideEvent(self, event):
+        self.delay.stop()
+        self.fade.stop()
+        super().hideEvent(event)
 
     def stop(self):
         self.delay.stop()

@@ -12,7 +12,7 @@ from .board import BoardWindow
 from .placement import PlacementController
 from .screenshot import ScreenshotController
 from .snapping import SnapPreferences
-from .settings import APP_NAME, MIN_WIDTH, MIN_HEIGHT, CANVAS_INSET, TOP_STRIP
+from .settings import APP_NAME, MIN_WIDTH, MIN_HEIGHT
 from . import APP_VERSION
 from .branding import app_icon
 
@@ -81,7 +81,8 @@ class WhiteboardApplication:
         alternative = (' Choose Hide All shortcut → Ctrl+Alt+Shift+H in the tray menu if H conflicts.'
                        if not self.platform.shortcuts.mac and self.preferences.windows_hide == 'default' else '')
         self.notify('A global shortcut is unavailable. Working shortcuts remain registered. '
-                    f'Use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.'
+                    'Close or reassign the application that owns the unavailable shortcut, then '
+                    f'use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.'
                     f'{alternative}\n{detail}')
 
     def update_shortcut_labels(self):
@@ -123,8 +124,8 @@ class WhiteboardApplication:
     def notify(self, text):
         self.tray.showMessage(APP_NAME, text, QSystemTrayIcon.MessageIcon.Information, 3000)
 
-    def create_board(self, rect):
-        board = BoardWindow(f"Whiteboard {self.next_number}", self.preferences, self.platform)
+    def create_board(self, rect, *, screenshot=False):
+        board = BoardWindow(f"Whiteboard {self.next_number}", self.preferences, self.platform, screenshot=screenshot)
         try:
             board.place(rect)
         except (OSError, ValueError) as error:
@@ -150,10 +151,11 @@ class WhiteboardApplication:
             self.notify(f"Screenshot capture failed: {error}")
             return
         scale = self.platform.desktop.placement_scale(rect)
-        body = Rect(rect.x-CANVAS_INSET*scale, rect.y-TOP_STRIP*scale,
-                    max(MIN_WIDTH*scale, rect.width+2*CANVAS_INSET*scale),
-                    max(MIN_HEIGHT*scale, rect.height+(TOP_STRIP+CANVAS_INSET)*scale))
-        board = self.create_board(body)
+        # Keep the captured region's origin and ratio. Tiny captures enlarge
+        # uniformly to the minimum board size, without adding letterbox gutters.
+        enlarge = max(1, MIN_WIDTH*scale/rect.width, MIN_HEIGHT*scale/rect.height)
+        body = Rect(rect.x, rect.y, rect.width*enlarge, rect.height*enlarge)
+        board = self.create_board(body, screenshot=True)
         if board is None:
             return
         canvas = board.canvas
@@ -165,7 +167,7 @@ class WhiteboardApplication:
         canvas.set_screenshot_background(obj)
         canvas.tool = "Draw"
         canvas.update_cursor()
-        canvas.show_feedback("Screenshot locked · right-click to unlock")
+        canvas.show_feedback("Locked · right-click to unlock")
         return board
 
     def delete_board(self, board):

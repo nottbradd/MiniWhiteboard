@@ -14,8 +14,9 @@ TOP_STRIP = 11  # Previously 32: keep a slim dedicated window drag strip.
 CANVAS_INSET = 0  # Content reaches the sides/bottom; resizing uses invisible zones.
 EDGE_GRIP = 7  # Invisible resize targets, independent of the canvas inset.
 BORDER_WIDTH = 1  # White's top edge; Glass has a separate thin optical rim.
-CONTROL_WIDTH, CONTROL_HEIGHT = 30, 28
-CONTROL_TOP, CONTROL_GAP, CONTROL_RIGHT = 10, 6, 12
+CONTROL_WIDTH, CONTROL_HEIGHT = 24, 24  # 20px surface inside a modest 2px hit pad.
+CONTROL_HIT_PADDING = 2
+CONTROL_TOP, CONTROL_GAP, CONTROL_RIGHT = 10, 4, 10
 DIRTY_PADDING = 3
 DIRTY_RECT_LIMIT = 16  # Coalesce dense regions before Qt's raster clip becomes costly.
 PEN_SIZES = {1: 2, 2: 4, 3: 6, 4: 9, 5: 14}
@@ -47,8 +48,8 @@ TOOL_KEYS = {"D": "Draw", "T": "Text", "S": "Shape", "A": "Select", "V": "Select
 # Sections are shared by the responsive reference and the plain help export.
 HELP_SECTIONS = (
     ('Create & windows',
-     'Ctrl+Alt+W — hold at the first corner → move → release to place.<br>'
-     'Ctrl+Alt+S — hold → move → release for a screenshot board. Esc cancels.<br>'
+     'Win+Alt+W — hold at the first corner → move → release to place.<br>'
+     'Win+Alt+S — hold → move → release for a screenshot board. Esc cancels.<br>'
      'Ctrl+Alt+H — Hide All / Restore All without taking focus.<br>'
      'Drag the empty top edge to move; edges/corners resize.<br>'
      '− hides to tray · × deletes this board · tray menu exits.<br>'

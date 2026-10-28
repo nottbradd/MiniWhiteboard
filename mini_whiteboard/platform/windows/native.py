@@ -20,7 +20,8 @@ MOD_NOREPEAT = 0x4000
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
 CAPTURE_HOTKEY = 0x4D03
-ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06)
+ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06, 0x4D08)
+CREATION_MODIFIERS = 0x0008 | 0x0001  # MOD_WIN | MOD_ALT; Hide All stays Ctrl+Alt.
 
 
 if IS_WINDOWS:
@@ -197,7 +198,8 @@ class NativeHotkeys(QAbstractNativeEventFilter):
     def sample(self):
         down = {identifier for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"))
                 if user32.GetAsyncKeyState(ord(key)) & 0x8000}
-        modifiers = all(user32.GetAsyncKeyState(key) & 0x8000 for key in (0x11, 0x12))
+        modifiers = (any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0x5B, 0x5C))
+                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA4, 0xA5)))
         return down, down if modifiers else set(), bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
 
     def register(self, identifier, modifiers, key):
@@ -213,10 +215,11 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         failures = []
         for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"), (HIDE_HOTKEY, "H")):
             try:
-                modifiers = 7 if key == 'H' and self.hide_shortcut == 'shift' else 3
+                modifiers = (7 if self.hide_shortcut == 'shift' else 3) if key == 'H' else CREATION_MODIFIERS
                 self.register(identifier, modifiers, ord(key))
             except OSError as error:
-                label = 'Ctrl+Alt+' + ('Shift+' if modifiers == 7 else '') + key
+                from ...shortcuts import ShortcutPolicy
+                label = ShortcutPolicy(hide_shortcut=self.hide_shortcut).global_label(key)
                 failures.append(f"{label}: {error}")
         if failures:
             raise OSError("\n".join(failures))
@@ -235,11 +238,9 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         self.hide_shortcut = choice
 
     def enable_escape(self):
-        # Consume Escape in every release order, including while Ctrl/Alt are
-        # still held. Bare Escape registration alone cannot consume Alt+Escape.
-        # Ctrl+Escape is reserved by Windows. The hold sampler covers that
-        # transitional state; only the available combinations are registered.
-        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 3)):
+        # Only owned creation sessions register these Escape variants. Both
+        # sides of Win/Alt share the same native modifier flags.
+        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 8, CREATION_MODIFIERS)):
             self.register(identifier, modifiers, 0x1B)
 
     def disable_escape(self):
@@ -270,6 +271,8 @@ class NativeHotkeys(QAbstractNativeEventFilter):
                                 return True, 0
                             self.hide_latch.activate()
                         else:
+                            if msg.lParam & 15 != CREATION_MODIFIERS:
+                                return True, 0
                             self.hold.activate(msg.wParam)
                 return True, 0
         return False, 0

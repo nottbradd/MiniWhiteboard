@@ -18,12 +18,13 @@ class BoardWindow(QWidget):
     minimized = Signal(object)
     restored = Signal(object)
 
-    def __init__(self, name, preferences=None, platform=None):
+    def __init__(self, name, preferences=None, platform=None, *, screenshot=False):
         platform = platform or get_platform()
         super().__init__(None, platform.desktop.board_flags())
         self.platform = platform
         self.desktop = platform.desktop
         self.name = name
+        self.screenshot_surface = screenshot
         self.setWindowTitle(name)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setMouseTracking(True)
@@ -59,7 +60,7 @@ class BoardWindow(QWidget):
         self._presented_theme = self.appearance_theme
         self.display_policy = self.desktop.display_policy()
         self.desktop.release_appearance(self)
-        self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() else False
+        self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() and not self.screenshot_surface else False
         self.layout_children()
         self._region_key = None
         self.sync_shadow()
@@ -103,10 +104,11 @@ class BoardWindow(QWidget):
         self.remove.setGeometry(round(right), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
         self.minus.setGeometry(round(right-CONTROL_WIDTH-CONTROL_GAP), round(paper.top()+CONTROL_TOP), CONTROL_WIDTH, CONTROL_HEIGHT)
         if self.canvas is not None:
+            top = 0 if self.screenshot_surface else TOP_STRIP
             self.canvas.setGeometry(math.ceil(paper.left()+CANVAS_INSET),
-                                    math.ceil(paper.top()+TOP_STRIP),
+                                    math.ceil(paper.top()+top),
                                     max(1, math.floor(paper.width()-2*CANVAS_INSET)),
-                                    max(1, math.floor(paper.height()-TOP_STRIP-CANVAS_INSET)))
+                                    max(1, math.floor(paper.height()-top-CANVAS_INSET)))
             self.canvas.refresh_document_clip()
         self.minus.raise_()
         self.remove.raise_()
@@ -154,8 +156,14 @@ class BoardWindow(QWidget):
                 painter.setBrush(QColor(30, 38, 45, 2 + (SHADOW-spread)//2))
                 painter.drawRoundedRect(paper.adjusted(-spread, -spread+1, spread, spread+1),
                                         RADIUS+spread, RADIUS+spread)
-        paint_surface(painter, paper, self.appearance_theme, self.native_glass, self.display_policy,
-                      emphasis=self.emphasis.value)
+        if self.screenshot_surface:
+            # No white rim/backing bleeds through the image's antialiased edge.
+            # Neutral exposed paper remains useful if the image is later moved.
+            painter.setBrush(QColor('#202124'))
+            painter.drawRoundedRect(paper, self.corner_radius(), self.corner_radius())
+        else:
+            paint_surface(painter, paper, self.appearance_theme, self.native_glass, self.display_policy,
+                          emphasis=self.emphasis.value)
 
     def place(self, rect):
         self.desktop.place_board(self, rect)
@@ -310,14 +318,16 @@ class BoardWindow(QWidget):
                     return False
             point = position + QPointF(canvas.x(),canvas.y())
             edges = self.edges_at(point)
-            if edges:
+            move_strip = (self.screenshot_surface and self.paper_rect().contains(point)
+                          and point.y() <= self.paper_rect().top()+TOP_STRIP)
+            if edges or move_strip:
                 if event.type() == QEvent.Type.MouseMove:
-                    canvas.setCursor(self.edge_cursor(edges))
+                    canvas.setCursor(self.edge_cursor(edges) if edges else Qt.CursorShape.SizeAllCursor)
                     canvas.cursor_position = None
                     canvas.sync_tool_overlay()
                 elif event.button() == Qt.MouseButton.LeftButton:
                     canvas.setFocus(Qt.FocusReason.MouseFocusReason)
-                    self._gesture = ('resize',self.desktop.cursor_position(),self.desktop.window_rect(self),edges)
+                    self._gesture = ('resize' if edges else 'move',self.desktop.cursor_position(),self.desktop.window_rect(self),edges)
                     self.grabMouse()
                 else:
                     return False

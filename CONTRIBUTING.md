@@ -65,7 +65,10 @@ Keep these invariants covered:
   Selection and previews stay outside history. Object identity, original image
   bytes, masks, text width and stacking survive transforms/undo.
 - Bounds include surviving artwork outside the viewport. Text uses shaped glyph
-  outlines for ink; its convenient box hit area has bounded tolerance work.
+  outlines for ink. Direct hits precede tolerance/interior hits; text convenience
+  areas follow shaped line spans, not unused wrapping width. Work scales with
+  lines rather than glyph outlines. Another object's direct hit precedes an
+  existing selection frame's move area; handles retain explicit priority.
   Masks are subtracted after hit tolerance.
 - Annotation work reuses the original locked screenshot's display cache at
   viewport × DPR. It must not decode/resample source pixels per pointer event.
@@ -84,8 +87,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v132-review02/Mini Whiteboard/` and
-`build/candidates/v1.3.2/review-02/WinMiniWhiteboardV1.3.2.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v133-review01/Mini Whiteboard/` and
+`build/candidates/v1.3.3/review-01/WinMiniWhiteboardV1.3.3.zip`. Keep the entire runtime folder.
 
 Build the recommended installer with the pinned, free Inno Setup compiler:
 
@@ -111,8 +114,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v132-review02/Mini Whiteboard.app` and
-`build/candidates/v1.3.2/review-02/MacMiniWhiteboardV1.3.2-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v133-review01/Mini Whiteboard.app` and
+`build/candidates/v1.3.3/review-01/MacMiniWhiteboardV1.3.3-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation
@@ -182,6 +185,13 @@ mouse delivery to a separate process, as HTTRANSPARENT only searches one thread.
 `alpha_clip.py` clips boundary artwork, the screenshot display cache and temporary
 editor pixels. Interior drawing retains its direct paint path. Window actions use
 font-independent vector geometry in `window_controls.py`.
+
+Screenshot boards use a full-paper canvas with no dedicated painted header.
+Their source image continues under controls; annotation input still excludes
+control targets. Coordinate conversion uses the common board ancestor.
+`chrome.py` samples only small areas of the existing screenshot raster and caches
+them for controls/feedback. It performs no desktop capture or idle processing.
+Visible controls are 20 × 20 logical pixels within disjoint 24 × 24 hit targets.
 
 Both creation modes share `PreviewOverlay`: a low-tint rounded selection with
 native frost where available, a translucent fallback, and an unfilled two-tone

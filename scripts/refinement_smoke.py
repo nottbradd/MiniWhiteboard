@@ -59,7 +59,8 @@ def run_refinement_checks(board,check,artifacts):
     r = board.paper_rect()
     dpr = board.devicePixelRatioF()
     pixel = lambda x,y:image.pixelColor(round(x*dpr),round(y*dpr)).name()
-    check('Native top border remains subtle grey', pixel(r.center().x(),r.top()) == BORDER)
+    check('Native screenshot reaches the top boundary without a white strip',
+          pixel(r.center().x(),r.top()) == '#3179b5')
     check('Native left right bottom edges contain no grey outline',
           all(pixel(x,y)=='#3179b5' for x,y in ((r.left(),r.center().y()),(r.right()-1,r.center().y()),
                                                (r.center().x(),r.bottom()-1))))

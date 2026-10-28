@@ -1,6 +1,6 @@
 """Opt-in real Windows hold/release keyboard test using an owned external focus target.
 
-Temporarily moves the cursor and sends Ctrl+Alt+W/Escape. Never types into an
+Temporarily moves the cursor and sends Win+Alt+W/Escape. Never types into an
 unowned window; aborts if the foreground window is unexpected. Restores cursor
 and foreground on exit, and closes only the disposable windows it created.
 """
@@ -26,7 +26,7 @@ from mini_whiteboard.geometry import Rect, normalized
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v132-review02/hotkey-workflow.json'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v133-review01/hotkey-workflow.json'))
     parser.add_argument('--hide-shortcut', choices=('default','shift'), default='default',
                         help='Select and reload the shipped persisted Windows Hide All configuration.')
     args = parser.parse_args()
@@ -70,27 +70,27 @@ def main():
             raise AssertionError(label)
 
     def key(vk, up=False):
-        key_event(vk, 0, 2 if up else 0, 0)
+        key_event(vk, 0, (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), 0)
         if up:
             pressed.discard(vk)
         else:
             pressed.add(vk)
 
     def press_creation(release=True):
-        key(0x11)
-        key(0x12)
+        key(0x5B)
+        key(0xA4)
         key(ord("W"))
         QTest.qWait(180)
         if release:
-            for vk in (ord("W"), 0x12, 0x11):
+            for vk in (ord("W"), 0xA4, 0x5B):
                 key(vk, True)
             QTest.qWait(50)
 
     def press_capture():
-        for vk in (0x11, 0x12, ord('S')):
+        for vk in (0x5B, 0xA4, ord('S')):
             key(vk)
         QTest.qWait(100)
-        for vk in (ord('S'), 0x12, 0x11):
+        for vk in (ord('S'), 0xA4, 0x5B):
             key(vk, True)
         QTest.qWait(60)
 
@@ -160,7 +160,7 @@ def main():
 
         def begin(trigger, point):
             set_cursor(*point)
-            for vk in (0x11, 0x12, ord(trigger)):
+            for vk in (0x5B, 0xA4, ord(trigger)):
                 key(vk)
             QTest.qWait(100)
 
@@ -202,8 +202,8 @@ def main():
         board = controller.boards[-1]
         check('Release paper matches sampled bounds', board.physical_paper_rect() == confirmed_rectangles[-1])
         check('Completed board gets canvas focus', board.canvas.hasFocus())
-        key(0x11, True)
-        key(0x12, True)
+        key(0x5B, True)
+        key(0xA4, True)
         for _ in range(5):
             key(ord('S'))
             QTest.qWait(25)
@@ -212,7 +212,7 @@ def main():
         idle('Completion drains keys and removes every preview/timer')
         board.minimize_to_tray()
 
-        for modifier, name in ((0x11, 'Control'), (0x12, 'Alt')):
+        for modifier, name in ((0x5B, 'Windows'), (0xA4, 'Alt')):
             focus_target()
             count = len(controller.boards)
             begin('W', b)
@@ -236,7 +236,7 @@ def main():
         key(0x1B)
         QTest.qWait(60)
         key(0x1B, True)
-        check('Escape cancels while Control Alt W remain held externally', not controller.placement.state.active and foreground() == helper_id, {'placement':controller.placement.state.active,'foreground':foreground(),'helper':helper_id,'hold':controller.hotkeys.hold.active,'blocked':list(controller.hotkeys.hold.blocked),'errors':errors})
+        check('Escape cancels while Windows Alt W remain held externally', not controller.placement.state.active and foreground() == helper_id, {'placement':controller.placement.state.active,'foreground':foreground(),'helper':helper_id,'hold':controller.hotkeys.hold.active,'blocked':list(controller.hotkeys.hold.blocked),'errors':errors})
         for _ in range(10):
             key(ord('W'))
             QTest.qWait(30)
@@ -261,13 +261,13 @@ def main():
         set_cursor(*end)
         QTest.qWait(80)
         check('Screenshot preview tracks while held', all(o.outline == Rect(250,330,250,140) for o in controller.capture.overlays))
-        key(0x11, True)
+        key(0x5B, True)
         QTest.qWait(250)
         check('S modifier-first release captures without any mouse input', len(controller.boards) == count+1 and not controller.capture.active)
         captured = controller.boards[-1].canvas.document.objects[0]
         check('Captured image starts locked at physical size', isinstance(captured, ImageObject) and captured.locked and captured.pixel_size == (250,140))
         check('Captured pixels exclude preview', images.decoded(captured.png).pixelColor(100,50).name() == expected_pixel)
-        key(0x12, True)
+        key(0xA4, True)
         for _ in range(8):
             key(ord('S'))
             QTest.qWait(25)

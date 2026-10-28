@@ -9,7 +9,8 @@ class ShortcutPolicy:
     hide_shortcut: str = "default"
 
     def global_label(self, key):
-        prefix = ("Command+Option+Shift" if self.preset == "alternate" else "Control+Option") if self.mac else "Ctrl+Alt"
+        prefix = (("Command+Option+Shift" if self.preset == "alternate" else "Control+Option")
+                  if self.mac else "Ctrl+Alt" if key == 'H' else "Win+Alt")
         if not self.mac and key == 'H' and self.hide_shortcut == 'shift':
             prefix += '+Shift'
         return f"{prefix}+{key}"
@@ -31,11 +32,10 @@ class ShortcutPolicy:
         return tuple((title, self.format_help(body)) for title, body in HELP_SECTIONS)
 
     def format_help(self, text):
-        if not self.mac:
-            text = text.replace('Ctrl+Alt+H', self.global_label('H'))
+        for key in ('W', 'S', 'H'):
+            text = text.replace('Ctrl+Alt+' + key, self.global_label(key))
+            text = text.replace('Win+Alt+' + key, self.global_label(key))
         if self.mac:
-            for key in ('W', 'S', 'H'):
-                text = text.replace('Ctrl+Alt+' + key, self.global_label(key))
             text = text.replace("Ctrl+Y / Ctrl+Shift+Z", "Command+Shift+Z")
             text = text.replace("Ctrl+Enter", "Command+Return").replace("Ctrl+", "Command+")
             text = text.replace("Alt", "Option").replace("tray", "menu bar").replace("F1", "F1 / Fn+F1")

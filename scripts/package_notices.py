@@ -13,7 +13,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 def stage(project=PROJECT, destination=None):
     project = Path(project)
-    destination = Path(destination or project / 'build' / 'candidates' / 'v1.3.2' / 'review-01' / 'license-notices')
+    destination = Path(destination or project / 'build' / 'candidates' / 'v1.3.3' / 'review-01' / 'license-notices')
     if not destination.resolve().is_relative_to(project.resolve()):
         raise RuntimeError('Notice staging must stay inside the project.')
     destination.mkdir(parents=True, exist_ok=True)

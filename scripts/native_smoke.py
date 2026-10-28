@@ -27,7 +27,9 @@ from mini_whiteboard.snapping import SnapPreferences
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v132-review02/native-smoke'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v133-review01/native-smoke'))
+    parser.add_argument('--allow-shortcut-conflict', action='store_true',
+                        help='Record unavailable W as NOT RUN and continue unrelated native checks.')
     args=parser.parse_args()
     windows.enable_dpi_awareness()
     app = QApplication([])
@@ -55,7 +57,11 @@ def main():
 
     try:
         QTest.qWait(150)
-        check("Native creation hotkey registration", windows.CREATE_HOTKEY in controller.hotkeys.registered)
+        if args.allow_shortcut_conflict and windows.CREATE_HOTKEY not in controller.hotkeys.registered:
+            results.append({'check': 'Native Win+Alt+W registration', 'status': 'NOT RUN',
+                            'detail': 'Shortcut is already registered on this desktop; direct controller checks follow.'})
+        else:
+            check("Native creation hotkey registration", windows.CREATE_HOTKEY in controller.hotkeys.registered)
         check("Launch creates no board", not controller.boards)
         check("Placement timer idle", not controller.placement.timer.isActive())
         monitors = windows.monitors()

@@ -11,6 +11,10 @@ toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 branding and optional Open at login. Windows is the stable release; Mac remains
 a **Universal2 Preview**.
 
+This branch contains the **unpublished V1.3.3 review candidate**. The Windows
+creation shortcuts below apply to that candidate. Published V1.3.2 uses
+Ctrl+Alt+W/S; its downloads remain available until a new release is approved.
+
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
 ## Download V1.3.2
@@ -70,7 +74,7 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 ## Place a board or screenshot
 
-1. Point at the first corner and hold **Ctrl+Alt+W** on Windows or
+1. Point at the first corner and hold **Win+Alt+W** on Windows or
    **Control+Option+W** on Mac.
 2. Keep holding and move to the opposite corner. A temporary outline previews the rectangle.
 3. Release W **or any required modifier** to create a focused board.
@@ -84,6 +88,16 @@ below 160 × 100 logical pixels, or a capture below 4 × 4 desktop units, cancel
 Escape or the tray/menu cancellation clears a preview. Held repeats cannot
 create more boards. Screen capture may request Screen Recording permission on
 Mac; a denied or failed capture creates no board.
+
+Windows screenshot creation uses **Win+Alt+S**. Both left/right Windows and Alt
+keys work. If another application or Windows component owns a shortcut, its
+tray entry says **unavailable**. Close or reassign the conflicting application,
+then choose **Retry global shortcut**. Other working shortcuts remain active;
+Mini Whiteboard does not take over the conflicting binding or switch to another.
+
+Screenshot content reaches the rounded board boundary. Small translucent controls
+and temporary feedback sit over the image; copied image content excludes them.
+The top edge still moves the window and its edges/corners resize it.
 
 ## Tools and shortcuts
 
@@ -127,6 +141,10 @@ Shift snaps rotation to 15°. Shape creation retains square/circle constraints.
 Circular erasure cuts every editable object under its swept brush. Whole-stroke
 erasure removes an original freehand gesture, including its surviving fragments.
 Masks follow objects through transforms and edits.
+
+Direct selection prioritises visible content in stacking order. A textbox's
+unused wrapping width cannot cover a neighbouring note's hit area. Clicking and
+dragging another object selects and moves it even inside the current selection box.
 
 Right-click for ordering and lock/unlock commands. Paste images or drop local
 PNG, JPEG and WEBP files. **Snap & Guides** controls Smart Guides and Grid Snap.

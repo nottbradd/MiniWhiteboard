@@ -232,31 +232,52 @@ def bounds(obj):
     return visible_ink(obj).boundingRect()
 
 
+@lru_cache(maxsize=512)
+def text_hit_rects(text, size, layout_width):
+    """Shaped line spans, excluding unused wrapping width and empty lines.
+
+    The editor keeps its stored layout width. Selection follows the content;
+    one small rectangle per line avoids expanding every glyph outline.
+    """
+    document = text_document(text, size, layout_width)
+    document.documentLayout().documentSize()
+    block, result = document.begin(), []
+    while block.isValid():
+        layout = block.layout()
+        for index in range(layout.lineCount()):
+            line = layout.lineAt(index)
+            rect = line.naturalTextRect().translated(layout.position())
+            if rect.width() > 0:
+                result.append(rect)
+        block = block.next()
+    return tuple(result)
+
+
 def interaction_bounds(obj):
     result = bounds(obj)
     if result.isEmpty():
         return result
-    if isinstance(obj, Text) or isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
+    if isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
         result = result.united(qt_transform(obj.transform).mapRect(object_path(obj).boundingRect()))
+    elif isinstance(obj, Text):
+        for rect in text_hit_rects(obj.text, obj.size, obj.layout_width):
+            result = result.united(qt_transform(obj.transform).mapRect(rect.translated(*obj.position)))
     return result.adjusted(-5, -5, 5, 5)
 
 
+@lru_cache(maxsize=512)
 def hit_path(obj, tolerance=5, interior=True):
     ink = visible_ink(obj)
     if ink.isEmpty():
         return ink
     transform = qt_transform(obj.transform)
     if interior and isinstance(obj, Text):
-        # Text already permits textbox-interior selection. Expanding every
-        # glyph and boolean-unioning thousands of intersecting stroke contours
-        # can stall Qt on CoreText fonts. Use the box for this convenient hit
-        # area, preserving detailed glyphs for painted bounds and erasure.
-        box = object_path(obj).boundingRect().united(local_ink(obj).boundingRect())
         result = QPainterPath()
-        result.addRect(box)
-        result = transform.map(result)
-        if tolerance:
-            result = result.united(stroked(result, tolerance*2))
+        for rect in text_hit_rects(obj.text, obj.size, obj.layout_width):
+            line = QPainterPath()
+            line.addRect(rect.translated(*obj.position))
+            line = transform.map(line)
+            result = result.united(line.united(stroked(line, tolerance*2)) if tolerance else line)
     else:
         result = ink.united(stroked(ink, tolerance*2)) if tolerance else QPainterPath(ink)
         if interior and isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
@@ -271,8 +292,9 @@ def hit_path(obj, tolerance=5, interior=True):
 
 def hit_test(objects, position):
     p = point(position)
-    return next((obj for obj in reversed(objects) if interaction_bounds(obj).contains(p)
-                 and hit_path(obj).contains(p)), None)
+    candidates = [obj for obj in reversed(objects) if interaction_bounds(obj).contains(p)]
+    return (next((obj for obj in candidates if visible_ink(obj).contains(p)), None)
+            or next((obj for obj in candidates if hit_path(obj).contains(p)), None))
 
 
 def swept_hits(obj, a, b, diameter=16):

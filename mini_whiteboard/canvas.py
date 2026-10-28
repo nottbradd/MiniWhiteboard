@@ -106,8 +106,18 @@ class Canvas(EditingActions, QWidget):
             self.sync_scene()
             record = self.scene.record(obj.id)
             if record is not None:
-                self.background_cache.prepare(self.rect(), self.devicePixelRatioF(), self.clip_spec, record)
+                self.background_cache.prepare(self.rect(), self.devicePixelRatioF(), self.background_clip(), record)
+        board = self.window()
+        for button in (getattr(board, 'minus', None), getattr(board, 'remove', None)):
+            if button is not None:
+                button.update()
         self.update()
+
+    def background_clip(self):
+        # The screenshot continues underneath translucent controls. Annotation
+        # input/paint still respects their small, disjoint control areas.
+        return (replace(self.clip_spec, exclusions=()) if self.clip_spec is not None
+                and getattr(self.window(), 'screenshot_surface', False) else self.clip_spec)
 
     def control_rects(self):
         board = self.window()
@@ -185,10 +195,15 @@ class Canvas(EditingActions, QWidget):
     def hit_test(self, position, include_locked=False):
         self.sync_scene()
         p = rendering.point(position)
-        candidates = self.scene.query(QRectF(p.x()-.01, p.y()-.01, .02, .02), hits=True,
-                                      reverse=True, editable=not include_locked)
-        return next((record.obj for record in candidates if (include_locked or not record.obj.locked)
-                     and rendering.hit_path(record.obj).contains(p)), None)
+        candidates = tuple(self.scene.query(QRectF(p.x()-.01, p.y()-.01, .02, .02), hits=True,
+                                            reverse=True, editable=not include_locked))
+        # Actual painted content wins over empty shape/text interiors and hit
+        # tolerance. Within each tier the existing visible stacking order wins.
+        for record in candidates:
+            local = record.obj.transform.inverse().map(position)
+            if record.paint.remaining.contains(rendering.point(local)):
+                return record.obj
+        return next((record.obj for record in candidates if rendering.hit_path(record.obj).contains(p)), None)
 
     def set_selection(self, identifiers):
         self.sync_scene()
@@ -430,14 +445,17 @@ class Canvas(EditingActions, QWidget):
         clip = rendering.clip_path(self.clip_spec) if self.clip_spec is not None else None
 
         def paint(obj, bounds, data=None):
+            object_clip = (rendering.clip_path(self.background_clip())
+                           if self.background_cache is not None and obj.id == self.background_cache.source.id
+                           and self.clip_spec is not None else clip)
             # Only artwork touching a document boundary needs the additional
             # rounded/control-hole clip. Interior objects use the event region.
-            clipped = clip is not None and not clip.contains(bounds.adjusted(-1, -1, 1, 1))
+            clipped = object_clip is not None and not object_clip.contains(bounds.adjusted(-1, -1, 1, 1))
             if clipped:
                 from .alpha_clip import paint_boundary
                 data = rendering.paint_data(obj) if data is None else data
                 dirty = bounds.adjusted(-2,-2,2,2).intersected(QRectF(event.rect())).intersected(QRectF(self.rect()))
-                paint_boundary(painter, obj, data, clip, dirty, self.devicePixelRatioF())
+                paint_boundary(painter, obj, data, object_clip, dirty, self.devicePixelRatioF())
             else:
                 rendering.paint_object(painter, obj, data)
 
@@ -448,7 +466,7 @@ class Canvas(EditingActions, QWidget):
             if not self.editing_object or obj.id != self.editing_object.id:
                 cache = self.background_cache
                 if cache is not None and cache.matches(obj):
-                    cache.prepare(self.rect(), self.devicePixelRatioF(), self.clip_spec, record)
+                    cache.prepare(self.rect(), self.devicePixelRatioF(), self.background_clip(), record)
                     cache.paint(painter, event.region())
                 else:
                     paint(obj, record.bounds, record.paint)
@@ -503,13 +521,13 @@ class Canvas(EditingActions, QWidget):
         if self.tool == "Select":
             if shift and hit:
                 self.set_selection(self.selected_ids ^ {hit.id})
-            elif (self.frame and self.frame.contains(self.start)) or (hit and hit.id in self.selected_ids):
-                self.start_gesture("move")
-                self.click_hit = hit.id if hit else None
-            elif hit:
+            elif hit and hit.id not in self.selected_ids:
                 self.set_selection({hit.id})
                 self.start_gesture("move")
                 self.click_hit = hit.id
+            elif not shift and ((self.frame and self.frame.contains(self.start)) or hit):
+                self.start_gesture("move")
+                self.click_hit = hit.id if hit else None
             else:
                 self.start_gesture("marquee")
                 self.marquee_add = shift

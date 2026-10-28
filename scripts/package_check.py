@@ -21,8 +21,8 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v132-review02/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v132-review02/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v133-review01/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v133-review01/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
@@ -180,12 +180,12 @@ def main():
         key_event = windows.bind(user32, 'keybd_event', None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
 
         def key(vk, up=False):
-            key_event(vk, 0, 2 if up else 0, 0)
+            key_event(vk, 0, (2 if up else 0) | (1 if vk in (0x5B,0x5C,0xA5) else 0), 0)
             pressed.discard(vk) if up else pressed.add(vk)
 
         def begin(trigger, point):
             set_cursor(*point)
-            for vk in (0x11, 0x12, ord(trigger)):
+            for vk in (0x5B, 0xA4, ord(trigger)):
                 key(vk)
             time.sleep(.2)
 
@@ -210,10 +210,10 @@ def main():
             key(ord('W'))
             time.sleep(.04)
         check('Packaged long repeated hold cannot create a board', not board_windows() and bool(preview_windows()))
-        key(0x11, True)
+        key(0x5B, True)
         boards = wait_boards(1)
         check('Packaged modifier-first release creates one board', len(boards) == 1)
-        key(0x12, True)
+        key(0xA4, True)
         for _ in range(8):
             key(ord('W'))
             time.sleep(.025)

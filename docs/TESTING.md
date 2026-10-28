@@ -18,10 +18,12 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 ```powershell
 .\.venv\Scripts\python.exe -m scripts.native_smoke
 .\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
+.\.venv\Scripts\python.exe -m scripts.creation_shortcut_check
+.\.venv\Scripts\python.exe -m scripts.selection_pointer_check --output verification/v133-review01/selection-100
 .\.venv\Scripts\python.exe -m scripts.text_input_check
 .\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
-.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v132-review02/native-100
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v133-review01/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
 ```
 
@@ -29,6 +31,15 @@ The hotkey and text checks use native Windows input. The general native smoke
 also uses Qt-directed events. Tests abort when ownership/focus cannot be established;
 an aborted check is not a pass. They restore the cursor/foreground and close only
 owned test processes. Reports are under ignored `.test-artifacts/` and `verification/`.
+
+The creation matrix exercises both sides of Win/Alt and every release order,
+held repeats, external text/menu focus, Escape and an owned conflict/retry.
+It records existing third-party conflicts as **NOT RUN**; `--require-both` makes
+either conflict fail that check. The general native smoke can continue unrelated
+checks with `--allow-shortcut-conflict`, explicitly recording the limitation.
+Neither option changes the application's bindings or takes a shortcut from its owner.
+The pointer regression uses native mouse input and checks actual selected IDs,
+moved transforms and undo against adjacent, reversed-order and rotated notes.
 
 `surface_input_check` saves original native captures, all four corner crops,
 nearest-neighbour 6× enlargements and control close-ups. It confirms delivery of
@@ -74,7 +85,8 @@ still needs the checks below. Capture can request Screen Recording permission.
   portable ZIP into a permanent Unicode folder outside the checkout, verify its
   file hashes, launch with Python absent from PATH, and test its login option.
 - Automatic launch during an actual Windows sign-in is **NOT RUN (not tested)**
-  for V1.3.2. A controlled launch of the registered command does not establish it.
+  and is not a candidate or release gate under the existing waiver. A controlled
+  launch of the registered command does not establish it.
   To test later, use a disposable Windows session or separate system for two
   actual sign-ins: enabled must produce one quiet tray instance with a working
   creation shortcut; disabled must leave the app closed after the next sign-in.
@@ -88,6 +100,9 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 ### Creation and cancellation
 
+- Windows V1.3.3 uses **Win+Alt+W/S**; Mac shortcuts and Windows Hide All choices
+  are unchanged. Test left/right modifiers, all release orders, Start/menu focus
+  after completion/cancellation and ordinary modifier use outside a gesture.
 - From an ordinary foreground application, hold W's global shortcut, move and
   release. No initial board/focus change; exactly one focused board on release.
   Repeat all four directions, trigger-first and each modifier-first release.
@@ -131,6 +146,14 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 ### Tools, history and windows
 
+- Place short text in wide adjacent wrapping boxes in both creation orders.
+  Click visible glyphs and drag: the intended note must be selected/moved, even
+  inside another selection's broad frame. Repeat multiline, rotated/masked text,
+  actual overlapping ink, locked backgrounds, board moves/resizes and DPR changes.
+- Check dark/light/busy screenshot boards under both appearance defaults: no
+  white top strip, gutters or control cut-outs. Check normal/minimum sizes,
+  compact feedback wrapping, hit padding and high-contrast/reduced-transparency
+  fallbacks. Original PNG bytes and clean clipboard pixels must remain exact.
 - Check all drawing widths and shapes, creation constraints and line/arrow endpoints.
   A/V topmost selection, Shift membership and four-direction full-containment
   marquees use complete surviving bounds, including artwork outside the viewport.

@@ -19,7 +19,10 @@ class Record:
         bounds = matrix.map(paint.remaining).boundingRect()
         hit = bounds
         if not bounds.isEmpty():
-            if isinstance(obj, Text) or isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
+            if isinstance(obj, Text):
+                for rect in rendering.text_hit_rects(obj.text, obj.size, obj.layout_width):
+                    hit = hit.united(matrix.mapRect(rect.translated(*obj.position)))
+            elif isinstance(obj, Shape) and obj.kind not in ("Line", "Arrow"):
                 hit = hit.united(matrix.mapRect(paint.path.boundingRect()))
             hit = hit.adjusted(-5, -5, 5, 5)
         return cls(obj, bounds, hit, paint)

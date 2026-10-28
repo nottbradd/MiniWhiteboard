@@ -11,8 +11,12 @@ def rebuild_menu(controller):
     menu.add_heading(f"Mini Whiteboard {APP_VERSION}")
     for label, key in (("New Whiteboard", "W"), ("Screenshot to Whiteboard", "S")):
         shortcut = c.platform.shortcuts.global_label(key)
-        menu.addAction(f"{label} · hold {shortcut}",
-                       lambda checked=False, s=shortcut: c.notify(f"Point at the first corner, hold {s}, move, then release."))
+        identifier = CREATE_HOTKEY if key == 'W' else CAPTURE_HOTKEY
+        available = identifier in c.hotkeys.registered
+        menu.addAction(f"{label} · hold {shortcut}" + ('' if available else ' · unavailable'),
+                       lambda checked=False, s=shortcut, ready=available: c.notify(
+                           f"Point at the first corner, hold {s}, move, then release." if ready else
+                           f"{s} is unavailable. Close or reassign the application using it, then choose Retry global shortcut."))
     if c.placement.state.active or c.capture.active:
         def cancel():
             c.placement.cancel()
