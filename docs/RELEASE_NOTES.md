@@ -1,11 +1,15 @@
 # Release notes
 
-## V1.3.3 — release candidate
+## V1.3.3
+
+Published [29 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.3).
+Windows installer recommended; portable ZIP also available. Mac remains
+**Universal2 Preview**, macOS 14+.
 
 - Windows creation shortcuts are **Win+Alt+Shift+W** for a blank board and
   **Win+Alt+Shift+Q** for screenshot capture. Hold, move the pointer, then release.
-  Both sides of Win/Alt/Shift are recognised. Mac creation shortcuts and the saved
-  Windows Hide All choice are unchanged. Conflicts remain visible in the tray
+  Either left or right Win/Alt/Shift works. Mac shortcuts and the saved Windows
+  Hide All choice are unchanged. Shortcut conflicts remain visible in the tray
   with a retry action; working shortcuts stay registered.
 - Window controls have 20 × 20 logical-pixel surfaces and separate 24 × 24 hit
   targets. Screenshot content reaches the rounded boundary without a white header
@@ -19,24 +23,52 @@
 
 ### Verification
 
-Local Windows: **302 tests discovered, 300 passed, two Mac-only skips**.
-Both new shortcuts passed native hold/release checks with Game Bar running,
-including left/right modifiers, each required key released first, held repeats,
-external text/menu focus and Escape. Fresh packages and final acceptance checks
-are in progress; this candidate has not been published.
+All three application packages use source
+[`486e18e`](https://github.com/nottbradd/MiniWhiteboard/commit/486e18e978e5ce01b32dc71b37824f5966681acd).
+[Windows CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/40692363386)
+and [Mac CI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/40692367353)
+passed. Later documentation changes do not alter the verified packages.
+
+| Check | Actual result |
+|---|---|
+| Complete automated suite | 302 discovered. Local Windows and Windows CI: 300 passed, two Mac-only skips. Mac: all 302 passed twice |
+| Native Windows shortcuts | 572 source checks and 873 final-executable checks passed locally and in Windows CI. Both W and Q created boards through real key input; local Game Bar remained running |
+| Packaged gestures | 70 creations across left/right modifiers, every required key released first, four drag directions, held repeats and rapid consecutive releases. Escape and zero-area cancellation passed; no unexpected foreground activation, external text/menu change or stuck keys/previews |
+| Selection, text and appearance | 41 pointer, 24 textbox, 15 appearance, 49 material and 177 surface checks passed. Packaged checks: 36 general plus 99 per White/Glass theme, including adjacent notes, prior selection frames, undo/redo, controls, feedback and clean clipboard pixels |
+| Lifecycle and startup | 111 general checks and 63 checks for each Hide All choice passed. Installer: 33 checks, including Unicode installation, V1.3.2 upgrade, preferences, external startup disable, open-board protection and uninstall. Portable: nine checks, including launch with Python absent from PATH and controlled login overlap |
+| Package integrity | Windows: 200 runtime files, 160 frozen modules, 18 notices. Mac: Universal2, macOS 14 minimum, 825 bundle checks before and after extraction, 16 notices, 404 ZIP entries and eight-second Cocoa startup. Metadata, archive CRCs, file hashes and OCR absence passed |
+| Supporting checks | Dependency consistency, compilation, workflow lint and local documentation references passed. Actual native W/Q preview captures and package hashes are retained with verification evidence |
+
+Capture-service failure was injected in the source native Q check; cleanup and
+recovery through the next native gesture passed. The shipped app has no test-only
+failure switch. Negative-coordinate geometry has automated coverage; physical
+negative-coordinate monitors were unavailable.
+
+Windows checks used build 26200 x64 and one 1920 × 1080 display at 100% physical
+scaling. Unchanged rendering/selection code retains the previous candidate's
+125–200% application-scale and performance evidence. These are not physical
+mixed-DPI checks. Current installer checks used silent setup and the production
+startup service; unchanged wizard/menu coverage is retained from V1.3.2.
+Temporary settings, shortcuts and startup values were restored. Packaged tray
+restore used the real Qt notification callback, not a physical taskbar-icon click.
+
+### Acceptance limits
 
 **Automatic launch during actual Windows sign-in: NOT RUN (not tested).**
-Startup registration and controlled command launches were tested; they do not
-establish automatic launch at sign-in. The existing waiver remains in effect.
+Startup registration, controlled command launches, external-disable preservation
+and manual/login overlap were tested. They do not establish automatic launch at
+sign-in; the existing release-gate waiver remains in effect.
 
-Mac remains **Universal2 Preview**, macOS 14+, built on macos-15. Interactive Mac
-appearance, menu-bar/global shortcuts, capture permission, login approval and real
-login remain **NOT RUN**, as do macOS 14/Intel execution, Spaces/Mission Control/
-Stage Manager and physical Retina/multi-monitor checks. Windows clean-machine
-execution without Python, Windows 10, quarantined download acceptance, physical
-negative-coordinate/mixed-DPI monitor transitions, extended IME/RTL and long-session
-ergonomics remain untested. Windows is unsigned; Mac is ad-hoc signed and not
-notarized. Application-scale tests do not establish physical mixed-DPI acceptance.
+**Other NOT RUN checks:** interactive Mac appearance, menu-bar/global shortcuts,
+capture permissions, login registration/approval and real login; macOS 14 and
+Intel execution; Spaces, Mission Control, Stage Manager and physical Retina/
+multi-monitor acceptance. Windows clean-machine execution with Python uninstalled,
+Windows 10, quarantined-download/SmartScreen acceptance, physical negative-coordinate
+and mixed-DPI transitions, actual OS high-contrast/reduced-transparency transitions,
+extended IME/RTL and long-session ergonomics remain untested.
+
+Windows is unsigned. Mac is ad-hoc signed and not notarized. Mac CI startup and
+bundle validation do not establish interactive acceptance under that signature.
 
 ## V1.3.2
 

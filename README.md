@@ -7,26 +7,22 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.2 is available.** It adds a recommended Windows installer, updated
-branding and optional Open at login. Windows is the stable release; Mac remains
-a **Universal2 Preview**.
-
-This branch contains the **unpublished V1.3.3 review candidate**. The Windows
-creation shortcuts below apply to that candidate. Published V1.3.2 uses
-Ctrl+Alt+W/S; its downloads remain available until a new release is approved.
+**V1.3.3 is available.** It updates Windows creation shortcuts, improves selection
+between adjacent textboxes and adds compact controls with seamless screenshot
+edges. Windows is the stable release; Mac remains a **Universal2 Preview**.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
-## Download V1.3.2
+## Download V1.3.3
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/MiniWhiteboard-1.3.2-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/WinMiniWhiteboardV1.3.2.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.2/MacMiniWhiteboardV1.3.2-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
+| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/MiniWhiteboard-1.3.3-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/WinMiniWhiteboardV1.3.3.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/MacMiniWhiteboardV1.3.3-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
 
 Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.2)
+describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.3)
 accompany the downloads. [Earlier releases](https://github.com/nottbradd/MiniWhiteboard/releases)
 remain available.
 
