@@ -5,7 +5,7 @@ from ctypes import wintypes as W
 from dataclasses import dataclass
 import sys
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QPoint
+from PySide6.QtCore import QAbstractNativeEventFilter, QPoint, Qt
 from PySide6.QtGui import QGuiApplication
 
 from ...geometry import Rect
@@ -20,8 +20,9 @@ MOD_NOREPEAT = 0x4000
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
 CAPTURE_HOTKEY = 0x4D03
-ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06, 0x4D08)
-CREATION_MODIFIERS = 0x0008 | 0x0001  # MOD_WIN | MOD_ALT; Hide All stays Ctrl+Alt.
+ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06, 0x4D08, 0x4D09, 0x4D0A, 0x4D0B, 0x4D0C)
+CREATION_MODIFIERS = 0x0008 | 0x0001 | 0x0004  # MOD_WIN | MOD_ALT | MOD_SHIFT.
+CREATION_KEYS = {CREATE_HOTKEY: ord('W'), CAPTURE_HOTKEY: ord('Q')}
 
 
 if IS_WINDOWS:
@@ -182,7 +183,8 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         self.events = HotkeyEvents()
         self.registered = set()
         self.hide_shortcut = hide_shortcut
-        self.hold = HoldTracker(app, self.events, self.sample)
+        self.hold = HoldTracker(app, self.events, self.sample,
+                                {Qt.Key.Key_W: CREATE_HOTKEY, Qt.Key.Key_Q: CAPTURE_HOTKEY})
         self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
                                       lambda: bool(user32.GetAsyncKeyState(ord('H')) & 0x8000))
         self.hide_latch.released.connect(lambda: self.record_release(HIDE_HOTKEY))
@@ -196,10 +198,11 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         self.last_release[identifier] = kernel32.GetTickCount()
 
     def sample(self):
-        down = {identifier for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"))
-                if user32.GetAsyncKeyState(ord(key)) & 0x8000}
+        down = {identifier for identifier, key in CREATION_KEYS.items()
+                if user32.GetAsyncKeyState(key) & 0x8000}
         modifiers = (any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0x5B, 0x5C))
-                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA4, 0xA5)))
+                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA4, 0xA5))
+                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA0, 0xA1)))
         return down, down if modifiers else set(), bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
 
     def register(self, identifier, modifiers, key):
@@ -216,7 +219,7 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"), (HIDE_HOTKEY, "H")):
             try:
                 modifiers = (7 if self.hide_shortcut == 'shift' else 3) if key == 'H' else CREATION_MODIFIERS
-                self.register(identifier, modifiers, ord(key))
+                self.register(identifier, modifiers, CREATION_KEYS.get(identifier, ord(key)))
             except OSError as error:
                 from ...shortcuts import ShortcutPolicy
                 label = ShortcutPolicy(hide_shortcut=self.hide_shortcut).global_label(key)
@@ -239,8 +242,9 @@ class NativeHotkeys(QAbstractNativeEventFilter):
 
     def enable_escape(self):
         # Only owned creation sessions register these Escape variants. Both
-        # sides of Win/Alt share the same native modifier flags.
-        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 8, CREATION_MODIFIERS)):
+        # sides of Win/Alt/Shift share the same native modifier flags. Keep
+        # cancellation reliable while any subset of required modifiers drains.
+        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 4, 5, 8, 9, 12, CREATION_MODIFIERS)):
             self.register(identifier, modifiers, 0x1B)
 
     def disable_escape(self):
@@ -271,7 +275,8 @@ class NativeHotkeys(QAbstractNativeEventFilter):
                                 return True, 0
                             self.hide_latch.activate()
                         else:
-                            if msg.lParam & 15 != CREATION_MODIFIERS:
+                            if (msg.lParam & 15 != CREATION_MODIFIERS
+                                    or msg.lParam >> 16 & 0xFFFF != CREATION_KEYS[msg.wParam]):
                                 return True, 0
                             self.hold.activate(msg.wParam)
                 return True, 0

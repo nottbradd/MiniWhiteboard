@@ -1,8 +1,11 @@
 """Windows creation registration, left/right key sampling and queued messages."""
 import ctypes
+import itertools
 from ctypes import wintypes
 from types import SimpleNamespace
 from unittest.mock import patch
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QKeyEvent
 from tests.qt_case import APP, QtCase
 from mini_whiteboard.platform.windows import native
 from mini_whiteboard.platform.base import CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY
@@ -29,7 +32,7 @@ class WindowsCreationShortcutTests(QtCase):
         self.keys = native.NativeHotkeys(APP)
         self.addCleanup(self.keys.close)
 
-    def message(self, key, stamp, modifiers=9):
+    def message(self, key, stamp, modifiers=13):
         msg = wintypes.MSG()
         msg.message = native.WM_HOTKEY
         msg.wParam = CREATE_HOTKEY if key == 'W' else CAPTURE_HOTKEY
@@ -39,13 +42,13 @@ class WindowsCreationShortcutTests(QtCase):
 
     def test_real_bindings_conflict_and_retry_keep_working_shortcuts(self):
         self.conflicts.add(CREATE_HOTKEY)
-        with self.assertRaisesRegex(OSError, r'Win\+Alt\+W'):
+        with self.assertRaisesRegex(OSError, r'Win\+Alt\+Shift\+W'):
             self.keys.start()
         self.assertEqual(self.keys.registered, {CAPTURE_HOTKEY, HIDE_HOTKEY})
-        self.assertEqual([(mods & 15, vk) for _, mods, vk in self.calls], [(9, 87), (9, 83), (3, 72)])
+        self.assertEqual([(mods & 15, vk) for _, mods, vk in self.calls], [(13, 87), (13, 81), (3, 72)])
         self.conflicts.clear()
         self.keys.start()
-        self.assertEqual(self.calls[-1], (CREATE_HOTKEY, 9 | native.MOD_NOREPEAT, 87))
+        self.assertEqual(self.calls[-1], (CREATE_HOTKEY, 13 | native.MOD_NOREPEAT, 87))
         self.assertEqual(len(self.calls), 4)
         self.keys.start()
         self.assertEqual(len(self.calls), 4)
@@ -56,23 +59,25 @@ class WindowsCreationShortcutTests(QtCase):
         events = []
         self.keys.events.create.connect(lambda: events.append('press'))
         self.keys.events.create_released.connect(lambda: events.append('release'))
-        for win in (0x5B, 0x5C):
-            for alt in (0xA4, 0xA5):
-                for released in (win, alt, 87):
-                    with self.subTest(win=win, alt=alt, first=released):
+        self.keys.events.capture.connect(lambda: events.append('press'))
+        self.keys.events.capture_released.connect(lambda: events.append('release'))
+        for trigger, identifier in (('W', CREATE_HOTKEY), ('Q', CAPTURE_HOTKEY)):
+            for win, alt, shift in itertools.product((0x5B, 0x5C), (0xA4, 0xA5), (0xA0, 0xA1)):
+                for released in (win, alt, shift, ord(trigger)):
+                    with self.subTest(trigger=trigger, win=win, alt=alt, shift=shift, first=released):
                         self.clock += 10
-                        self.down = {win, alt, 87}
-                        self.assertEqual(self.keys.sample()[:2], ({CREATE_HOTKEY}, {CREATE_HOTKEY}))
-                        self.message('W', self.clock)
+                        self.down = {win, alt, shift, ord(trigger)}
+                        self.assertEqual(self.keys.sample()[:2], ({identifier}, {identifier}))
+                        self.message(trigger, self.clock)
                         for _ in range(10):
-                            self.keys.hold.activate(CREATE_HOTKEY)
+                            self.keys.hold.activate(identifier)
                         self.down.remove(released)
                         self.keys.hold.poll()
                         self.assertEqual(events[-2:], ['press', 'release'])
                         before = list(events)
                         self.down.clear()
                         self.keys.hold.poll()
-                        self.message('W', self.clock)  # queued pre-release callback
+                        self.message(trigger, self.clock)  # queued pre-release callback
                         self.assertEqual(events, before)
                         self.assertFalse(self.keys.hold.timer.isActive())
 
@@ -80,24 +85,28 @@ class WindowsCreationShortcutTests(QtCase):
         self.keys.start()
         events = []
         self.keys.events.create.connect(lambda: events.append(True))
+        self.keys.events.capture.connect(lambda: events.append(True))
         self.down = {0x11, 0xA4, 87}
         self.assertEqual(self.keys.sample()[1], set())
         self.message('W', 200, 3)
+        self.message('W', 201, 9)
+        self.message('S', 202, 13)
         self.assertFalse(events)
         self.assertFalse(self.keys.hold.timer.isActive())
 
     def test_escape_variants_are_distinct_from_hide_and_are_session_scoped(self):
         self.keys.start()
         self.keys.enable_escape()
-        self.assertEqual([mods & 15 for identifier, mods, key in self.calls if key == 27], [0, 1, 8, 9])
+        self.assertEqual([mods & 15 for identifier, mods, key in self.calls if key == 27], [0, 1, 4, 5, 8, 9, 12, 13])
         self.assertNotIn(HIDE_HOTKEY, native.ESCAPE_VARIANTS)
         self.keys.disable_escape()
         self.assertEqual(self.keys.registered, {CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY})
 
     def test_labels_match_native_bindings_and_mac_is_unchanged(self):
         policy = ShortcutPolicy()
-        self.assertIn('Win+Alt+W', policy.help_html())
-        self.assertIn('Win+Alt+S', policy.help_html())
+        self.assertIn('Win+Alt+Shift+W', policy.help_html())
+        self.assertIn('Win+Alt+Shift+Q', policy.help_html())
+        self.assertEqual(policy.global_label('S'), 'Win+Alt+Shift+Q')
         self.assertIn('Ctrl+Alt+H', policy.help_html())
         for preset, label in (('default', 'Control+Option'), ('alternate', 'Command+Option+Shift')):
             policy = ShortcutPolicy(mac=True, preset=preset)
@@ -105,3 +114,23 @@ class WindowsCreationShortcutTests(QtCase):
                 self.assertEqual(policy.global_label(key), label+'+'+key)
                 self.assertIn(label+'+'+key, policy.help_html())
             self.assertNotIn('Win+', policy.help_html())
+
+    def test_q_hold_filters_only_its_owned_trigger_and_preserves_shape_key(self):
+        self.keys.hold.blocked = {CAPTURE_HOTKEY}
+        for kind in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride):
+            q = QKeyEvent(kind, Qt.Key.Key_Q, Qt.KeyboardModifier.NoModifier)
+            s = QKeyEvent(kind, Qt.Key.Key_S, Qt.KeyboardModifier.NoModifier)
+            self.assertTrue(self.keys.hold.eventFilter(None, q))
+            self.assertFalse(self.keys.hold.eventFilter(None, s))
+        self.keys.hold.blocked.clear()
+        self.assertFalse(self.keys.hold.eventFilter(None, q))
+
+    def test_shift_is_required_but_either_side_can_keep_the_chord_held(self):
+        self.down = {0x5B, 0xA4, 81}
+        self.assertEqual(self.keys.sample()[:2], ({CAPTURE_HOTKEY}, set()))
+        self.down.update((0xA0, 0xA1))
+        self.assertEqual(self.keys.sample()[1], {CAPTURE_HOTKEY})
+        self.down.remove(0xA0)
+        self.assertEqual(self.keys.sample()[1], {CAPTURE_HOTKEY})
+        self.down.remove(0xA1)
+        self.assertEqual(self.keys.sample()[1], set())

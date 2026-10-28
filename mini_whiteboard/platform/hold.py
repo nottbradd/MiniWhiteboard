@@ -9,9 +9,11 @@ from .base import CREATE_HOTKEY, CAPTURE_HOTKEY
 
 
 class HoldTracker(QObject):
-    def __init__(self, app, events, sample):
+    def __init__(self, app, events, sample, trigger_keys=None):
         super().__init__()
         self.app, self.events, self.sample = app, events, sample
+        self.trigger_keys = ({Qt.Key.Key_W: CREATE_HOTKEY, Qt.Key.Key_S: CAPTURE_HOTKEY}
+                             if trigger_keys is None else dict(trigger_keys))
         self.active = None
         self.blocked = set()
         self.closed = False
@@ -72,7 +74,7 @@ class HoldTracker(QObject):
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride):
-            identifier = {Qt.Key.Key_W: CREATE_HOTKEY, Qt.Key.Key_S: CAPTURE_HOTKEY}.get(event.key())
+            identifier = self.trigger_keys.get(event.key())
             if identifier in self.blocked:
                 event.accept()
                 return True

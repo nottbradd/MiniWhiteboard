@@ -11,8 +11,8 @@ from .build_support import verify_release_files, verify_frozen_modules
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--compiler',type=Path,required=True)
-    parser.add_argument('--distribution',type=Path,default=Path('dist/windows-v133-review01/Mini Whiteboard'))
-    parser.add_argument('--output',type=Path,default=Path('build/candidates/v1.3.3/review-01'))
+    parser.add_argument('--distribution',type=Path,default=Path('dist/windows-v133-review02/Mini Whiteboard'))
+    parser.add_argument('--output',type=Path,default=Path('build/candidates/v1.3.3/review-02'))
     args=parser.parse_args()
     project=Path(__file__).resolve().parents[1]
     distribution=args.distribution.resolve();output=args.output.resolve()
@@ -28,7 +28,7 @@ def main():
             'sha256':hashlib.sha256(installer.read_bytes()).hexdigest(),'distribution':str(distribution),
             'source_revision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'compiler':str(args.compiler.resolve()),**notices,**modules}
-    Path('verification/v133-review01/installer-build.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+    Path('verification/v133-review02/installer-build.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))
 
 

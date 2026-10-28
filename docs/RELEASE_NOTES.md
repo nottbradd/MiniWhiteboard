@@ -1,54 +1,42 @@
 # Release notes
 
-## V1.3.3 — unpublished review candidate
+## V1.3.3 — release candidate
 
-- Windows creation defaults are **Win+Alt+W** and **Win+Alt+S**, using the same
-  hold → move → release workflow. Both sides of Win/Alt are recognised. Mac
-  creation shortcuts and the saved Windows Hide All choice are unchanged.
-  Conflicts remain visible in the tray with a retry path; working shortcuts stay
-  registered and no alternate binding is silently substituted.
+- Windows creation shortcuts are **Win+Alt+Shift+W** for a blank board and
+  **Win+Alt+Shift+Q** for screenshot capture. Hold, move the pointer, then release.
+  Both sides of Win/Alt/Shift are recognised. Mac creation shortcuts and the saved
+  Windows Hide All choice are unchanged. Conflicts remain visible in the tray
+  with a retry action; working shortcuts stay registered.
 - Window controls have 20 × 20 logical-pixel surfaces and separate 24 × 24 hit
-  targets. Screenshot content reaches the rounded boundary with no white header
-  or exposed control backing. Small cached local samples provide frost without
-  blurring the rest of the image or repeatedly capturing the desktop.
+  targets. Screenshot content reaches the rounded boundary without a white header
+  or exposed backing. Cached local samples provide frost behind the controls.
 - Transient feedback is smaller, wraps within small boards, remains click-through
   and respects reduced motion/transparency and high contrast.
 - Visible content takes priority during selection. Text line spans replace the
-  invisible full-width textbox hit area. Clicking/dragging another object inside
-  the current selection frame now selects and moves the intended object.
+  invisible full-width textbox hit area. Clicking or dragging another object
+  inside the current selection frame selects and moves the intended object.
   Editor dismissal still consumes its outside click.
 
-### Candidate verification
+### Verification
 
-Local Windows: **300 tests discovered, 298 passed, two Mac-only skips**. The
-selection regressions first reproduced the adjacent-textbox and previous-frame
-failures, then passed through actual Qt pointer events. Native S checks exercised
-both Win/Alt sides, every release order, repeats, external menus and Escape;
-owned conflict/retry and the existing native text/appearance checks passed.
-Native pointer and surface checks passed at 100%, 125%, 150%, 175% and 200%
-application scaling; this is not physical mixed-DPI verification.
-Final package checksums, CI runs, native captures and package-specific results
-accompany the review candidate's verification receipt.
+Local Windows: **302 tests discovered, 300 passed, two Mac-only skips**.
+Both new shortcuts passed native hold/release checks with Game Bar running,
+including left/right modifiers, each required key released first, held repeats,
+external text/menu focus and Escape. Fresh packages and final acceptance checks
+are in progress; this candidate has not been published.
 
-**Win+Alt+W positive native gestures and packaged preview: NOT RUN.** Both the
-local Windows desktop and the hosted Windows CI runner report error 1409 (already
-registered). Closing Game Bar did not release it locally; an isolated test desktop
-also could not register it. The application reports the conflict and retains the
-other bindings. Creating a blank board with this shortcut is unavailable on these
-tested environments. CI records that limitation separately from passing S checks.
-
-**Automatic launch during actual Windows sign-in: NOT RUN (not tested).** The
-existing waiver remains in effect. Startup registration and controlled command
-launches were tested for V1.3.2; those results do not establish actual sign-in.
+**Automatic launch during actual Windows sign-in: NOT RUN (not tested).**
+Startup registration and controlled command launches were tested; they do not
+establish automatic launch at sign-in. The existing waiver remains in effect.
 
 Mac remains **Universal2 Preview**, macOS 14+, built on macos-15. Interactive Mac
 appearance, menu-bar/global shortcuts, capture permission, login approval and real
 login remain **NOT RUN**, as do macOS 14/Intel execution, Spaces/Mission Control/
 Stage Manager and physical Retina/multi-monitor checks. Windows clean-machine
 execution without Python, Windows 10, quarantined download acceptance, physical
-mixed-DPI transitions, extended IME/RTL and long-session ergonomics remain untested.
-Windows is unsigned; Mac is ad-hoc signed and not notarized. Application-scale
-tests do not establish physical mixed-DPI acceptance.
+negative-coordinate/mixed-DPI monitor transitions, extended IME/RTL and long-session
+ergonomics remain untested. Windows is unsigned; Mac is ad-hoc signed and not
+notarized. Application-scale tests do not establish physical mixed-DPI acceptance.
 
 ## V1.3.2
 

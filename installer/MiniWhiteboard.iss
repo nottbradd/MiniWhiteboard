@@ -3,10 +3,10 @@
   #define AppVersion "1.3.3"
 #endif
 #ifndef BundleDir
-  #define BundleDir "..\dist\windows-v133-review01\Mini Whiteboard"
+  #define BundleDir "..\dist\windows-v133-review02\Mini Whiteboard"
 #endif
 #ifndef OutputDir
-  #define OutputDir "..\build\candidates\v1.3.3\review-01"
+  #define OutputDir "..\build\candidates\v1.3.3\review-02"
 #endif
 
 [Setup]

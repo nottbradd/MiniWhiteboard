@@ -74,12 +74,12 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 ## Place a board or screenshot
 
-1. Point at the first corner and hold **Win+Alt+W** on Windows or
+1. Point at the first corner and hold **Win+Alt+Shift+W** on Windows or
    **Control+Option+W** on Mac.
 2. Keep holding and move to the opposite corner. A temporary outline previews the rectangle.
 3. Release W **or any required modifier** to create a focused board.
 
-Use **S** in the same global shortcut to capture a region into a new board
+Use **Q** on Windows or **S** on Mac in the same global shortcut to capture a region into a new board
 with a locked screenshot background, ready to annotate. Mac's **Global shortcuts**
 menu also offers **Command+Option+Shift+W/S/H** when the default conflicts.
 
@@ -89,7 +89,7 @@ Escape or the tray/menu cancellation clears a preview. Held repeats cannot
 create more boards. Screen capture may request Screen Recording permission on
 Mac; a denied or failed capture creates no board.
 
-Windows screenshot creation uses **Win+Alt+S**. Both left/right Windows and Alt
+Windows screenshot creation uses **Win+Alt+Shift+Q**. Both left/right Windows, Alt and Shift
 keys work. If another application or Windows component owns a shortcut, its
 tray entry says **unavailable**. Close or reassign the conflicting application,
 then choose **Retry global shortcut**. Other working shortcuts remain active;

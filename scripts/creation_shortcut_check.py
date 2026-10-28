@@ -52,7 +52,7 @@ def focus_target(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--focus-target', type=Path)
-    parser.add_argument('--output', type=Path, default=Path('verification/v133-review01/creation-shortcuts.json'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v133-review02/creation-shortcuts.json'))
     parser.add_argument('--require-both', action='store_true')
     args = parser.parse_args()
     if args.focus_target:
@@ -77,9 +77,9 @@ def main():
     state_path = root/'target.json'
     prefs = SnapPreferences(settings=QSettings(str(root/'settings.ini'), QSettings.Format.IniFormat))
     prefs.set_windows_hide('shift')
-    # Reserve just S with an owned registration, then release it and retry.
+    # Reserve just Q with an owned registration, then release it and retry.
     # Existing third-party owners are never unregistered or overridden.
-    reserved = bool(u.RegisterHotKey(None, 0x5571, 9 | n.MOD_NOREPEAT, ord('S')))
+    reserved = bool(u.RegisterHotKey(None, 0x5571, 13 | n.MOD_NOREPEAT, ord('Q')))
     controller = WhiteboardApplication(app, prefs)
     controller.notify = warnings.append
     target = subprocess.Popen([sys.executable, '-m', __name__ if __name__ != '__main__' else 'scripts.creation_shortcut_check',
@@ -102,7 +102,7 @@ def main():
             raise AssertionError(label)
 
     def key(vk, up=False):
-        key_event(vk, 0, (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), 0)
+        key_event(vk, u.MapVirtualKeyW(vk, 0), (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), 0)
         pressed.discard(vk) if up else pressed.add(vk)
 
     def drain():
@@ -119,20 +119,20 @@ def main():
         check(label, not controller.placement.state.active and not controller.capture.active
               and not controller.placement.overlays and not controller.capture.overlays
               and not controller.hotkeys.hold.timer.isActive() and not controller.hotkeys.hold.blocked
-              and not any(u.GetAsyncKeyState(vk) & 0x8000 for vk in (0x5B, 0x5C, 0xA4, 0xA5, 87, 83)))
+              and not any(u.GetAsyncKeyState(vk) & 0x8000 for vk in (0x5B, 0x5C, 0xA4, 0xA5, 0xA0, 0xA1, 87, 81)))
 
     try:
         if reserved:
             app.processEvents()
-            check('Owned S registration conflict preserves other working bindings',
+            check('Owned Q registration conflict preserves other working bindings',
                   CAPTURE_HOTKEY not in controller.hotkeys.registered, warnings)
             working = set(controller.hotkeys.registered)
             controller.retry_hotkey()
-            check('Retry while S is occupied preserves registered bindings', controller.hotkeys.registered == working)
+            check('Retry while Q is occupied preserves registered bindings', controller.hotkeys.registered == working)
             u.UnregisterHotKey(None, 0x5571)
             reserved = False
             controller.retry_hotkey()
-            check('Retry registers the released S binding without changing working shortcuts',
+            check('Retry registers the released Q binding without changing working shortcuts',
                   controller.hotkeys.registered == working | {CAPTURE_HOTKEY})
         for _ in range(100):
             if state_path.exists():
@@ -141,25 +141,27 @@ def main():
         target_hwnd = state()['hwnd']
         original = state()['text']
         QTest.qWait(100)
-        for trigger, identifier in (('W', CREATE_HOTKEY), ('S', CAPTURE_HOTKEY)):
+        for trigger, identifier in (('W', CREATE_HOTKEY), ('Q', CAPTURE_HOTKEY)):
             if identifier not in controller.hotkeys.registered:
-                limits.append(f'Win+Alt+{trigger} positive native gestures: NOT RUN (registration conflict on this desktop)')
+                limits.append(f'Win+Alt+Shift+{trigger} positive native gestures: NOT RUN (registration conflict on this desktop)')
                 controller.rebuild_menu()
                 check(f'{trigger} conflict remains visible with retry and working bindings',
-                      any('unavailable' in a.text() and 'Win+Alt+'+trigger in a.text() for a in controller.menu.actions())
+                      any('unavailable' in a.text() and 'Win+Alt+Shift+'+trigger in a.text() for a in controller.menu.actions())
                       and any(a.text() == 'Retry global shortcut' for a in controller.menu.actions()), warnings)
                 continue
-            for win, alt in itertools.product((0x5B, 0x5C), (0xA4, 0xA5)):
-                for order in itertools.permutations((win, alt, ord(trigger))):
+            for win, alt, shift in itertools.product((0x5B, 0x5C), (0xA4, 0xA5), (0xA0, 0xA1)):
+                chord = (win, alt, shift, ord(trigger))
+                for first in chord:
+                    order = (first,) + tuple(vk for vk in reversed(chord) if vk != first)
                     focus()
                     count = len(controller.boards)
                     set_cursor(180, 220)
-                    for vk in (win, alt, ord(trigger)):
+                    for vk in (win, alt, shift, ord(trigger)):
                         key(vk)
                     QTest.qWait(100)
                     active = controller.placement.state.active if trigger == 'W' else controller.capture.active
                     check(f'{trigger} hold has one passive preview before release', active and len(controller.boards) == count
-                          and foreground() == target_hwnd, {'win': win, 'alt': alt, 'release_order': order})
+                          and foreground() == target_hwnd, {'win': win, 'alt': alt, 'shift': shift, 'release_order': order})
                     set_cursor(540, 440)
                     QTest.qWait(60)
                     for _ in range(5):
@@ -177,7 +179,7 @@ def main():
                 focus()
                 count = len(controller.boards)
                 set_cursor(180, 220)
-                for vk in (win, alt, ord(trigger)):
+                for vk in (win, alt, shift, ord(trigger)):
                     key(vk)
                 QTest.qWait(100)
                 set_cursor(540, 440)
@@ -197,6 +199,44 @@ def main():
                       and foreground() == target_hwnd and not state()['menu_active'])
                 drain()
                 idle(f'{trigger} cancellation drains modifiers without a result')
+        if CAPTURE_HOTKEY in controller.hotkeys.registered:
+            # Keep real native activation and release; inject only the capture
+            # service failure, which cannot be safely forced in a shipped EXE.
+            service = controller.capture.service
+            original_capture = service.capture_region
+            failures = []
+            controller.capture.message.connect(failures.append)
+            def fail_capture(_rect, _success, failure, _excluded):
+                failure(OSError('Owned verification capture failure'))
+            try:
+                service.capture_region = fail_capture
+                focus()
+                count = len(controller.boards)
+                set_cursor(180, 220)
+                for vk in (0x5B, 0xA4, 0xA0, ord('Q')):
+                    key(vk)
+                QTest.qWait(80)
+                set_cursor(540, 440)
+                key(ord('Q'), True)
+                QTest.qWait(150)
+                drain()
+                check('Native Q capture failure reports its error without a board',
+                      len(controller.boards) == count and any('Owned verification' in s for s in failures))
+                idle('Native Q failure drains its gesture and previews')
+            finally:
+                service.capture_region = original_capture
+            focus()
+            set_cursor(180, 220)
+            for vk in (0x5B, 0xA4, 0xA0, ord('Q')):
+                key(vk)
+            QTest.qWait(80)
+            set_cursor(540, 440)
+            key(ord('Q'), True)
+            QTest.qWait(180)
+            drain()
+            check('Next native Q gesture recovers after capture failure', len(controller.boards) == count+1)
+            controller.boards[-1].close()
+            QTest.qWait(50)
         focus()
         QTest.qWait(100)
         check('All native gestures leave external text and menu unchanged',

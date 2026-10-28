@@ -24,8 +24,8 @@ def version_strings(executable):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verify',type=Path)
-    parser.add_argument('--distribution', type=Path, default=Path('dist/windows-v133-review01/Mini Whiteboard'))
-    parser.add_argument('--archive', type=Path, default=Path('build/candidates/v1.3.3/review-01/WinMiniWhiteboardV1.3.3.zip'))
+    parser.add_argument('--distribution', type=Path, default=Path('dist/windows-v133-review02/Mini Whiteboard'))
+    parser.add_argument('--archive', type=Path, default=Path('build/candidates/v1.3.3/review-02/WinMiniWhiteboardV1.3.3.zip'))
     args = parser.parse_args()
     distribution = args.distribution.resolve()
     license_report = verify_release_files(distribution)
@@ -67,7 +67,7 @@ def main():
               'executable':str(distribution/'Mini Whiteboard.exe'),'executable_bytes':len(executable),
               'executable_sha256':hashlib.sha256(executable).hexdigest(),
               'file_count':len(entries),'all_crcs_and_sha256_match':True,'metadata':info,'files':entries}
-    output = Path('verification/windows-v133-review01-release-verified.json' if args.verify else 'verification/windows-v133-review01-release-staged.json')
+    output = Path('verification/windows-v133-review02-release-verified.json' if args.verify else 'verification/windows-v133-review02-release-staged.json')
     output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps({key:value for key,value in result.items() if key != 'files'},indent=2))
 

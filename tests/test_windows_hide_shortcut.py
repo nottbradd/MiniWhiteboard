@@ -43,7 +43,7 @@ class WindowsHideShortcutTests(QtCase):
             with self.assertRaises(ValueError):
                 prefs.set_windows_hide('invalid')
         policy = ShortcutPolicy(hide_shortcut='shift')
-        self.assertEqual(policy.global_label('W'),'Win+Alt+W')
+        self.assertEqual(policy.global_label('W'),'Win+Alt+Shift+W')
         self.assertEqual(policy.global_label('H'),'Ctrl+Alt+Shift+H')
         self.assertIn('Ctrl+Alt+Shift+H',policy.help_html())
         self.assertEqual(ShortcutPolicy(mac=True).global_label('H'),'Control+Option+H')

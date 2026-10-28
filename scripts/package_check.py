@@ -21,8 +21,8 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v133-review01/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v133-review01/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v133-review02/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v133-review02/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
@@ -180,12 +180,12 @@ def main():
         key_event = windows.bind(user32, 'keybd_event', None, W.BYTE, W.BYTE, W.DWORD, C.c_size_t)
 
         def key(vk, up=False):
-            key_event(vk, 0, (2 if up else 0) | (1 if vk in (0x5B,0x5C,0xA5) else 0), 0)
+            key_event(vk, user32.MapVirtualKeyW(vk, 0), (2 if up else 0) | (1 if vk in (0x5B,0x5C,0xA5) else 0), 0)
             pressed.discard(vk) if up else pressed.add(vk)
 
         def begin(trigger, point):
             set_cursor(*point)
-            for vk in (0x5B, 0xA4, ord(trigger)):
+            for vk in (0x5B, 0xA4, 0xA0, ord(trigger)):
                 key(vk)
             time.sleep(.2)
 
@@ -340,11 +340,11 @@ def main():
         check('Frozen palette dismissal does not replay into textbox creation', dark_content() == 0)
         point = (round(paper.x+paper.width*.2),round(paper.y+paper.height*.3))
         end = (round(paper.x+paper.width*.7),round(paper.y+paper.height*.7))
-        begin('S', point)
+        begin('Q', point)
         check('Packaged screenshot hold starts only a preview', len(board_windows()) == 1 and bool(preview_windows()))
         set_cursor(*end)
         time.sleep(.15)
-        key(ord('S'), True)
+        key(ord('Q'), True)
         boards = wait_boards(2)
         release_all()
         check('Packaged screenshot release creates image board without mouse input', len(boards) == 2 and process.poll() is None)
@@ -357,12 +357,12 @@ def main():
         # No text is typed here; a registered global shortcut is sent only while
         # the owned helper has focus. Abort if Windows denied foreground access.
         check('External helper restored before packaged cancellation', foreground() == identity['hwnd'])
-        begin('S', (250,330))
+        begin('Q', (250,330))
         key(0x1b)
         time.sleep(.1)
         key(0x1b, True)
         for _ in range(10):
-            key(ord('S'))
+            key(ord('Q'))
             time.sleep(.03)
         check('Packaged Escape while held removes preview and suppresses restart', not board_windows() and not preview_windows())
         release_all()
@@ -377,7 +377,7 @@ def main():
         # This test created the process without boards; terminate only that
         # exact subprocess. Normal application exit is via its tray action.
         for vk in tuple(pressed):
-            key_event(vk, 0, 2, 0)
+            key_event(vk, user32.MapVirtualKeyW(vk, 0), 2 | (1 if vk in (0x5B,0x5C,0xA5) else 0), 0)
         process.terminate()
         process.wait(timeout=10)
         if helper is not None:

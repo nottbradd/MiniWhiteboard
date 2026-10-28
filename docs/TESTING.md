@@ -19,12 +19,13 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.native_smoke
 .\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
 .\.venv\Scripts\python.exe -m scripts.creation_shortcut_check
-.\.venv\Scripts\python.exe -m scripts.selection_pointer_check --output verification/v133-review01/selection-100
+.\.venv\Scripts\python.exe -m scripts.selection_pointer_check --output verification/v133-review02/selection-100
 .\.venv\Scripts\python.exe -m scripts.text_input_check
 .\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
-.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v133-review01/native-100
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v133-review02/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
+.\.venv\Scripts\python.exe -m scripts.packaged_shortcut_check
 ```
 
 The hotkey and text checks use native Windows input. The general native smoke
@@ -32,14 +33,19 @@ also uses Qt-directed events. Tests abort when ownership/focus cannot be establi
 an aborted check is not a pass. They restore the cursor/foreground and close only
 owned test processes. Reports are under ignored `.test-artifacts/` and `verification/`.
 
-The creation matrix exercises both sides of Win/Alt and every release order,
+The creation matrix exercises both sides of Win/Alt/Shift and each required key released first,
 held repeats, external text/menu focus, Escape and an owned conflict/retry.
 It records existing third-party conflicts as **NOT RUN**; `--require-both` makes
 either conflict fail that check. The general native smoke can continue unrelated
 checks with `--allow-shortcut-conflict`, explicitly recording the limitation.
 Neither option changes the application's bindings or takes a shortcut from its owner.
-CI runs the available native matrix and uploads any **NOT RUN** conflicts. A green
-build does not mean a conflicting shortcut was exercised successfully.
+CI requires both native creation shortcuts. Release acceptance also requires
+successful native W and Q gestures in the final packaged Windows executable;
+registration probes or controller-directed previews do not satisfy that check.
+The packaged matrix also observes foreground changes during gestures, checks all
+four placement directions, rapid consecutive creation and external text/menu
+isolation, and saves actual W/Q preview captures. A capture-service failure is
+injected only in the source native check; the next real Q gesture must recover.
 The pointer regression uses native mouse input and checks actual selected IDs,
 moved transforms and undo against adjacent, reversed-order and rotated notes.
 
@@ -102,7 +108,7 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 ### Creation and cancellation
 
-- Windows V1.3.3 uses **Win+Alt+W/S**; Mac shortcuts and Windows Hide All choices
+- Windows V1.3.3 uses **Win+Alt+Shift+W/Q**; Mac shortcuts and Windows Hide All choices
   are unchanged. Test left/right modifiers, all release orders, Start/menu focus
   after completion/cancellation and ordinary modifier use outside a gesture.
 - From an ordinary foreground application, hold W's global shortcut, move and
