@@ -38,6 +38,8 @@ It records existing third-party conflicts as **NOT RUN**; `--require-both` makes
 either conflict fail that check. The general native smoke can continue unrelated
 checks with `--allow-shortcut-conflict`, explicitly recording the limitation.
 Neither option changes the application's bindings or takes a shortcut from its owner.
+CI runs the available native matrix and uploads any **NOT RUN** conflicts. A green
+build does not mean a conflicting shortcut was exercised successfully.
 The pointer regression uses native mouse input and checks actual selected IDs,
 moved transforms and undo against adjacent, reversed-order and rotated notes.
 

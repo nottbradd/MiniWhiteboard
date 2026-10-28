@@ -56,9 +56,9 @@ jobs:
           python -m scripts.run_tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Verify native Windows creation shortcuts on an owned desktop target
+      - name: Verify available native shortcuts and report registration conflicts
         run: |
-          python -m scripts.creation_shortcut_check --require-both
+          python -m scripts.creation_shortcut_check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build the Windows application bundle

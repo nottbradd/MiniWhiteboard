@@ -25,12 +25,17 @@ selection regressions first reproduced the adjacent-textbox and previous-frame
 failures, then passed through actual Qt pointer events. Native S checks exercised
 both Win/Alt sides, every release order, repeats, external menus and Escape;
 owned conflict/retry and the existing native text/appearance checks passed.
+Native pointer and surface checks passed at 100%, 125%, 150%, 175% and 200%
+application scaling; this is not physical mixed-DPI verification.
 Final package checksums, CI runs, native captures and package-specific results
 accompany the review candidate's verification receipt.
 
-**Local Win+Alt+W positive native gestures: NOT RUN.** Windows reports error 1409
-(already registered); closing Game Bar did not release it. The application reports
-the conflict and retains the other bindings. It does not take over OS shortcuts.
+**Win+Alt+W positive native gestures and packaged preview: NOT RUN.** Both the
+local Windows desktop and the hosted Windows CI runner report error 1409 (already
+registered). Closing Game Bar did not release it locally; an isolated test desktop
+also could not register it. The application reports the conflict and retains the
+other bindings. Creating a blank board with this shortcut is unavailable on these
+tested environments. CI records that limitation separately from passing S checks.
 
 **Automatic launch during actual Windows sign-in: NOT RUN (not tested).** The
 existing waiver remains in effect. Startup registration and controlled command
