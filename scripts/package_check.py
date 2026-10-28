@@ -3,11 +3,13 @@ import ctypes as C
 import argparse
 from ctypes import wintypes as W
 import json
+import os
 from pathlib import Path
 import subprocess
 import time
 import sys
 
+os.environ['QT_QPA_PLATFORM'] = 'windows'
 import pefile
 from PySide6.QtGui import QGuiApplication, QImage
 from mini_whiteboard import windows
