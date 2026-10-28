@@ -320,7 +320,7 @@ def main():
         board.canvas.stop_transient_ui()
         idle('Editor and popup creation audits leave no tracking resources')
         from mini_whiteboard.platform.base import HIDE_HOTKEY
-        check('Native H registers alongside W and S', HIDE_HOTKEY in controller.hotkeys.registered,
+        check('Native H registers alongside W and Q', HIDE_HOTKEY in controller.hotkeys.registered,
               {'shipped_chord': label,
                'default_registration_warnings': warnings})
         manually_hidden = controller.boards[0]

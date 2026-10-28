@@ -104,15 +104,15 @@ def main():
             raise AssertionError(label)
 
     def state():
-        for _ in range(20):
+        for _ in range(120):
             try:
                 return json.loads(state_path.read_text(encoding='utf-8'))
             except (OSError, ValueError):
-                QTest.qWait(25)
+                QTest.qWait(50)
         raise RuntimeError('External target state unavailable')
 
     def key(vk, up=False):
-        if not up and owner(foreground()) not in (process.pid, target.pid):
+        if not up and owner(foreground()) not in (process.pid, target_pid):
             raise RuntimeError('Keyboard focus left the owned test processes')
         key_event(vk, u.MapVirtualKeyW(vk, 0), (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), 0)
         pressed.discard(vk) if up else pressed.add(vk)
@@ -158,7 +158,7 @@ def main():
         nonlocal observing
         drain()
         observing = False
-        unexpected = [e for e in foreground_events if e['pid'] not in (process.pid, target.pid)]
+        unexpected = [e for e in foreground_events if e['pid'] not in (process.pid, target_pid)]
         check(label+' leaves no shell/other-app activation or held key', not unexpected
               and not previews() and not any(u.GetAsyncKeyState(vk) & 0x8000
                   for vk in (0x5B, 0x5C, 0xA4, 0xA5, 0xA0, 0xA1, 87, 81, 27)), unexpected)
@@ -178,8 +178,9 @@ def main():
         check('Final executable starts quietly', process.poll() is None and not windows())
         target = subprocess.Popen([sys.executable, '-m', 'scripts.creation_shortcut_check',
                                    '--focus-target', str(state_path)], creationflags=subprocess.CREATE_NO_WINDOW)
-        target_hwnd = state()['hwnd']
-        original = state()['text']
+        identity = state()
+        target_hwnd, target_pid = identity['hwnd'], identity['pid']
+        original = identity['text']
         hook = set_hook(3, 3, None, foreground_changed, 0, 0, 0)
         check('Foreground observer is active', bool(hook))
         points = (((180, 220), (540, 440)), ((540, 440), (180, 220)),
