@@ -12,9 +12,10 @@
   files remain available; the Mac Universal2 Preview download is unchanged.
 
 Verification: 321 tests discovered; Windows passed 319 with two Mac-only skips,
-and Mac passed all 321. Hosted Windows CI passed 873 final-executable checks for
-the new default pair. [Patch source](https://github.com/nottbradd/MiniWhiteboard/commit/6c74fd5d13793ece6aaf4cc89d2b17bd4c7b80c5).
-Local desktop checks for this patch are **NOT RUN**, as requested. The existing
+and Mac passed all 321. Hosted Windows CI passed 873 checks for the new default
+pair in its build of the same [patch source](https://github.com/nottbradd/MiniWhiteboard/commit/6c74fd5d13793ece6aaf4cc89d2b17bd4c7b80c5).
+Published Windows files retain the original V1.3.4 bundled runtime. Local desktop
+checks of the published patch are **NOT RUN**, as requested. The existing
 sign-in waiver, signing information and platform-testing limits still apply.
 
 ### Original V1.3.4 release
