@@ -19,11 +19,11 @@ and capture. Exit an existing Mini Whiteboard instance before running them:
 .\.venv\Scripts\python.exe -m scripts.native_smoke
 .\.venv\Scripts\python.exe -m scripts.hotkey_workflow_check
 .\.venv\Scripts\python.exe -m scripts.creation_shortcut_check
-.\.venv\Scripts\python.exe -m scripts.selection_pointer_check --output verification/v133-review02/selection-100
+.\.venv\Scripts\python.exe -m scripts.selection_pointer_check --output verification/v134-review01/selection-100
 .\.venv\Scripts\python.exe -m scripts.text_input_check
 .\.venv\Scripts\python.exe -m scripts.appearance_check
 .\.venv\Scripts\python.exe -m scripts.material_state_check
-.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v133-review02/native-100
+.\.venv\Scripts\python.exe -m scripts.surface_input_check --output verification/v134-review01/native-100
 .\.venv\Scripts\python.exe -m scripts.package_check
 .\.venv\Scripts\python.exe -m scripts.packaged_shortcut_check
 ```
@@ -106,16 +106,36 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 ## Interaction acceptance
 
+### Hotkey settings and recovery
+
+- Open tray/menu bar → Settings → Hotkeys with a creation conflict present.
+  Check every status against native registration. A conflict on default Windows
+  Shift+Win+W is permitted; it is not a successful positive gesture result.
+- Record and manually select different modifiers and trigger keys for each action.
+  Recording must not create, capture or hide. Check modifier-only/unsupported
+  input, duplicate chords, failed OS registration, rollback and its status.
+- Cancel, Escape and closing the dialog restore normal registration. Reset Defaults
+  only edits pending values. Apply must save only a fully registered configuration.
+  Verify restart/upgrade persistence and migration of old Hide All/Mac choices.
+- Test the explicit Windows compatibility preset and independent custom keys.
+  Run `scripts.packaged_shortcut_check --profile custom` and
+  `scripts.packaged_shortcut_check --profile default --available-defaults` on the
+  final EXE. The script reports unavailable defaults separately. Native scripts
+  temporarily save test preferences and restore the user's values afterward.
+- Windows reserves Ctrl+Esc and Ctrl+Shift+Esc. A reserved draining subset must
+  not abort placement. If the full held Escape chord is unavailable, verify the
+  warning and tray-menu cancellation without attempting to override the OS.
+
 ### Creation and cancellation
 
-- Windows V1.3.3 uses **Win+Alt+Shift+W/Q**; Mac shortcuts and Windows Hide All choices
+- Windows V1.3.4 defaults to **Shift+Win+W/Q**; Mac shortcuts and Windows Hide All choices
   are unchanged. Test left/right modifiers, all release orders, Start/menu focus
   after completion/cancellation and ordinary modifier use outside a gesture.
-- From an ordinary foreground application, hold W's global shortcut, move and
+- From an ordinary foreground application, hold the configured creation shortcut, move and
   release. No initial board/focus change; exactly one focused board on release.
   Repeat all four directions, trigger-first and each modifier-first release.
-- Hold with repeats, press competing W/S, cancel with held Escape, then release.
-  No restart or remaining W/S typing/tool switch. After idle, cancel another hold
+- Hold with repeats, press competing creation/capture chords, cancel with held Escape, then release.
+  No restart or remaining trigger-key typing/tool switch. After idle, cancel another hold
   with Escape again. Menu cancel, display changes and exit remove previews/timers.
 - Test undersized/stationary release, then a fresh valid gesture immediately.
   Board minimum is 160 × 100 logical pixels; capture minimum is 4 × 4 desktop units.

@@ -24,6 +24,28 @@ class SnapPreferences(QObject):
         self.windows_hide = hide if hide in ('default', 'shift') else 'default'
         theme = self.settings.value('appearance/theme', 'White') if self.settings else 'White'
         self.theme = theme if theme in ('White', 'Glass') else 'White'
+        self.custom_hotkeys = {}
+        from .hotkey_config import HotkeyConfig
+        for platform in ('windows', 'mac'):
+            raw = self.settings.value('shortcuts/custom_' + platform, '') if self.settings else ''
+            if raw:
+                try:
+                    self.custom_hotkeys[platform] = HotkeyConfig.from_json(raw)
+                except ValueError:
+                    pass  # Invalid/external data must not prevent access to Settings.
+
+    def hotkey_configuration(self, mac=False):
+        from .hotkey_config import defaults
+        return self.custom_hotkeys.get('mac' if mac else 'windows',
+                                       defaults(mac, self.shortcut_preset, self.windows_hide))
+
+    def set_hotkey_configuration(self, configuration, mac=False):
+        configuration.validate()
+        platform = 'mac' if mac else 'windows'
+        self.custom_hotkeys[platform] = configuration
+        if self.settings is not None:
+            self.settings.setValue('shortcuts/custom_' + platform, configuration.to_json())
+            self.settings.sync()
 
     def set_theme(self, theme):
         if theme not in ('White', 'Glass'):

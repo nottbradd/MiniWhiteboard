@@ -4,7 +4,7 @@ The [MIT license](https://github.com/nottbradd/MiniWhiteboard/blob/main/LICENSE)
 covers Mini Whiteboard's own source and assets. Python, Qt, PySide6 and the other
 dependencies retain their original licenses.
 
-## Dependencies used by Version 1.3.3
+## Dependencies used by Version 1.3.4
 
 | Software | Use | Upstream license information |
 |---|---|---|

@@ -32,7 +32,7 @@ class WindowsCreationShortcutTests(QtCase):
         self.keys = native.NativeHotkeys(APP)
         self.addCleanup(self.keys.close)
 
-    def message(self, key, stamp, modifiers=13):
+    def message(self, key, stamp, modifiers=12):
         msg = wintypes.MSG()
         msg.message = native.WM_HOTKEY
         msg.wParam = CREATE_HOTKEY if key == 'W' else CAPTURE_HOTKEY
@@ -42,13 +42,13 @@ class WindowsCreationShortcutTests(QtCase):
 
     def test_real_bindings_conflict_and_retry_keep_working_shortcuts(self):
         self.conflicts.add(CREATE_HOTKEY)
-        with self.assertRaisesRegex(OSError, r'Win\+Alt\+Shift\+W'):
+        with self.assertRaisesRegex(OSError, r'Shift\+Win\+W'):
             self.keys.start()
         self.assertEqual(self.keys.registered, {CAPTURE_HOTKEY, HIDE_HOTKEY})
-        self.assertEqual([(mods & 15, vk) for _, mods, vk in self.calls], [(13, 87), (13, 81), (3, 72)])
+        self.assertEqual([(mods & 15, vk) for _, mods, vk in self.calls], [(12, 87), (12, 81), (3, 72)])
         self.conflicts.clear()
         self.keys.start()
-        self.assertEqual(self.calls[-1], (CREATE_HOTKEY, 13 | native.MOD_NOREPEAT, 87))
+        self.assertEqual(self.calls[-1], (CREATE_HOTKEY, 12 | native.MOD_NOREPEAT, 87))
         self.assertEqual(len(self.calls), 4)
         self.keys.start()
         self.assertEqual(len(self.calls), 4)
@@ -62,11 +62,11 @@ class WindowsCreationShortcutTests(QtCase):
         self.keys.events.capture.connect(lambda: events.append('press'))
         self.keys.events.capture_released.connect(lambda: events.append('release'))
         for trigger, identifier in (('W', CREATE_HOTKEY), ('Q', CAPTURE_HOTKEY)):
-            for win, alt, shift in itertools.product((0x5B, 0x5C), (0xA4, 0xA5), (0xA0, 0xA1)):
-                for released in (win, alt, shift, ord(trigger)):
-                    with self.subTest(trigger=trigger, win=win, alt=alt, shift=shift, first=released):
+            for win, shift in itertools.product((0x5B, 0x5C), (0xA0, 0xA1)):
+                for released in (win, shift, ord(trigger)):
+                    with self.subTest(trigger=trigger, win=win, shift=shift, first=released):
                         self.clock += 10
-                        self.down = {win, alt, shift, ord(trigger)}
+                        self.down = {win, shift, ord(trigger)}
                         self.assertEqual(self.keys.sample()[:2], ({identifier}, {identifier}))
                         self.message(trigger, self.clock)
                         for _ in range(10):
@@ -97,16 +97,16 @@ class WindowsCreationShortcutTests(QtCase):
     def test_escape_variants_are_distinct_from_hide_and_are_session_scoped(self):
         self.keys.start()
         self.keys.enable_escape()
-        self.assertEqual([mods & 15 for identifier, mods, key in self.calls if key == 27], [0, 1, 4, 5, 8, 9, 12, 13])
+        self.assertEqual([mods & 15 for identifier, mods, key in self.calls if key == 27], [0, 4, 8, 12])
         self.assertNotIn(HIDE_HOTKEY, native.ESCAPE_VARIANTS)
         self.keys.disable_escape()
         self.assertEqual(self.keys.registered, {CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY})
 
     def test_labels_match_native_bindings_and_mac_is_unchanged(self):
         policy = ShortcutPolicy()
-        self.assertIn('Win+Alt+Shift+W', policy.help_html())
-        self.assertIn('Win+Alt+Shift+Q', policy.help_html())
-        self.assertEqual(policy.global_label('S'), 'Win+Alt+Shift+Q')
+        self.assertIn('Shift+Win+W', policy.help_html())
+        self.assertIn('Shift+Win+Q', policy.help_html())
+        self.assertEqual(policy.global_label('S'), 'Shift+Win+Q')
         self.assertIn('Ctrl+Alt+H', policy.help_html())
         for preset, label in (('default', 'Control+Option'), ('alternate', 'Command+Option+Shift')):
             policy = ShortcutPolicy(mac=True, preset=preset)

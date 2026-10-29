@@ -33,7 +33,7 @@ def main():
     if sys.platform != "darwin":
         raise SystemExit("NOT RUN: packaged Mac startup requires macOS.")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v133-review02/Mini Whiteboard.app"))
+    parser.add_argument("--bundle", type=Path, default=Path("dist/macos-v134-review01/Mini Whiteboard.app"))
     parser.add_argument("--seconds", type=float, default=8)
     args = parser.parse_args()
     process = None

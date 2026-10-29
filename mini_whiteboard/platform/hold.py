@@ -74,8 +74,10 @@ class HoldTracker(QObject):
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride):
-            identifier = self.trigger_keys.get(event.key())
-            if identifier in self.blocked:
+            identifiers = self.trigger_keys.get(event.key(), set())
+            if isinstance(identifiers, int):
+                identifiers = {identifiers}
+            if self.blocked.intersection(identifiers):
                 event.accept()
                 return True
         return False

@@ -27,7 +27,7 @@ from mini_whiteboard.snapping import SnapPreferences
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v133-review02/native-smoke'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v134-review01/native-smoke'))
     parser.add_argument('--allow-shortcut-conflict', action='store_true',
                         help='Record unavailable W as NOT RUN and continue unrelated native checks.')
     args=parser.parse_args()

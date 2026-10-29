@@ -8,14 +8,14 @@ class ShortcutPolicy:
     mac: bool = False
     preset: str = "default"
     hide_shortcut: str = "default"
+    configuration: object = None
 
     def global_label(self, key):
-        prefix = (("Command+Option+Shift" if self.preset == "alternate" else "Control+Option")
-                  if self.mac else "Ctrl+Alt" if key == 'H' else "Win+Alt+Shift")
-        if not self.mac and key == 'H' and self.hide_shortcut == 'shift':
-            prefix += '+Shift'
-        trigger = 'Q' if not self.mac and key == 'S' else key
-        return f"{prefix}+{trigger}"
+        from .hotkey_config import defaults, ACTIONS
+        config = self.configuration or defaults(self.mac, self.preset, self.hide_shortcut)
+        if key == 'W / S / H':
+            return ' / '.join(chord.label(self.mac) for _, chord in config.items())
+        return config[ACTIONS[('W', 'S', 'H').index(key)]].label(self.mac)
 
     @property
     def status_location(self):
@@ -34,16 +34,21 @@ class ShortcutPolicy:
         return tuple((title, self.format_help(body)) for title, body in HELP_SECTIONS)
 
     def format_help(self, text):
-        labels = {'Win+Alt+Shift+W': 'W', 'Win+Alt+Shift+Q': 'S',
+        labels = {'Shift+Win+W': 'W', 'Shift+Win+Q': 'S',
+                  'Win+Alt+Shift+W': 'W', 'Win+Alt+Shift+Q': 'S',
                   **{prefix + key: key for prefix in ('Ctrl+Alt+', 'Win+Alt+')
                      for key in ('W', 'S', 'H')}}
         # Replace complete chords once: the S in "Shift" is not a trigger key.
+        # Substitute tokens after local-key translation so a custom global Ctrl
+        # chord is not accidentally relabelled as Command on macOS.
         text = re.sub('(?:' + '|'.join(map(re.escape, labels)) + r')\b',
-                      lambda match: self.global_label(labels[match.group()]), text)
+                      lambda match: '@GLOBAL_' + labels[match.group()] + '@', text)
         if self.mac:
             text = text.replace("Ctrl+Y / Ctrl+Shift+Z", "Command+Shift+Z")
             text = text.replace("Ctrl+Enter", "Command+Return").replace("Ctrl+", "Command+")
             text = text.replace("Alt", "Option").replace("tray", "menu bar").replace("F1", "F1 / Fn+F1")
+        for key in ('W', 'S', 'H'):
+            text = text.replace('@GLOBAL_' + key + '@', self.global_label(key))
         return text
 
 

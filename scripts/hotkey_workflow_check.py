@@ -26,7 +26,7 @@ from mini_whiteboard.geometry import Rect, normalized
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v133-review02/hotkey-workflow.json'))
+    parser.add_argument('--output',type=Path,default=Path('verification/v134-review01/hotkey-workflow.json'))
     parser.add_argument('--hide-shortcut', choices=('default','shift'), default='default',
                         help='Select and reload the shipped persisted Windows Hide All configuration.')
     args = parser.parse_args()
@@ -44,6 +44,8 @@ def main():
     settings_directory = tempfile.TemporaryDirectory(prefix='miniwhiteboard-shortcut-test-')
     settings_path = str(Path(settings_directory.name)/'settings.ini')
     controller = WhiteboardApplication(app, SnapPreferences(settings=QSettings(settings_path,QSettings.Format.IniFormat)))
+    from mini_whiteboard.hotkey_config import compatibility, defaults
+    controller.apply_hotkey_configuration(compatibility(defaults(hide=args.hide_shortcut)))
     warnings = []
     controller.notify = warnings.append
     hide_modifiers = (0x11,0x12,0x10) if args.hide_shortcut == 'shift' else (0x11,0x12)

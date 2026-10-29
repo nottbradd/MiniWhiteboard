@@ -21,15 +21,23 @@ from PySide6.QtWidgets import QApplication
 from mini_whiteboard import windows as n
 from mini_whiteboard.geometry import Rect
 from mini_whiteboard.settings import SHADOW
+from mini_whiteboard.hotkey_config import defaults, compatibility, Chord, HotkeyConfig, ACTIONS
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--executable', type=Path,
-                        default=Path('dist/windows-v133-review02/Mini Whiteboard/Mini Whiteboard.exe'))
-    parser.add_argument('--output', type=Path, default=Path('verification/v133-review02/packaged-shortcuts'))
+                        default=Path('dist/windows-v134-review01/Mini Whiteboard/Mini Whiteboard.exe'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v134-review01/packaged-shortcuts'))
+    parser.add_argument('--profile', choices=('compatibility', 'custom', 'default'), default='compatibility')
+    parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
+    parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    configuration = {'default': defaults(hide='shift'), 'compatibility': compatibility(defaults(hide='shift')),
+                     'custom': HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'),
+                                            defaults(hide='shift').hide)}[args.profile]
+    modifier_keys = {'ctrl': (0xA2, 0xA3), 'alt': (0xA4, 0xA5), 'shift': (0xA0, 0xA1), 'meta': (0x5B, 0x5C)}
     n.enable_dpi_awareness()
     app = QApplication([])
     app.setQuitOnLastWindowClosed(False)
@@ -63,6 +71,24 @@ def main():
     observing = False
     temporary = tempfile.TemporaryDirectory(prefix='miniwhiteboard-packaged-keys-')
     state_path = Path(temporary.name)/'target.json'
+    from .native_preferences import compatibility_preferences
+    preferences = compatibility_preferences(configuration)
+    preferences.__enter__()
+    available_actions = set(ACTIONS)
+    default_probe = None
+    if args.available_defaults:
+        if args.profile != 'default':
+            raise ValueError('--available-defaults requires --profile default')
+        probe = n.NativeHotkeys(app)
+        probe.configure(configuration)
+        try:
+            probe.start()
+        except OSError:
+            pass
+        available_actions = set(probe.registered)
+        default_probe = {str(i): {'shortcut': chord.label(), 'registered': i in probe.registered,
+                                 'error': probe.errors.get(i)} for i, chord in configuration.items()}
+        probe.close()
 
     def owner(hwnd):
         pid = W.DWORD()
@@ -161,7 +187,8 @@ def main():
         unexpected = [e for e in foreground_events if e['pid'] not in (process.pid, target_pid)]
         check(label+' leaves no shell/other-app activation or held key', not unexpected
               and not previews() and not any(u.GetAsyncKeyState(vk) & 0x8000
-                  for vk in (0x5B, 0x5C, 0xA4, 0xA5, 0xA0, 0xA1, 87, 81, 27)), unexpected)
+                  for vk in (0x5B, 0x5C, 0xA4, 0xA5, 0xA0, 0xA1, 0xA2, 0xA3,
+                             configuration.create.windows_key, configuration.capture.windows_key, 27)), unexpected)
         external = state()
         check(label+' leaves external text and Alt menu untouched', external['text'] == original
               and not external['menu_active'] and not external['menu_shows'])
@@ -185,9 +212,16 @@ def main():
         check('Foreground observer is active', bool(hook))
         points = (((180, 220), (540, 440)), ((540, 440), (180, 220)),
                   ((180, 440), (540, 220)), ((540, 220), (180, 440)))
-        for trigger in ('W', 'Q'):
-            for variant, modifiers in enumerate(itertools.product((0x5B, 0x5C), (0xA4, 0xA5), (0xA0, 0xA1))):
-                chord = (*modifiers, ord(trigger))
+        for identifier, binding in configuration.items()[:2]:
+            if identifier not in available_actions:
+                check('Default unavailable: positive gesture NOT RUN', True, default_probe[str(identifier)])
+                continue
+            if args.capture_only and identifier == ACTIONS[0]:
+                continue
+            trigger, trigger_key = binding.key, binding.windows_key
+            variants = tuple(itertools.product(*(modifier_keys[m] for m in ('meta', 'ctrl', 'alt', 'shift') if m in binding.modifiers)))
+            for variant, modifiers in enumerate(variants):
+                chord = (*modifiers, trigger_key)
                 for index, first in enumerate(chord):
                     begin, end = points[index]
                     start(chord, begin)
@@ -197,7 +231,7 @@ def main():
                           {'modifiers': modifiers, 'first_release': first, 'begin': begin, 'end': end})
                     set_cursor(*end)
                     for _ in range(6):
-                        key(ord(trigger))
+                        key(trigger_key)
                         QTest.qWait(12)
                     check(trigger+' held repeats cannot create a board', not boards() and bool(previews()))
                     if variant == 0 and index == 0:
@@ -225,12 +259,12 @@ def main():
                 QTest.qWait(50)
                 key(27, True)
                 for _ in range(8):
-                    key(ord(trigger))
+                    key(trigger_key)
                     QTest.qWait(15)
                 check(trigger+' Escape cancels and suppresses held restart', not boards() and not previews()
                       and foreground() == target_hwnd)
                 settled(trigger+' cancelled gesture')
-            chord = (0x5B, 0xA4, 0xA0, ord(trigger))
+            chord = (*variants[0], trigger_key)
             for attempt in range(3):
                 start(chord, (180, 220))
                 # Give the native activation one event turn, then release fast.
@@ -247,7 +281,7 @@ def main():
             drain()
             check(trigger+' zero-area release cancels', not boards() and not previews())
             settled(trigger+' zero-area gesture')
-        check('Both primary creation gestures passed in the final executable', True)
+        check('Selected configuration passed in the final executable', True, args.profile)
     finally:
         observing = False
         drain()
@@ -261,7 +295,10 @@ def main():
         if previous:
             u.SetForegroundWindow(previous)
         temporary.cleanup()
+        preferences.__exit__(None, None, None)
         (args.output/'checks.json').write_text(json.dumps({'executable': str(executable),
+            'profile': args.profile, 'capture_only': args.capture_only, 'configuration': json.loads(configuration.to_json()),
+            'default_registration_probe': default_probe,
             'sha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'checks': rows,
             'limits': ['Physical negative-coordinate and mixed-DPI monitors were not available.']}, indent=2), encoding='utf-8')
     return 0

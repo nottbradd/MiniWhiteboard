@@ -26,9 +26,11 @@ class WhiteboardApplication:
         self.hidden_batch = []
         self.next_number = 1
         self.exiting = False
+        self.hotkey_dialog = None
         self.preferences = preferences if preferences is not None else SnapPreferences(persist=self.platform.runtime.persist_preferences)
         self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset,
-                                                 self.preferences.windows_hide)
+                                                 self.preferences.windows_hide,
+                                                 self.preferences.hotkey_configuration(self.platform.shortcuts.mac))
         app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
         app.setApplicationVersion(APP_VERSION)
@@ -37,12 +39,13 @@ class WhiteboardApplication:
         self.menu = SurfaceMenu(self.platform, self.preferences)
         self.tray = QSystemTrayIcon(self.platform.runtime.tray_icon(), app)
         self.platform.runtime.configure_tray(app, self.tray)
-        self.update_shortcut_labels()
         self.tray.setContextMenu(self.menu)
         self.tray.activated.connect(self.tray_activated)
         self.menu.aboutToShow.connect(self.rebuild_menu)
         self.hotkeys = self.platform.create_hotkeys(app, self.preferences.shortcut_preset)
-        if not self.platform.shortcuts.mac and hasattr(self.hotkeys, 'set_hide_shortcut'):
+        if hasattr(self.hotkeys, 'configure'):
+            self.hotkeys.configure(self.preferences.hotkey_configuration(self.platform.shortcuts.mac))
+        elif not self.platform.shortcuts.mac and hasattr(self.hotkeys, 'set_hide_shortcut'):
             self.hotkeys.set_hide_shortcut(self.preferences.windows_hide)
         self.hotkeys.events.hide_toggle.connect(self.toggle_visibility)
         if hasattr(self.hotkeys.events, "warning"):
@@ -60,6 +63,7 @@ class WhiteboardApplication:
             self.hotkeys.start()
         except OSError as error:
             QTimer.singleShot(0, lambda detail=str(error): self.hotkey_error(detail))
+        self.update_shortcut_labels()
         app.aboutToQuit.connect(self.cleanup)
         app.screenRemoved.connect(self.displays_changed)
         app.screenAdded.connect(self.watch_screen)
@@ -78,32 +82,63 @@ class WhiteboardApplication:
         screen.logicalDotsPerInchChanged.connect(self.displays_changed)
 
     def hotkey_error(self, detail):
-        alternative = (' Choose Hide All shortcut → Ctrl+Alt+Shift+H in the tray menu if H conflicts.'
-                       if not self.platform.shortcuts.mac and self.preferences.windows_hide == 'default' else '')
         self.notify('A global shortcut is unavailable. Working shortcuts remain registered. '
-                    'Close or reassign the application that owns the unavailable shortcut, then '
-                    f'use Retry global shortcut from the {self.platform.shortcuts.status_location} menu.'
-                    f'{alternative}\n{detail}')
+                    f'Open {self.platform.shortcuts.status_location} → Settings → Hotkeys to choose another chord.\n{detail}')
+        self.update_shortcut_labels()
 
     def update_shortcut_labels(self):
         policy = self.platform.shortcuts
-        self.tray.setToolTip(f"Mini Whiteboard {APP_VERSION} · {policy.global_label('W')} / {policy.global_label('S')} / {policy.global_label('H')}")
+        from .hotkey_config import ACTIONS
+        labels = [policy.global_label(key) + ('' if identifier in self.hotkeys.registered else ' (unavailable)')
+                  for key, identifier in zip(('W', 'S', 'H'), ACTIONS)]
+        self.tray.setToolTip(f"Mini Whiteboard {APP_VERSION} · " + ' / '.join(labels))
 
-    def change_shortcut_preset(self, preset):
+    def apply_hotkey_configuration(self, configuration):
+        self.hotkeys.apply_configuration(configuration)
+        self.preferences.set_hotkey_configuration(configuration, self.platform.shortcuts.mac)
+        self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset,
+                                                 self.preferences.windows_hide, configuration)
+        self.update_shortcut_labels()
+        for board in self.boards:
+            if board.canvas.help_panel.isVisible():
+                board.canvas.help_panel.fit_reference()
+
+    def show_hotkey_settings(self):
+        if self.hotkey_dialog is not None and not self.hotkey_dialog.closed:
+            self.hotkey_dialog.show()
+            self.hotkey_dialog.raise_()
+            self.hotkey_dialog.activateWindow()
+            return
+        from .hotkey_settings import HotkeySettings
         self.placement.cancel()
         self.capture.cancel()
-        self.hotkeys.set_preset(preset)
+        self.menu.close()
+        self.hotkey_dialog = HotkeySettings(self)
+        self.hotkey_dialog.show()
+        self.hotkey_dialog.activateWindow()
+
+    def change_shortcut_preset(self, preset):
+        from .hotkey_config import defaults
+        self.placement.cancel()
+        self.capture.cancel()
+        try:
+            self.apply_hotkey_configuration(defaults(True, preset))
+        except OSError as error:
+            self.hotkey_error(str(error))
+            return
+        self.hotkeys.preset = preset
         self.preferences.set_shortcut_preset(preset)
-        self.platform.shortcuts = ShortcutPolicy(mac=True, preset=preset)
-        self.update_shortcut_labels()
-        self.retry_hotkey()
 
     def change_hide_shortcut(self, choice):
-        self.hotkeys.set_hide_shortcut(choice)
+        from .hotkey_config import defaults
+        config = self.hotkeys.configuration.with_hide(defaults(hide=choice).hide)
+        try:
+            self.apply_hotkey_configuration(config)
+        except OSError as error:
+            self.hotkey_error(str(error))
+            return
+        self.hotkeys.hide_shortcut = choice
         self.preferences.set_windows_hide(choice)
-        self.platform.shortcuts = ShortcutPolicy(hide_shortcut=choice)
-        self.update_shortcut_labels()
-        self.retry_hotkey()
 
     def capture_permission_error(self, detail):
         box = QMessageBox(QMessageBox.Icon.Information, "Screen Recording permission", detail)
@@ -120,6 +155,7 @@ class WhiteboardApplication:
             self.notify(f"{policy.global_label('W')}, {policy.global_label('S')} and {policy.global_label('H')} are ready.")
         except OSError as error:
             self.hotkey_error(str(error))
+        self.update_shortcut_labels()
 
     def notify(self, text):
         self.tray.showMessage(APP_NAME, text, QSystemTrayIcon.MessageIcon.Information, 3000)
@@ -249,6 +285,8 @@ class WhiteboardApplication:
         if self.exiting:
             return
         self.exiting = True
+        if self.hotkey_dialog is not None and not self.hotkey_dialog.closed:
+            self.hotkey_dialog.reject()
         self.hidden_batch.clear()
         self.placement.cancel()
         self.capture.cancel()

@@ -7,22 +7,21 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.3 is available.** It updates Windows creation shortcuts, improves selection
-between adjacent textboxes and adds compact controls with seamless screenshot
-edges. Windows is the stable release; Mac remains a **Universal2 Preview**.
+**V1.3.4 is available.** It adds editable global hotkeys, simpler Windows defaults and
+verified installer replacement with obsolete-file cleanup. Windows is the stable release; Mac remains a **Universal2 Preview**.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
-## Download V1.3.3
+## Download V1.3.4
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/MiniWhiteboard-1.3.3-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/WinMiniWhiteboardV1.3.3.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.3/MacMiniWhiteboardV1.3.3-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
+| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/WinMiniWhiteboardV1.3.4.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MacMiniWhiteboardV1.3.4-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
 
 Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.3)
+describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4)
 accompany the downloads. [Earlier releases](https://github.com/nottbradd/MiniWhiteboard/releases)
 remain available.
 
@@ -52,10 +51,19 @@ Development and temporary copies cannot register.
 Startup registration and controlled command launches were tested. Automatic
 launch during an actual Windows sign-in is **NOT RUN (not tested)**.
 
-To update or uninstall Windows, first choose Exit from the tray menu after
-keeping any work you need. Setup and uninstall refuse to proceed while the app
-is running. Updates retain preferences and startup choice. Uninstall removes its
-own shortcuts and login registration; preferences remain for a later reinstall.
+To upgrade an installed Windows copy, keep any work you need, choose **Exit Mini
+Whiteboard**, then **run the newer installer**. It replaces the existing installation
+in place under the same app identity; downloading alone does not update it. Setup
+checks the replacement and backs up replaced files before copying. It removes
+obsolete payload files only when ownership and their original hashes match.
+Preferences, custom hotkeys and the Open at login choice remain. Setup and
+uninstall refuse to proceed while the app is running.
+
+For the portable ZIP, close the old copy, extract the new ZIP and replace its
+application folder as a whole. The installer does not search for or delete portable
+copies or historical downloads. On Mac, quit and replace **Mini Whiteboard.app**
+in **Applications**. Uninstall removes its own shortcuts and login registration;
+preferences remain for a later reinstall.
 
 ![Hold, move and release to place a whiteboard](docs/media/placement.gif)
 
@@ -70,10 +78,10 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 ## Place a board or screenshot
 
-1. Point at the first corner and hold **Win+Alt+Shift+W** on Windows or
+1. Point at the first corner and hold **Shift+Win+W** on Windows or
    **Control+Option+W** on Mac.
 2. Keep holding and move to the opposite corner. A temporary outline previews the rectangle.
-3. Release W **or any required modifier** to create a focused board.
+3. Release the trigger key **or any required modifier** to create a focused board.
 
 Use **Q** on Windows or **S** on Mac in the same global shortcut to capture a region into a new board
 with a locked screenshot background, ready to annotate. Mac's **Global shortcuts**
@@ -85,11 +93,23 @@ Escape or the tray/menu cancellation clears a preview. Held repeats cannot
 create more boards. Screen capture may request Screen Recording permission on
 Mac; a denied or failed capture creates no board.
 
-Windows screenshot creation uses **Win+Alt+Shift+Q**. Both left/right Windows, Alt and Shift
-keys work. If another application or Windows component owns a shortcut, its
-tray entry says **unavailable**. Close or reassign the conflicting application,
-then choose **Retry global shortcut**. Other working shortcuts remain active;
-Mini Whiteboard does not take over the conflicting binding or switch to another.
+Windows screenshot creation defaults to **Shift+Win+Q**. Both left/right modifier
+keys work. Open **tray → Settings → Hotkeys** to record a chord or select modifiers
+and a key manually. Create, capture and Hide All can use different chords. Apply
+checks duplicates and OS registration before saving; Cancel keeps the previous
+configuration. Reset Defaults changes the editor until you choose Apply.
+
+If a shortcut is already owned, its tray entry says **unavailable** and opens
+Hotkeys settings. Other actions remain registered. The default Shift+Win+W was
+unavailable on the Windows test PC (error 1409); custom blank-board creation and
+the default capture shortcut were tested separately. Select the explicit
+**Win+Alt+Shift+W/Q compatibility preset**, or choose another available chord.
+The app never takes over another owner's shortcut or silently changes defaults.
+Global actions pause while Hotkeys settings is open. Explicit choices survive
+restart and upgrade; existing Hide All and Mac preset choices are retained.
+Windows reserves Ctrl+Esc and Ctrl+Shift+Esc. For a custom creation chord whose
+Escape combination is unavailable, the app reports it and offers tray-menu
+cancellation; choose a different chord for keyboard cancellation.
 
 Screenshot content reaches the rounded board boundary. Small translucent controls
 and temporary feedback sit over the image; copied image content excludes them.
@@ -179,13 +199,13 @@ window; the board has no title bar or permanent toolbar.
 hides all visible boards immediately. Press again to restore that recorded set
 without taking focus from your current app. Already minimized boards stay hidden.
 New boards remain visible outside an older hidden batch. Individually restored
-or deleted boards leave the batch; a later manual minimize is respected. Held H
+or deleted boards leave the batch; a later manual minimize is respected. Held shortcut
 repeats and key release cannot toggle again. Mac's alternate preset includes H;
 normal Command+H remains a system shortcut.
 
 On Windows, **Hide All shortcut** in the tray menu offers **Ctrl+Alt+H** and
-**Ctrl+Alt+Shift+H**. Your explicit choice is saved for the next launch. A conflict
-keeps W/S working; choose the alternative or retry the unavailable binding.
+**Ctrl+Alt+Shift+H**. Your explicit choice is saved for the next launch. Settings → Hotkeys also supports a custom Hide All chord. A conflict leaves
+other registered actions working; choose another chord or retry.
 The app never silently switches shortcuts. Mac retains its existing W/S/H presets.
 
 OCR and Extract Text are removed in V1.3.1, including their engine and language data.

@@ -10,6 +10,14 @@ from ..base import HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, ESCAPE_HOTKEY, H
 from ..hold import HoldTracker
 from ..toggle import ToggleLatch
 from ...shortcuts import ShortcutPolicy
+from ...hotkey_config import ConfigurableHotkeys, defaults
+
+# Carbon virtual key codes (ANSI letter positions, as used by the original presets).
+CARBON_KEYS = dict(zip('ASDFHGZXCVBQWERYT12346597' + '80OUIP',
+                      (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17,
+                       18, 19, 20, 21, 22, 23, 25, 26, 28, 29, 31, 32, 34, 35)))
+CARBON_KEYS.update({'L': 37, 'J': 38, 'K': 40, 'N': 45, 'M': 46,
+                    **dict(zip((f'F{i}' for i in range(1, 13)), (122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111)))})
 
 
 def fourcc(text):
@@ -84,20 +92,21 @@ class Carbon:
     def discard(self, handle):
         self.unregister(handle)
 
-    def sample(self, required):
+    def sample(self, bindings):
         # Carbon hardware state works in the background without an event tap,
         # Accessibility prompt, or Input Monitoring subscription.
         keys = (C.c_uint32*4)()
         self.keys(keys)
-        down = {identifier for identifier, code in ((CREATE_HOTKEY, 13), (CAPTURE_HOTKEY, 1))
+        down = {identifier for identifier, (code, _required) in bindings.items()
                 if keys[code//32] & (1 << (code % 32))}
-        complete = self.modifiers() & required == required
-        return down, down if complete else set(), bool(keys[53//32] & (1 << (53 % 32)))
+        held = self.modifiers()
+        complete = {identifier for identifier in down if held & bindings[identifier][1] == bindings[identifier][1]}
+        return down, complete, bool(keys[53//32] & (1 << (53 % 32)))
 
-    def hide_key_down(self):
+    def key_down(self, code):
         keys = (C.c_uint32*4)()
         self.keys(keys)
-        return bool(keys[0] & (1 << 4))
+        return bool(keys[code//32] & (1 << (code % 32)))
 
     def close(self):
         if self.handler:
@@ -105,10 +114,12 @@ class Carbon:
             self.handler = None
 
 
-class MacHotkeys:
+class MacHotkeys(ConfigurableHotkeys):
+    mac = True
     def __init__(self, app, preset="default", backend_factory=Carbon):
         self.events = HotkeyEvents()
         self.preset = preset
+        self.initialize_configuration(defaults(True, preset))
         self.handles = {}
         self.down = set()
         self.backend_factory = backend_factory
@@ -116,7 +127,8 @@ class MacHotkeys:
         self.escape_available = None
         self.hold = HoldTracker(app, self.events, self.sample)
         self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
-                                      lambda: self.backend.hide_key_down())
+                                      lambda: self.backend.key_down(CARBON_KEYS[self.configuration.hide.key]))
+        self._refresh_tracking()
         self.hide_latch.released.connect(lambda: self.record_release(HIDE_HOTKEY))
         self.last_activation = {}
         self.press_time = {}
@@ -133,7 +145,9 @@ class MacHotkeys:
         return (1 << 8 | 1 << 9 | 1 << 11) if self.preset == "alternate" else (1 << 12 | 1 << 11)
 
     def sample(self):
-        return self.backend.sample(self.modifiers)
+        self._ensure_backend()
+        return self.backend.sample({i: (CARBON_KEYS[chord.key], chord.carbon_modifiers)
+                                    for i, chord in self.configuration.items()[:2]})
 
     @property
     def registered(self):
@@ -144,6 +158,8 @@ class MacHotkeys:
             self.backend = self.backend_factory(self.deliver)
 
     def deliver(self, identifier, pressed, stamp=None):
+        if self.paused:
+            return
         if not pressed:
             if stamp is not None and stamp < self.press_time.get(identifier, 0):
                 return
@@ -172,20 +188,9 @@ class MacHotkeys:
         self.down.add(identifier)
         self.events.cancel.emit()
 
-    def start(self):
+    def _register_chord(self, identifier, chord):
         self._ensure_backend()
-        modifiers = self.modifiers
-        failures = []
-        for identifier, key, label in ((CREATE_HOTKEY, 13, "W"), (CAPTURE_HOTKEY, 1, "S"), (HIDE_HOTKEY, 4, "H")):
-            if identifier in self.handles:
-                continue
-            try:
-                self.handles[identifier] = self.backend.add(identifier, key, modifiers)
-            except OSError as error:
-                failures.append(f"{ShortcutPolicy(True, self.preset).global_label(label)}: {error}")
-        if failures:
-            self.events.cancel.emit()
-            raise OSError("; ".join(failures))
+        self.handles[identifier] = self.backend.add(identifier, CARBON_KEYS[chord.key], chord.carbon_modifiers)
 
     def enable_escape(self):
         self._ensure_backend()
@@ -216,6 +221,8 @@ class MacHotkeys:
         for identifier in tuple(self.handles):
             self._unregister(identifier)
         self.preset = preset
+        self.configuration = defaults(True, preset)
+        self._refresh_tracking()
 
     def close(self):
         self.events.cancel.emit()

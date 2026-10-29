@@ -23,6 +23,7 @@ from mini_whiteboard import windows as n
 from mini_whiteboard.app import WhiteboardApplication
 from mini_whiteboard.platform.base import CREATE_HOTKEY, CAPTURE_HOTKEY
 from mini_whiteboard.snapping import SnapPreferences
+from mini_whiteboard.hotkey_config import compatibility, defaults
 
 
 def focus_target(path):
@@ -52,7 +53,7 @@ def focus_target(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--focus-target', type=Path)
-    parser.add_argument('--output', type=Path, default=Path('verification/v133-review02/creation-shortcuts.json'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v134-review01/creation-shortcuts.json'))
     parser.add_argument('--require-both', action='store_true')
     args = parser.parse_args()
     if args.focus_target:
@@ -77,6 +78,7 @@ def main():
     state_path = root/'target.json'
     prefs = SnapPreferences(settings=QSettings(str(root/'settings.ini'), QSettings.Format.IniFormat))
     prefs.set_windows_hide('shift')
+    prefs.set_hotkey_configuration(compatibility(defaults(hide='shift')))
     # Reserve just Q with an owned registration, then release it and retry.
     # Existing third-party owners are never unregistered or overridden.
     reserved = bool(u.RegisterHotKey(None, 0x5571, 13 | n.MOD_NOREPEAT, ord('Q')))
@@ -146,7 +148,7 @@ def main():
                 limits.append(f'Win+Alt+Shift+{trigger} positive native gestures: NOT RUN (registration conflict on this desktop)')
                 controller.rebuild_menu()
                 check(f'{trigger} conflict remains visible with retry and working bindings',
-                      any('unavailable' in a.text() and 'Win+Alt+Shift+'+trigger in a.text() for a in controller.menu.actions())
+                      any('unavailable' in a.text() and controller.platform.shortcuts.global_label('W' if trigger == 'W' else 'S') in a.text() for a in controller.menu.actions())
                       and any(a.text() == 'Retry global shortcut' for a in controller.menu.actions()), warnings)
                 continue
             for win, alt, shift in itertools.product((0x5B, 0x5C), (0xA4, 0xA5), (0xA0, 0xA1)):
@@ -243,7 +245,7 @@ def main():
               state()['text'] == original and not state()['menu_active'] and not state()['menu_shows'])
         check('No Qt callback exceptions', not errors, errors)
         if args.require_both:
-            check('Both requested creation shortcuts completed the native matrix', not limits, limits)
+            check('Both explicitly selected compatibility shortcuts completed the native matrix', not limits, limits)
     finally:
         drain()
         if reserved:

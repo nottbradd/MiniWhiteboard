@@ -43,7 +43,7 @@ class WindowsHideShortcutTests(QtCase):
             with self.assertRaises(ValueError):
                 prefs.set_windows_hide('invalid')
         policy = ShortcutPolicy(hide_shortcut='shift')
-        self.assertEqual(policy.global_label('W'),'Win+Alt+Shift+W')
+        self.assertEqual(policy.global_label('W'),'Shift+Win+W')
         self.assertEqual(policy.global_label('H'),'Ctrl+Alt+Shift+H')
         self.assertIn('Ctrl+Alt+Shift+H',policy.help_html())
         self.assertEqual(ShortcutPolicy(mac=True).global_label('H'),'Control+Option+H')
@@ -63,7 +63,7 @@ class WindowsHideShortcutTests(QtCase):
             controller.notify = warnings.append
             APP.processEvents()
             self.assertEqual(controller.hotkeys.registered,{CREATE_HOTKEY,CAPTURE_HOTKEY})
-            self.assertTrue(any('Hide All shortcut' in warning for warning in warnings))
+            self.assertTrue(any('Settings → Hotkeys' in warning for warning in warnings))
             before = [entry for entry in self.registrations if entry[0] != HIDE_HOTKEY]
             controller.rebuild_menu()
             menu = next(a.menu() for a in controller.menu.actions() if a.text() == 'Hide All shortcut')
@@ -75,14 +75,15 @@ class WindowsHideShortcutTests(QtCase):
             self.assertEqual(before,[entry for entry in self.registrations if entry[0] != HIDE_HOTKEY])
             controller.change_hide_shortcut('default')
             self.assertEqual(self.removals,[HIDE_HOTKEY])
-            self.assertEqual(controller.hotkeys.registered,{CREATE_HOTKEY,CAPTURE_HOTKEY})
+            self.assertEqual(controller.hotkeys.registered,{CREATE_HOTKEY,CAPTURE_HOTKEY,HIDE_HOTKEY})
+            self.assertEqual(prefs.windows_hide,'shift')  # Failed change rolled back.
             self.assertEqual(before,[entry for entry in self.registrations if entry[0] != HIDE_HOTKEY])
             controller.change_hide_shortcut('shift')
             controller.cleanup()
             loaded = SnapPreferences(settings=QSettings(path,QSettings.Format.IniFormat))
             fresh = WhiteboardApplication(APP,loaded,platform)
             self.addCleanup(fresh.cleanup)
-            self.assertEqual(fresh.hotkeys.hide_shortcut,'shift')
+            self.assertEqual(fresh.hotkeys.configuration.hide,prefs.hotkey_configuration().hide)
             self.assertIn(HIDE_HOTKEY,fresh.hotkeys.registered)
 
     def test_changing_binding_while_held_and_stale_native_messages_cannot_retoggle(self):

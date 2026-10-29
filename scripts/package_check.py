@@ -23,8 +23,8 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v133-review02/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v133-review02/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v134-review01/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v134-review01/Mini Whiteboard/Mini Whiteboard.exe"))
     args = parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
@@ -393,4 +393,6 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from .native_preferences import compatibility_preferences
+    with compatibility_preferences():
+        raise SystemExit(main())

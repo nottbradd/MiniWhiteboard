@@ -9,6 +9,7 @@ class ToggleLatch(QObject):
         super().__init__()
         self.app, self.signal, self.is_down = app, signal, is_down
         self.held = self.closed = False
+        self.trigger_key = Qt.Key.Key_H
         self.failures = 0
         self.timer = QTimer(self)
         self.timer.setInterval(12)
@@ -45,7 +46,7 @@ class ToggleLatch(QObject):
 
     def eventFilter(self, watched, event):
         if (self.held and event.type() in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride)
-                and event.key() == Qt.Key.Key_H):
+                and event.key() == self.trigger_key):
             event.accept()
             return True
         return False

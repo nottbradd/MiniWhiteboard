@@ -174,7 +174,7 @@ class FakeCarbon:
     def clock(self):
         return 0
 
-    def hide_key_down(self):
+    def key_down(self, code):
         return HIDE_HOTKEY in self.down
 
     def add(self, identifier, key, modifiers):

@@ -15,8 +15,7 @@ def rebuild_menu(controller):
         available = identifier in c.hotkeys.registered
         menu.addAction(f"{label} · hold {shortcut}" + ('' if available else ' · unavailable'),
                        lambda checked=False, s=shortcut, ready=available: c.notify(
-                           f"Point at the first corner, hold {s}, move, then release." if ready else
-                           f"{s} is unavailable. Close or reassign the application using it, then choose Retry global shortcut."))
+                           f"Point at the first corner, hold {s}, move, then release.") if ready else c.show_hotkey_settings())
     if c.placement.state.active or c.capture.active:
         def cancel():
             c.placement.cancel()
@@ -24,7 +23,8 @@ def rebuild_menu(controller):
         menu.addAction("Cancel placement / screenshot", cancel)
     menu.addSeparator()
     label = "Restore All" if c.hidden_batch else "Hide All"
-    menu.addAction(f"{label} · {c.platform.shortcuts.global_label('H')}", c.toggle_visibility)
+    menu.addAction(f"{label} · {c.platform.shortcuts.global_label('H')}" +
+                   ('' if HIDE_HOTKEY in c.hotkeys.registered else ' · shortcut unavailable'), c.toggle_visibility)
     boards_menu = menu.addMenu("Whiteboards")
     if c.boards:
         for board in c.boards:
@@ -33,6 +33,8 @@ def rebuild_menu(controller):
     else:
         boards_menu.addAction("No whiteboards").setEnabled(False)
     menu.addSeparator()
+    settings = menu.addMenu('Settings')
+    settings.addAction('Hotkeys…', c.show_hotkey_settings)
     appearance = menu.addMenu('Appearance')
     group = QActionGroup(appearance)
     group.setExclusive(True)
@@ -55,7 +57,8 @@ def rebuild_menu(controller):
             policy = ShortcutPolicy(mac=True, preset=preset)
             action = presets.addAction(policy.global_label("W / S / H"))
             action.setCheckable(True)
-            action.setChecked(c.preferences.shortcut_preset == preset)
+            from .hotkey_config import defaults
+            action.setChecked(c.preferences.hotkey_configuration(True) == defaults(True, preset))
             action.triggered.connect(lambda checked=False, p=preset: c.change_shortcut_preset(p))
     else:
         choices = menu.addMenu('Hide All shortcut')
@@ -64,7 +67,8 @@ def rebuild_menu(controller):
         for choice in ('default', 'shift'):
             action = choices.addAction(ShortcutPolicy(hide_shortcut=choice).global_label('H'))
             action.setCheckable(True)
-            action.setChecked(c.preferences.windows_hide == choice)
+            from .hotkey_config import defaults
+            action.setChecked(c.preferences.hotkey_configuration().hide == defaults(hide=choice).hide)
             group.addAction(action)
             action.triggered.connect(lambda checked=False, value=choice: c.change_hide_shortcut(value))
     menu.addSeparator()

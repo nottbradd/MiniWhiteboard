@@ -3,6 +3,9 @@ from mini_whiteboard.platform.base import (Platform, QtDesktop, QtRuntime, Displ
                                          HotkeyEvents, CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY)
 from mini_whiteboard.geometry import Rect
 from mini_whiteboard.shortcuts import ShortcutPolicy
+from mini_whiteboard.hotkey_config import ConfigurableHotkeys, defaults
+from mini_whiteboard.platform.hold import HoldTracker
+from mini_whiteboard.platform.toggle import ToggleLatch
 
 
 class FakeDesktop(QtDesktop):
@@ -21,15 +24,28 @@ class FakeDesktop(QtDesktop):
         return self.screens
 
 
-class FakeHotkeys:
+class FakeHotkeys(ConfigurableHotkeys):
+    mac = True
     def __init__(self, app=None, preset="default"):
         self.events = HotkeyEvents()
         self.registered = set()
         self.escape = False
         self.preset = preset
+        self.initialize_configuration(defaults(True, preset))
+        self.hold = HoldTracker(app, self.events, self.sample)
+        self.hide_latch = ToggleLatch(app, self.events.hide_toggle, lambda: False)
 
-    def start(self):
-        self.registered.update((CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY))
+    def _register_chord(self, identifier, chord):
+        self.registered.add(identifier)
+
+    def _unregister(self, identifier):
+        self.registered.discard(identifier)
+
+    def sample(self):
+        return set(), set()
+
+    def record_release(self, identifier):
+        pass
 
     def enable_escape(self):
         self.escape = True
@@ -42,6 +58,8 @@ class FakeHotkeys:
         self.registered.clear()
 
     def close(self):
+        self.hold.close()
+        self.hide_latch.close()
         self.registered.clear()
 
 

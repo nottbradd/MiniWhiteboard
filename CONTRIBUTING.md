@@ -36,6 +36,7 @@ have different Screen Recording permission identities.
 | Area | Responsibility |
 |---|---|
 | `app.py`, `board.py` | Tray/menu lifetime, board registry, frameless windows and controls |
+| `hotkey_config.py`, `hotkey_settings.py` | Validated per-action chords, registration rollback and the temporary settings editor |
 | `platform/` | Narrow Runtime, Desktop, Hotkeys and Capture services; Windows and Mac adapters |
 | `gestures.py`, `placement.py`, `screenshot.py` | One creation owner, passive previews, release completion, cancellation and asynchronous capture |
 | `document.py`, `transforms.py` | Immutable objects, stable IDs/order, affine transforms, local masks and before/after history |
@@ -53,6 +54,9 @@ Keep these invariants covered:
 - Creation is hold → move → release, with no result on press. Releasing any
   required key ends the gesture. Repeats, competing shortcuts and stale callbacks
   cannot create a second result. Tracking stops after held keys drain.
+- Global settings pause actions while recording/editing. Only complete native
+  registration may be persisted. Failed changes restore owned bindings, report
+  rollback failures and never label an unavailable chord as active.
 - Native desktop units cross explicit boundaries: physical pixels on Windows,
   points on Mac. Do not scale global origins as local coordinates.
 - Ordinary tool keys require an active board, canvas focus and no editor.
@@ -87,8 +91,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v133-review02/Mini Whiteboard/` and
-`build/candidates/v1.3.3/review-02/WinMiniWhiteboardV1.3.3.zip`. Keep the entire runtime folder.
+Output: `dist/windows-v134-review01/Mini Whiteboard/` and
+`build/candidates/v1.3.4/review-01/WinMiniWhiteboardV1.3.4.zip`. Keep the entire runtime folder. `scripts.payload_manifest` inventories it; the
+installer stages/verifies replacement, backs up overwritten files and cleans only
+trusted obsolete paths with matching hashes. The embedded V1.3.3 inventory comes
+from its preserved published ZIP. Keep the installer AppId and Mac bundle ID stable.
 
 Build the recommended installer with the pinned, free Inno Setup compiler:
 
@@ -114,8 +121,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v133-review02/Mini Whiteboard.app` and
-`build/candidates/v1.3.3/review-02/MacMiniWhiteboardV1.3.3-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v134-review01/Mini Whiteboard.app` and
+`build/candidates/v1.3.4/review-01/MacMiniWhiteboardV1.3.4-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation

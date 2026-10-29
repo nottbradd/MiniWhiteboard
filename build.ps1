@@ -1,5 +1,5 @@
 param([string]$Python = "$PSScriptRoot\.venv\Scripts\python.exe",
-      [string]$DistPath = 'dist\windows-v133-review02')
+      [string]$DistPath = 'dist\windows-v134-review01')
 $ErrorActionPreference = 'Stop'
 Push-Location -LiteralPath $PSScriptRoot
 try {
@@ -33,7 +33,7 @@ try {
         }
         Remove-Item -LiteralPath $resolvedOutput -Recurse -Force
     }
-    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v133-review02'
+    $buildWorkOutput = Join-Path $PSScriptRoot 'build\windows-v134-review01'
     if (Test-Path -LiteralPath $buildWorkOutput) {
         $resolvedBuildWork = (Resolve-Path -LiteralPath $buildWorkOutput).Path
         if (-not $resolvedBuildWork.StartsWith($workspaceRoot, [StringComparison]::OrdinalIgnoreCase)) {
@@ -61,6 +61,8 @@ try {
     } finally {
         $env:PATH = $originalBuildPath
     }
+    & $Python -m scripts.payload_manifest $buildOutput
+    if ($LASTEXITCODE -ne 0) { throw 'Payload inventory failed.' }
     Write-Output "Built $buildOutput\Mini Whiteboard.exe. Distribute the entire folder."
 } finally {
     Pop-Location

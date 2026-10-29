@@ -13,6 +13,7 @@ from ..base import HotkeyEvents
 from ..hold import HoldTracker
 from ..toggle import ToggleLatch
 from ..base import HIDE_HOTKEY
+from ...hotkey_config import ConfigurableHotkeys, defaults
 
 IS_WINDOWS = sys.platform == "win32"
 WM_HOTKEY = 0x0312
@@ -20,8 +21,8 @@ MOD_NOREPEAT = 0x4000
 CREATE_HOTKEY = 0x4D01
 ESCAPE_HOTKEY = 0x4D02
 CAPTURE_HOTKEY = 0x4D03
-ESCAPE_VARIANTS = (ESCAPE_HOTKEY, 0x4D04, 0x4D06, 0x4D08, 0x4D09, 0x4D0A, 0x4D0B, 0x4D0C)
-CREATION_MODIFIERS = 0x0008 | 0x0001 | 0x0004  # MOD_WIN | MOD_ALT | MOD_SHIFT.
+ESCAPE_VARIANTS = (ESCAPE_HOTKEY,) + tuple(range(0x4E01, 0x4E10))
+CREATION_MODIFIERS = 0x0008 | 0x0004  # MOD_WIN | MOD_SHIFT (default only).
 CREATION_KEYS = {CREATE_HOTKEY: ord('W'), CAPTURE_HOTKEY: ord('Q')}
 
 
@@ -176,17 +177,19 @@ def dominant_monitor(rect, available=None):
     return max(available, key=lambda m: m.rect.intersection_area(rect))
 
 
-class NativeHotkeys(QAbstractNativeEventFilter):
+class NativeHotkeys(QAbstractNativeEventFilter, ConfigurableHotkeys):
     def __init__(self, app, hide_shortcut='default'):
         super().__init__()
         self.app = app
         self.events = HotkeyEvents()
         self.registered = set()
         self.hide_shortcut = hide_shortcut
+        self.initialize_configuration(defaults(hide=hide_shortcut))
         self.hold = HoldTracker(app, self.events, self.sample,
                                 {Qt.Key.Key_W: CREATE_HOTKEY, Qt.Key.Key_Q: CAPTURE_HOTKEY})
         self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
-                                      lambda: bool(user32.GetAsyncKeyState(ord('H')) & 0x8000))
+                                      lambda: bool(user32.GetAsyncKeyState(self.configuration.hide.windows_key) & 0x8000))
+        self._refresh_tracking()
         self.hide_latch.released.connect(lambda: self.record_release(HIDE_HOTKEY))
         self.last_activation = {}
         self.last_release = {}
@@ -198,12 +201,12 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         self.last_release[identifier] = kernel32.GetTickCount()
 
     def sample(self):
-        down = {identifier for identifier, key in CREATION_KEYS.items()
-                if user32.GetAsyncKeyState(key) & 0x8000}
-        modifiers = (any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0x5B, 0x5C))
-                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA4, 0xA5))
-                     and any(user32.GetAsyncKeyState(key) & 0x8000 for key in (0xA0, 0xA1)))
-        return down, down if modifiers else set(), bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
+        down = {identifier for identifier, chord in self.configuration.items()[:2]
+                if user32.GetAsyncKeyState(chord.windows_key) & 0x8000}
+        keys = {'meta': (0x5B, 0x5C), 'alt': (0xA4, 0xA5), 'shift': (0xA0, 0xA1), 'ctrl': (0xA2, 0xA3)}
+        held = {name for name, codes in keys.items() if any(user32.GetAsyncKeyState(key) & 0x8000 for key in codes)}
+        complete = {identifier for identifier in down if self.configuration[identifier].modifiers <= held}
+        return down, complete, bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
 
     def register(self, identifier, modifiers, key):
         if not IS_WINDOWS:
@@ -214,38 +217,41 @@ class NativeHotkeys(QAbstractNativeEventFilter):
             raise C.WinError(C.get_last_error())
         self.registered.add(identifier)
 
-    def start(self):
-        failures = []
-        for identifier, key in ((CREATE_HOTKEY, "W"), (CAPTURE_HOTKEY, "S"), (HIDE_HOTKEY, "H")):
-            try:
-                modifiers = (7 if self.hide_shortcut == 'shift' else 3) if key == 'H' else CREATION_MODIFIERS
-                self.register(identifier, modifiers, CREATION_KEYS.get(identifier, ord(key)))
-            except OSError as error:
-                from ...shortcuts import ShortcutPolicy
-                label = ShortcutPolicy(hide_shortcut=self.hide_shortcut).global_label(key)
-                failures.append(f"{label}: {error}")
-        if failures:
-            raise OSError("\n".join(failures))
+    def _register_chord(self, identifier, chord):
+        self.register(identifier, chord.windows_modifiers, chord.windows_key)
+
+    def _unregister(self, identifier):
+        if identifier in self.registered:
+            user32.UnregisterHotKey(None, identifier)
+            self.registered.remove(identifier)
 
     def set_hide_shortcut(self, choice):
         if choice not in ('default', 'shift'):
             raise ValueError('Unknown Hide All shortcut.')
-        if choice == self.hide_shortcut:
-            return
-        if HIDE_HOTKEY in self.registered:
-            user32.UnregisterHotKey(None, HIDE_HOTKEY)
-            self.registered.remove(HIDE_HOTKEY)
-        # Drain queued messages for the old binding without releasing a physical
-        # H latch. Changing the menu while holding H cannot cause a second toggle.
-        self.record_release(HIDE_HOTKEY)
+        self._unregister(HIDE_HOTKEY)
         self.hide_shortcut = choice
+        self.configuration = self.configuration.with_hide(defaults(hide=choice).hide)
+        self._refresh_tracking()
+        self.record_release(HIDE_HOTKEY)
 
     def enable_escape(self):
-        # Only owned creation sessions register these Escape variants. Both
-        # sides of Win/Alt/Shift share the same native modifier flags. Keep
-        # cancellation reliable while any subset of required modifiers drains.
-        for identifier, modifiers in zip(ESCAPE_VARIANTS, (0, 1, 4, 5, 8, 9, 12, CREATION_MODIFIERS)):
-            self.register(identifier, modifiers, 0x1B)
+        # Cover every subset of either configured chord during release cleanup.
+        masks = [self.configuration[i].windows_modifiers for i in (CREATE_HOTKEY, CAPTURE_HOTKEY)]
+        failures = {}
+        for modifiers in range(16):
+            if any(modifiers & mask == modifiers for mask in masks):
+                try:
+                    self.register(ESCAPE_VARIANTS[modifiers], modifiers, 0x1B)
+                except OSError as error:
+                    # Ctrl+Esc and Ctrl+Shift+Esc are reserved by Windows. A
+                    # missing draining subset must not abort a valid gesture.
+                    failures[modifiers] = str(error)
+        active = self.hold.active
+        required = self.configuration[active].windows_modifiers if active in (CREATE_HOTKEY, CAPTURE_HOTKEY) else None
+        if 0 in failures or required in failures:
+            self.events.warning.emit('Escape with this shortcut is reserved or unavailable. '
+                                     'Use Cancel placement / screenshot in the tray menu. '
+                                     'Choose another creation chord in Settings → Hotkeys for keyboard cancellation.')
 
     def disable_escape(self):
         for identifier in ESCAPE_VARIANTS:
@@ -257,6 +263,8 @@ class NativeHotkeys(QAbstractNativeEventFilter):
         if IS_WINDOWS and bytes(event_type) in (b"windows_generic_MSG", b"windows_dispatcher_MSG"):
             msg = W.MSG.from_address(int(message))
             if msg.message == WM_HOTKEY and msg.wParam in self.registered:
+                if self.paused:
+                    return True, 0
                 if msg.wParam in ESCAPE_VARIANTS:
                     self.events.cancel.emit()
                 else:
@@ -269,15 +277,13 @@ class NativeHotkeys(QAbstractNativeEventFilter):
                     stamp = (msg.time, msg.lParam)
                     if self.last_activation.get(msg.wParam) != stamp:
                         self.last_activation[msg.wParam] = stamp
+                        chord = self.configuration[msg.wParam]
+                        if (msg.lParam & 15 != chord.windows_modifiers
+                                or msg.lParam >> 16 & 0xFFFF != chord.windows_key):
+                            return True, 0
                         if msg.wParam == HIDE_HOTKEY:
-                            expected = 7 if self.hide_shortcut == 'shift' else 3
-                            if msg.lParam & 7 != expected:
-                                return True, 0
                             self.hide_latch.activate()
                         else:
-                            if (msg.lParam & 15 != CREATION_MODIFIERS
-                                    or msg.lParam >> 16 & 0xFFFF != CREATION_KEYS[msg.wParam]):
-                                return True, 0
                             self.hold.activate(msg.wParam)
                 return True, 0
         return False, 0

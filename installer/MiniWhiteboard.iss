@@ -1,12 +1,12 @@
 ; Per-user installation. Keep AppId and mutex names stable across upgrades.
 #ifndef AppVersion
-  #define AppVersion "1.3.3"
+  #define AppVersion "1.3.4"
 #endif
 #ifndef BundleDir
-  #define BundleDir "..\dist\windows-v133-review02\Mini Whiteboard"
+  #define BundleDir "..\dist\windows-v134-review01\Mini Whiteboard"
 #endif
 #ifndef OutputDir
-  #define OutputDir "..\build\candidates\v1.3.3\review-02"
+  #define OutputDir "..\build\candidates\v1.3.4\review-01"
 #endif
 
 [Setup]
@@ -49,7 +49,9 @@ DisableWelcomePage=no
 Name: desktopicon; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "{#BundleDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "legacy-v1.3.3.payload"; Flags: dontcopy
+Source: "{#BundleDir}\*"; DestDir: "{app}"; Excludes: "MiniWhiteboard.payload"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BundleDir}\MiniWhiteboard.payload"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: VerifyReplacement
 
 [Icons]
 Name: "{group}\Mini Whiteboard"; Filename: "{app}\Mini Whiteboard.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Mini Whiteboard.exe"; AppUserModelID: "MiniWhiteboard.Desktop"
@@ -67,6 +69,8 @@ const
 var
   PreviousInstall: String;
 
+#include "upgrade.iss"
+
 function InitializeSetup: Boolean;
 begin
   RegQueryStringValue(HKCU, UninstallKey, 'InstallLocation', PreviousInstall);
@@ -77,13 +81,20 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   if CheckForMutexes('Local\MiniWhiteboard-9fb88530') then
-    Result := 'Mini Whiteboard is running. Keep any work you need, then choose Exit from its tray menu before installing.';
+    Result := 'Mini Whiteboard is running. Keep any work you need, then choose Exit from its tray menu before installing.'
+  else try
+    PrepareReplacement;
+  except
+    Result := GetExceptionMessage;
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Command, PreviousCommand, NewCommand: String;
 begin
+  if CurStep = ssInstall then InstallStarted := True;
+  if CurStep = ssPostInstall then CommitReplacement;
   if (CurStep = ssPostInstall) and (PreviousInstall <> '') then begin
     PreviousCommand := '"' + AddBackslash(PreviousInstall) + 'Mini Whiteboard.exe" --login';
     NewCommand := '"' + ExpandConstant('{app}\Mini Whiteboard.exe') + '" --login';
@@ -93,6 +104,11 @@ begin
       RegWriteStringValue(HKCU, RunKey, 'MiniWhiteboard', NewCommand);
     { Preserve the OS approval record, including an external disable. }
   end;
+end;
+
+procedure DeinitializeSetup;
+begin
+  RestoreReplacement;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
