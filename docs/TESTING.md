@@ -295,8 +295,9 @@ or source-background painting per sample. Preserve original image identity/histo
 
 - **No board at launch:** find the tray/menu icon and use the global shortcut.
   Hidden Windows tray icons can conceal it.
-- **Shortcut unavailable:** close another owner or choose Retry global shortcut.
-  On Mac try the alternate preset. Check normal tool keys only with canvas focus.
+- **Shortcut unavailable:** open tray/menu-bar **Settings → Hotkeys** and record or
+  manually select an available chord. The Windows compatibility preset and Mac
+  alternate preset are explicit choices. Check normal tool keys only with canvas focus.
 - **Capture denied/empty:** check Screen Recording permission on Mac and relaunch
   if requested. Protected/secure desktop content may be unavailable.
 - **Windows app missing libraries:** extract and retain the whole runtime folder,

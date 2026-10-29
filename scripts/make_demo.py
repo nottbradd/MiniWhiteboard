@@ -15,6 +15,7 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QImage, QPainter, QPaint
 from PySide6.QtWidgets import QApplication
 
 from tests.fake_platform import fake_platform
+from mini_whiteboard import APP_VERSION
 from mini_whiteboard.app import WhiteboardApplication
 from mini_whiteboard.document import Shape, Stroke, Text
 from mini_whiteboard.geometry import Rect
@@ -79,7 +80,7 @@ def main():
         p.drawRoundedRect(QRectF(806,38,100,30),15,15)
         p.setFont(QFont('Segoe UI',10,QFont.Weight.Bold))
         p.setPen(QColor('#162e32'))
-        p.drawText(QRectF(806,38,100,30),Qt.AlignmentFlag.AlignCenter,'VERSION 1.2')
+        p.drawText(QRectF(806,38,100,30),Qt.AlignmentFlag.AlignCenter,'V'+APP_VERSION)
         for overlay in controller.placement.overlays:
             p.drawPixmap(0,0,overlay.grab())
         for board in controller.boards:
@@ -104,7 +105,7 @@ def main():
             p.drawRoundedRect(QRectF(645,502,261,43),9,9)
             p.setFont(QFont('Segoe UI',13,QFont.Weight.Bold))
             p.setPen(QColor('#1a584e'))
-            p.drawText(QRectF(645,502,261,43),Qt.AlignmentFlag.AlignCenter,'Ctrl  +  Alt  +  W')
+            p.drawText(QRectF(645,502,261,43),Qt.AlignmentFlag.AlignCenter,platform.shortcuts.global_label('W'))
         p.end()
         name=f'{len(records):03d}.png'
         image.save(str(directory/name))

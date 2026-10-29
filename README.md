@@ -111,6 +111,21 @@ Windows reserves Ctrl+Esc and Ctrl+Shift+Esc. For a custom creation chord whose
 Escape combination is unavailable, the app reports it and offers tray-menu
 cancellation; choose a different chord for keyboard cancellation.
 
+<details>
+<summary>Hotkey settings and conflict recovery</summary>
+
+The Windows test PC reports the requested default creation shortcut as unavailable.
+The dialog remains accessible, and the other registered actions are preserved.
+
+![Default shortcut conflict shown in Hotkeys settings](docs/media/hotkeys-conflict.png)
+
+After recording or selecting available replacements and choosing Apply, all three
+actions work. Opening Settings pauses them while the configuration is edited.
+
+![Custom creation, capture and Hide All shortcuts](docs/media/hotkeys-settings.png)
+
+</details>
+
 Screenshot content reaches the rounded board boundary. Small translucent controls
 and temporary feedback sit over the image; copied image content excludes them.
 The top edge still moves the window and its edges/corners resize it.

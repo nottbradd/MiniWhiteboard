@@ -58,7 +58,7 @@ def main():
     try:
         QTest.qWait(150)
         if args.allow_shortcut_conflict and windows.CREATE_HOTKEY not in controller.hotkeys.registered:
-            results.append({'check': 'Native Win+Alt+Shift+W registration', 'status': 'NOT RUN',
+            results.append({'check': f"Native {controller.platform.shortcuts.global_label('W')} registration", 'status': 'NOT RUN',
                             'detail': 'Shortcut is already registered on this desktop; direct controller checks follow.'})
         else:
             check("Native creation hotkey registration", windows.CREATE_HOTKEY in controller.hotkeys.registered)
