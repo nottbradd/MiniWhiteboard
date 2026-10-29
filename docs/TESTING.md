@@ -110,7 +110,8 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 - Open tray/menu bar → Settings → Hotkeys with a creation conflict present.
   Check every status against native registration. A conflict on default Windows
-  Shift+Win+W is permitted; it is not a successful positive gesture result.
+  Ctrl+Win+Shift+W must be reported accurately; an unavailable shortcut is not a
+  successful positive gesture result.
 - Record and manually select different modifiers and trigger keys for each action.
   Recording must not create, capture or hide. Check modifier-only/unsupported
   input, duplicate chords, failed OS registration, rollback and its status.
@@ -128,7 +129,7 @@ still needs the checks below. Capture can request Screen Recording permission.
 
 ### Creation and cancellation
 
-- Windows V1.3.4 defaults to **Shift+Win+W/Q**; Mac shortcuts and Windows Hide All choices
+- The Windows V1.3.4 hotkey patch defaults to **Ctrl+Win+Shift+W/Q**; Mac shortcuts and Windows Hide All choices
   are unchanged. Test left/right modifiers, all release orders, Start/menu focus
   after completion/cancellation and ordinary modifier use outside a gesture.
 - From an ordinary foreground application, hold the configured creation shortcut, move and

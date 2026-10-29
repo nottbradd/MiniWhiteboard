@@ -34,7 +34,8 @@ class ShortcutPolicy:
         return tuple((title, self.format_help(body)) for title, body in HELP_SECTIONS)
 
     def format_help(self, text):
-        labels = {'Shift+Win+W': 'W', 'Shift+Win+Q': 'S',
+        labels = {'Ctrl+Win+Shift+W': 'W', 'Ctrl+Win+Shift+Q': 'S',
+                  'Shift+Win+W': 'W', 'Shift+Win+Q': 'S',
                   'Win+Alt+Shift+W': 'W', 'Win+Alt+Shift+Q': 'S',
                   **{prefix + key: key for prefix in ('Ctrl+Alt+', 'Win+Alt+')
                      for key in ('W', 'S', 'H')}}

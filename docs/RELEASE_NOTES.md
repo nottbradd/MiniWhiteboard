@@ -2,6 +2,20 @@
 
 ## V1.3.4
 
+### Hotkey patch — 29 October 2026
+
+- Changes Windows defaults to **Ctrl+Win+Shift+W** (whiteboard) and
+  **Ctrl+Win+Shift+Q** (capture). Hold → move → release is unchanged.
+- Keeps version **1.3.4**, Mac shortcuts and saved custom choices. To adopt the
+  new pair with saved preferences, choose **Settings → Hotkeys → Reset Defaults → Apply**.
+- Windows downloads labelled **HotkeyPatch** contain the change. Original release
+  files remain available; the Mac Universal2 Preview download is unchanged.
+
+Local desktop checks for this patch are **NOT RUN**, as requested. The existing
+sign-in waiver, signing information and platform-testing limits still apply.
+
+### Original V1.3.4 release
+
 Published [29 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4).
 Windows installer recommended; portable ZIP also available. Mac remains
 **Universal2 Preview**, macOS 14+.

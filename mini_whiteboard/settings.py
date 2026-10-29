@@ -48,8 +48,8 @@ TOOL_KEYS = {"D": "Draw", "T": "Text", "S": "Shape", "A": "Select", "V": "Select
 # Sections are shared by the responsive reference and the plain help export.
 HELP_SECTIONS = (
     ('Create & windows',
-     'Shift+Win+W — hold at the first corner → move → release to place.<br>'
-     'Shift+Win+Q — hold → move → release for a screenshot board. Esc cancels.<br>'
+     'Ctrl+Win+Shift+W — hold at the first corner → move → release to place.<br>'
+     'Ctrl+Win+Shift+Q — hold → move → release for a screenshot board. Esc cancels.<br>'
      'Ctrl+Alt+H — Hide All / Restore All without taking focus.<br>'
      'Change global shortcuts or resolve conflicts in tray → Settings → Hotkeys.<br>'
      'Drag the empty top edge to move; edges/corners resize.<br>'

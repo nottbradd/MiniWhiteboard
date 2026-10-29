@@ -7,8 +7,8 @@ Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots without a permanent
 toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.4 is available.** It adds editable global hotkeys, simpler Windows defaults and
-verified installer replacement with obsolete-file cleanup. Windows is the stable release; Mac remains a **Universal2 Preview**.
+**V1.3.4 hotkey patch is available.** Windows defaults are now **Ctrl+Win+Shift+W/Q**.
+The version remains 1.3.4. Windows is the stable release; Mac remains a **Universal2 Preview**.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
@@ -16,14 +16,18 @@ verified installer replacement with obsolete-file cleanup. Windows is the stable
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/WinMiniWhiteboardV1.3.4.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
+| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/WinMiniWhiteboardV1.3.4-HotkeyPatch.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
 | [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MacMiniWhiteboardV1.3.4-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
 
 Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
 describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4)
 accompany the downloads. [Earlier releases](https://github.com/nottbradd/MiniWhiteboard/releases)
 remain available.
+
+The Windows files labelled **HotkeyPatch** include the new defaults. Existing saved
+hotkeys stay as chosen; use **Settings → Hotkeys → Reset Defaults → Apply** to
+switch to the new pair. The original V1.3.4 files remain available on the release.
 
 Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
 For a trusted Mac download blocked by Gatekeeper, follow
@@ -78,7 +82,7 @@ The demo uses the app controller and renderer on a controlled desktop.
 
 ## Place a board or screenshot
 
-1. Point at the first corner and hold **Shift+Win+W** on Windows or
+1. Point at the first corner and hold **Ctrl+Win+Shift+W** on Windows or
    **Control+Option+W** on Mac.
 2. Keep holding and move to the opposite corner. A temporary outline previews the rectangle.
 3. Release the trigger key **or any required modifier** to create a focused board.
@@ -93,16 +97,14 @@ Escape or the tray/menu cancellation clears a preview. Held repeats cannot
 create more boards. Screen capture may request Screen Recording permission on
 Mac; a denied or failed capture creates no board.
 
-Windows screenshot creation defaults to **Shift+Win+Q**. Both left/right modifier
+Windows screenshot creation defaults to **Ctrl+Win+Shift+Q**. Both left/right modifier
 keys work. Open **tray → Settings → Hotkeys** to record a chord or select modifiers
 and a key manually. Create, capture and Hide All can use different chords. Apply
 checks duplicates and OS registration before saving; Cancel keeps the previous
 configuration. Reset Defaults changes the editor until you choose Apply.
 
 If a shortcut is already owned, its tray entry says **unavailable** and opens
-Hotkeys settings. Other actions remain registered. The default Shift+Win+W was
-unavailable on the Windows test PC (error 1409); custom blank-board creation and
-the default capture shortcut were tested separately. Select the explicit
+Hotkeys settings. Other actions remain registered. Select the explicit
 **Win+Alt+Shift+W/Q compatibility preset**, or choose another available chord.
 The app never takes over another owner's shortcut or silently changes defaults.
 Global actions pause while Hotkeys settings is open. Explicit choices survive
@@ -112,15 +114,10 @@ Escape combination is unavailable, the app reports it and offers tray-menu
 cancellation; choose a different chord for keyboard cancellation.
 
 <details>
-<summary>Hotkey settings and conflict recovery</summary>
+<summary>Hotkey settings</summary>
 
-The Windows test PC reports the requested default creation shortcut as unavailable.
-The dialog remains accessible, and the other registered actions are preserved.
-
-![Default shortcut conflict shown in Hotkeys settings](docs/media/hotkeys-conflict.png)
-
-After recording or selecting available replacements and choosing Apply, all three
-actions work. Opening Settings pauses them while the configuration is edited.
+Record or select each shortcut, then choose Apply. Opening Settings pauses global
+actions while the configuration is edited. This example shows custom bindings.
 
 ![Custom creation, capture and Hide All shortcuts](docs/media/hotkeys-settings.png)
 

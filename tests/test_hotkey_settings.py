@@ -52,6 +52,10 @@ class ConfigurationTests(QtCase):
             self.assertEqual(again.hotkey_configuration(), CUSTOM)
             self.assertEqual(again.hotkey_configuration(True), defaults(True, 'alternate'))
             self.assertEqual(again.windows_hide, 'shift')
+            old_defaults = HotkeyConfig(Chord({'shift', 'meta'}, 'W'),
+                                       Chord({'shift', 'meta'}, 'Q'), defaults(hide='shift').hide)
+            prefs.set_hotkey_configuration(old_defaults)
+            self.assertEqual(SnapPreferences(settings=settings).hotkey_configuration(), old_defaults)
 
     def test_invalid_saved_data_keeps_settings_accessible(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -112,7 +116,7 @@ class WindowsConfigurationTests(QtCase):
 
     def test_swap_registration_and_per_action_modifiers_and_keys(self):
         self.keys.apply_configuration(replace(defaults(), create=defaults().capture, capture=defaults().create))
-        self.assertEqual(self.owned[CREATE_HOTKEY], (12, ord('Q')))
+        self.assertEqual(self.owned[CREATE_HOTKEY], (14, ord('Q')))
         self.keys.apply_configuration(CUSTOM)
         self.assertEqual(self.owned, {CREATE_HOTKEY: (6, 0x77), CAPTURE_HOTKEY: (9, ord('J')), HIDE_HOTKEY: (3, ord('K'))})
         self.down = {0xA2, 0xA0, 0x77, ord('J')}
@@ -132,7 +136,7 @@ class WindowsConfigurationTests(QtCase):
         self.assertEqual(self.keys.registered, set(ACTIONS))
 
     def test_unrecoverable_rollback_is_reported_not_marked_active(self):
-        self.conflicts.update(((9, ord('J')), (12, ord('W'))))
+        self.conflicts.update(((9, ord('J')), (14, ord('W'))))
         with self.assertRaisesRegex(OSError, 'Could not restore: Create whiteboard'):
             self.keys.apply_configuration(CUSTOM)
         self.assertNotIn(CREATE_HOTKEY, self.keys.registered)
@@ -190,7 +194,7 @@ class WindowsConfigurationTests(QtCase):
     def controller(self, conflict=False):
         self.keys.close()
         if conflict:
-            self.conflicts.add((12, ord('W')))
+            self.conflicts.add((14, ord('W')))
         platform = fake_platform()
         platform.shortcuts = ShortcutPolicy()
         platform.hotkey_factory = lambda app, preset: native.NativeHotkeys(app)

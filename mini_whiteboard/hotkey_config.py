@@ -30,7 +30,7 @@ class Chord:
     def label(self, mac=False):
         names = {'ctrl': 'Control' if mac else 'Ctrl', 'alt': 'Option' if mac else 'Alt',
                  'shift': 'Shift', 'meta': 'Command' if mac else 'Win'}
-        order = ('ctrl', 'meta', 'alt', 'shift') if mac else ('ctrl', 'alt', 'shift', 'meta')
+        order = ('ctrl', 'meta', 'alt', 'shift')
         return '+'.join([names[m] for m in order if m in self.modifiers] + [self.key])
 
     @property
@@ -93,7 +93,7 @@ class HotkeyConfig:
 
 
 def defaults(mac=False, preset='default', hide='default'):
-    creation = frozenset(('meta', 'alt', 'shift') if preset == 'alternate' else ('ctrl', 'alt')) if mac else frozenset(('shift', 'meta'))
+    creation = frozenset(('meta', 'alt', 'shift') if preset == 'alternate' else ('ctrl', 'alt')) if mac else frozenset(('ctrl', 'meta', 'shift'))
     hiding = creation if mac else frozenset(('ctrl', 'alt', 'shift') if hide == 'shift' else ('ctrl', 'alt'))
     return HotkeyConfig(Chord(creation, 'W'), Chord(creation, 'S' if mac else 'Q'), Chord(hiding, 'H'))
 
