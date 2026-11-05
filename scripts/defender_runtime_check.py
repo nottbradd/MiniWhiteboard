@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--downloads', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--package', choices=('all', 'installer', 'portable'), default='all')
     args = parser.parse_args()
     args.output.mkdir(exist_ok=True, parents=True)
     report = {'purpose': 'Original published-package investigation, not final release acceptance',
@@ -93,15 +94,16 @@ def main():
                 result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=300,
                                         creationflags=subprocess.CREATE_NO_WINDOW)
             rows_path = destination / 'checks.json'
-            rows = json.loads(rows_path.read_text()) if rows_path.is_file() else []
+            document = json.loads(rows_path.read_text()) if rows_path.is_file() else []
+            rows = document.get('checks', []) if isinstance(document, dict) else document
             report['native_suites'].append({'package': label, 'module': module, 'profile': suffix,
                                            'exit_code': result.returncode, 'reported_checks': len(rows)})
             check(label + ': ' + suffix + ' native checks completed', result.returncode == 0 and bool(rows), len(rows))
 
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
 
-    def setup(label):
-        result = subprocess.run([str(installer), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
+    def setup(label, package=installer):
+        result = subprocess.run([str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
                                  '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
                                 timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
         return result.returncode
@@ -136,18 +138,29 @@ def main():
     settings = QSettings('MiniWhiteboard', 'MiniWhiteboard')
     settings_snapshot = {key: settings.value(key) for key in settings.allKeys()}
     try:
-        payload(portable, 'Portable before launch', exact=True)
-        quiet_launch(portable, 'Portable')
-        native(portable, 'portable')
-        payload(portable, 'Portable after execution', exact=True)
-        check('Portable did not install itself or opt into startup',
-              reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None)
+        if args.package != 'installer':
+            payload(portable, 'Portable before launch', exact=True)
+            quiet_launch(portable, 'Portable')
+            native(portable, 'portable')
+            payload(portable, 'Portable after execution', exact=True)
+            check('Portable did not install itself or opt into startup',
+                  reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None)
+            if args.package == 'portable':
+                report['result'] = 'PASS for the listed original portable-package checks only'
+                return
         check('Exact published installer completes a fresh silent installation', setup('fresh-install') == 0)
         installed = True
         payload(target, 'Installed before launch')
-        native(target, 'installed')
         quiet_launch(target, 'Installed')
         payload(target, 'Installed after execution')
+        check('Fresh installation uninstalls normally', uninstall('fresh-uninstall') == 0)
+        installed = False
+
+        predecessor = args.downloads / 'MiniWhiteboard-1.3.4-Setup.exe'
+        check('Predecessor hash matches the preserved original V1.3.4 installer', digest(predecessor) ==
+              '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222')
+        check('Original V1.3.4 installs before upgrade', setup('predecessor-install', predecessor) == 0)
+        installed = True
 
         configuration = HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'), defaults().hide)
         settings.setValue('shortcuts/custom_windows', configuration.to_json())
@@ -160,13 +173,16 @@ def main():
         with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, APPROVAL_KEY, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.SetValueEx(handle, VALUE_NAME, 0, winreg.REG_BINARY, b'\x03' + b'\x00' * 11)
         approval = reg(APPROVAL_KEY, VALUE_NAME)
-        check('Same-version reinstall completes', setup('repeat-install') == 0)
+        check('Upgrade from original V1.3.4 to HotkeyPatch completes', setup('upgrade-install') == 0)
         settings.sync()
-        check('Reinstall preserves custom hotkeys, appearance and disabled startup choice',
+        check('Upgrade preserves custom hotkeys, appearance and disabled startup choice',
               settings.value('shortcuts/custom_windows') == configuration.to_json()
               and settings.value('appearance/theme') == 'Glass'
               and reg(RUN_KEY, VALUE_NAME) == login.command and reg(APPROVAL_KEY, VALUE_NAME) == approval)
+        payload(target, 'Installed after upgrade')
+        check('Same-version repeat install completes', setup('repeat-install') == 0)
         payload(target, 'Installed after repeat setup')
+        native(target, 'installed')
         check('Normal silent uninstall completes', uninstall('normal-uninstall') == 0)
         installed = False
         check('Uninstall removes owned app files, entry and startup registrations',
@@ -174,7 +190,6 @@ def main():
               and reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None)
         check('Uninstall preserves user preferences', settings.value('shortcuts/custom_windows') == configuration.to_json())
         report['result'] = 'PASS for the listed original-package checks only'
-        report['not_run'].append('Upgrade from a preceding version; repeat-install is not that check')
     except Exception as error:
         report['result'] = 'FAILED'; report['error'] = str(error)
         raise

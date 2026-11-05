@@ -1,6 +1,6 @@
 # Investigation of fixed, already-public bytes. This is not release acceptance.
 # Never run on a developer's desktop or a self-hosted runner.
-param([switch]$Exercise)
+param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all')
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'This script requires a disposable GitHub-hosted Windows runner.'
@@ -16,6 +16,7 @@ $report = [ordered]@{
     download_method = 'Invoke-WebRequest, not a browser; no origin marker added or removed'
     extraction_method = 'Expand-Archive, not Explorer'
     runtime = 'NOT RUN'
+    package = $Package
     snapshots = @()
     files = @()
     scans = @()
@@ -134,6 +135,8 @@ try {
         }
     } while ($true)
     Require-Protection (Snapshot 'enabled-updated')
+    $report.protection_ready_utc = (Get-Date).ToUniversalTime().ToString('o')
+    Save-Json @(Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId,CreationDate,ExecutablePath) 'processes-before-download.json'
     $script:scanner = (Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" |
         Sort-Object FullName -Descending | Select-Object -First 1).FullName
     if (-not $script:scanner) { $script:scanner = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" }
@@ -178,8 +181,16 @@ try {
     })
     Save-Json $inventory 'extracted-files.json'
     if ($Exercise) {
+        # Predecessor is inspected only for the independent installer job.
+        if ($Package -ne 'portable') {
+            $previousPath = Join-Path $downloadRoot 'MiniWhiteboard-1.3.4-Setup.exe'
+            Invoke-WebRequest -Uri 'https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-Setup.exe' -OutFile $previousPath
+            $previous = Record-File $previousPath 'predecessor-download'
+            if ($previous.sha256 -ne '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222') { throw 'Predecessor identity mismatch.' }
+            Scan $previousPath 'predecessor'
+        }
         Require-Protection (Snapshot 'before-runtime')
-        & python -m scripts.defender_runtime_check --downloads $downloadRoot --output $evidenceRoot `
+        & python -m scripts.defender_runtime_check --downloads $downloadRoot --output $evidenceRoot --package $Package `
             *> (Join-Path $evidenceRoot 'runtime.txt')
         $report.runtime_exit_code = $LASTEXITCODE
         Require-Protection (Snapshot 'after-runtime')
@@ -195,8 +206,11 @@ try {
 } finally {
     try { $null = Snapshot 'end' } catch { $report.final_snapshot_error = $_.Exception.Message }
     try {
-        Save-Json @(Get-MpThreat) 'threats.json'
-        Save-Json @(Get-MpThreatDetection) 'detections.json'
+        Save-Json @(Get-MpThreat | Select-Object ThreatID,ThreatName,CategoryID,SeverityID,DidThreatExecute,IsActive,Resources) 'threats.json'
+        Save-Json @(Get-MpThreatDetection | Select-Object ThreatID,DetectionID,InitialDetectionTime,LastThreatStatusChangeTime,
+            RemediationTime,ProcessName,Resources,ActionSuccess,CleaningActionID,ThreatStatusID,ThreatStatusErrorCode,
+            CurrentThreatExecutionStatusID,DetectionSourceTypeID,AMProductVersion) 'detections.json'
+        Save-Json @(Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId,CreationDate,ExecutablePath) 'processes-after-runtime.json'
     } catch { $report.threat_history_error = $_.Exception.Message }
     try {
         $events = @(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational';StartTime=$started} -ErrorAction SilentlyContinue)
