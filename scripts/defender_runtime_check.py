@@ -29,7 +29,12 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--package', choices=('all', 'installer', 'portable'), default='all')
     parser.add_argument('--client-gui', action='store_true')
+    parser.add_argument('--candidate-identity', type=Path)
     args = parser.parse_args()
+    candidate = None
+    if args.candidate_identity:
+        from scripts.candidate_identity import read
+        candidate = read(args.candidate_identity)
     args.output.mkdir(exist_ok=True, parents=True)
     report = {'purpose': 'Original published-package investigation, not final release acceptance',
               'checks': [], 'native_suites': [], 'not_run': [
@@ -39,6 +44,9 @@ def main():
                   'Automatic Windows sign-in',
                   'Clean machine with development tools uninstalled']}
     output = args.output / 'runtime.json'
+    if candidate:
+        report['purpose'] = 'Unpublished candidate on a hosted Server VM; not Windows client acceptance'
+        report['candidate_identity'] = candidate
 
     def save():
         output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -78,13 +86,16 @@ def main():
     portable = args.downloads / 'portable' / 'Mini Whiteboard'
     installer = args.downloads / 'MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe'
     exe_hash = 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
-    check('Installer hash is the published sample', digest(installer) ==
-          '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
+    installer_hash = '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b'
+    if candidate:
+        installer = args.downloads/candidate['assets'][0]['name']
+        installer_hash, exe_hash = candidate['assets'][0]['sha256'], candidate['exe_sha256']
+    check('Installer matches the recorded investigation identity', digest(installer) == installer_hash)
     expected = read_manifest((portable / 'MiniWhiteboard.payload').read_text(encoding='utf-8'))
 
     def payload(directory, label, exact=False):
-        check(label + ': executable is the published sample', digest(directory / 'Mini Whiteboard.exe') == exe_hash)
-        check(label + ': all 200 intended runtime files match the portable archive',
+        check(label + ': executable matches the recorded investigation identity', digest(directory / 'Mini Whiteboard.exe') == exe_hash)
+        check(label + f': all {len(expected)} intended runtime files match the portable archive',
               all((directory / name).is_file() and digest(directory / name) == value for name, value in expected.items()))
         check(label + ': payload manifest is identical',
               (directory / 'MiniWhiteboard.payload').read_bytes() == (portable / 'MiniWhiteboard.payload').read_bytes())
@@ -187,9 +198,9 @@ def main():
                   reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None)
             check('All requested portable native suites passed', native_passed)
             if args.package == 'portable':
-                report['result'] = 'PASS for the listed original portable-package checks only'
+                report['result'] = 'PASS for the listed portable-package checks only'
                 return
-        check('Exact published installer completes a fresh silent installation', setup('fresh-install') == 0)
+        check('Exact recorded installer completes a fresh silent installation', setup('fresh-install') == 0)
         installed = True
         payload(target, 'Installed before launch')
         quiet_launch(target, 'Installed')
@@ -214,7 +225,7 @@ def main():
         with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, APPROVAL_KEY, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.SetValueEx(handle, VALUE_NAME, 0, winreg.REG_BINARY, b'\x03' + b'\x00' * 11)
         approval = reg(APPROVAL_KEY, VALUE_NAME)
-        check('Upgrade from original V1.3.4 to HotkeyPatch completes', setup('upgrade-install') == 0)
+        check('Upgrade from original V1.3.4 to the investigated package completes', setup('upgrade-install') == 0)
         settings.sync()
         check('Upgrade preserves custom hotkeys, appearance and disabled startup choice',
               settings.value('shortcuts/custom_windows') == configuration.to_json()
@@ -232,7 +243,7 @@ def main():
               and reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None)
         check('Uninstall preserves user preferences', settings.value('shortcuts/custom_windows') == configuration.to_json())
         check('All requested installed native suites passed', native_passed)
-        report['result'] = 'PASS for the listed original-package checks only'
+        report['result'] = 'PASS for the listed package checks only'
     except Exception as error:
         report['result'] = 'FAILED'; report['error'] = str(error)
         raise

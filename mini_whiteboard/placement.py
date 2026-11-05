@@ -155,7 +155,7 @@ class PlacementController(QObject):
             status, rect = self.state.release(point, scale)
             self.cancel()
             if status == "too_small":
-                if rect.width and rect.height:
+                if (rect.width and rect.height) or self.platform.name != 'windows':
                     self.message.emit("Selection cancelled. Choose at least 160 × 100 logical pixels.")
                 return
             self.confirmed.emit(rect)

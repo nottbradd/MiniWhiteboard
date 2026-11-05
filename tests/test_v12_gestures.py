@@ -85,6 +85,7 @@ class HoldGestureTests(QtCase):
         self.assertEqual(self.capture.pending_rect, Rect(180, 220, 360, 220))
 
     def test_zero_size_cancel_is_silent_but_nonzero_undersize_explains_limit(self):
+        self.platform.name = 'windows'
         self.placement.message.connect(self.messages.append)
         for identifier in (W, S):
             self.begin(identifier, (180, 220))

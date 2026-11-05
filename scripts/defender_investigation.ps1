@@ -1,7 +1,8 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
       [switch]$ClientPreflight,
-      [ValidateSet('standard','probe-smoke','reduce','source','notify','stale','pending','source-pending','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
+      [string]$CandidateIdentity,
+      [ValidateSet('standard','probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
       [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight')][string]$EvidenceName='defender-investigation',
       [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
 $ErrorActionPreference = 'Stop'
@@ -10,6 +11,16 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
 }
 if ($ReuseSamples -and $BrowserExplorer) { throw 'Browser acceptance cannot reuse a programmatic download.' }
 if ($ClientPreflight -and (-not $BrowserExplorer -or $Exercise)) { throw 'Client preflight uses only a harmless ZIP, without application execution.' }
+if ($CandidateIdentity -and ($BrowserExplorer -or $ClientPreflight)) { throw 'Candidate artifact checks are not browser acceptance.' }
+$candidate=$null
+$expectedExe='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
+if ($CandidateIdentity) {
+    $CandidateIdentity=(Resolve-Path -LiteralPath $CandidateIdentity).Path
+    & python -m scripts.candidate_identity --verify $CandidateIdentity
+    if ($LASTEXITCODE -ne 0) { throw 'Candidate identity validation failed.' }
+    $candidate=Get-Content -LiteralPath $CandidateIdentity -Raw | ConvertFrom-Json -AsHashtable
+    $expectedExe=$candidate.exe_sha256
+}
 $evidenceRoot = Join-Path $env:GITHUB_WORKSPACE "verification/$EvidenceName"
 New-Item -ItemType Directory -Path $evidenceRoot -ErrorAction Stop | Out-Null
 $operationsRoot = Join-Path $evidenceRoot 'operations'
@@ -25,6 +36,11 @@ $report = [ordered]@{
     extraction_method='Expand-Archive, not Explorer'; runtime='NOT RUN'; package=$Package
     operation_budget_minutes=$WorkBudgetMinutes; reused_samples=$ReuseSamples.IsPresent
     snapshots=@(); files=@(); scans=@(); result='BLOCKED'
+}
+if ($candidate) {
+    $report.purpose='Unpublished candidate verification on hosted Server; Windows client acceptance NOT RUN'
+    $report.download_method='Copied unchanged build artifacts, not a browser; no origin marker added or removed'
+    $report.candidate_identity=$candidate
 }
 if ($BrowserExplorer) {
     $report.download_method='Primary package: visible Edge browser; reference payload/predecessor: Invoke-WebRequest. See browser evidence.'
@@ -274,13 +290,17 @@ try {
         @{name='MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe';bytes=27476405;sha256='29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b'},
         @{name='WinMiniWhiteboardV1.3.4-HotkeyPatch.zip';bytes=38075984;sha256='5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89'}
     )
+    if ($candidate) { $assets=$candidate.assets }
     foreach ($asset in $assets) {
-        $asset.url='https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'+$asset.name
+        if (-not $candidate) { $asset.url='https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'+$asset.name }
+        else { $asset.source='Unpublished build artifact: '+$asset.name }
         $path=Join-Path $downloadRoot $asset.name
         $primary=($Package -eq 'installer' -and $asset.name.EndsWith('.exe')) -or ($Package -eq 'portable' -and $asset.name.EndsWith('.zip'))
         if ($ReuseSamples) {
             # Every reused file is checked against the fixed public hash and
             # scanned again below. No download-origin metadata is changed.
+        } elseif ($candidate) {
+            Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $CandidateIdentity) $asset.name) -Destination $path
         } elseif ($BrowserExplorer -and $primary) {
             $null=Invoke-Program "browser-download-$Package" @((Get-Command python).Source,'-m','scripts.client_download_check',
                 'download','--path',$path,'--destination',$downloadRoot,'--url',$asset.url,
@@ -308,10 +328,10 @@ try {
     }
     $exe=Join-Path $extracted 'Mini Whiteboard\Mini Whiteboard.exe'
     $file=Record-File $exe 'after-extraction'
-    if ($file.sha256 -ne 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716') { throw 'Extracted executable missing or different.' }
+    if ($file.sha256 -ne $expectedExe) { throw 'Extracted executable missing or different.' }
     Scan $extracted 'portable-extracted'
     $file=Record-File $exe 'after-extracted-scan'
-    if ($file.sha256 -ne 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716') { throw 'Extracted executable missing or changed after scan.' }
+    if ($file.sha256 -ne $expectedExe) { throw 'Extracted executable missing or changed after scan.' }
     $inventory=Probe 'inventory-extracted' {
         @{files=@(Get-ChildItem -LiteralPath $task.root -Recurse -File | ForEach-Object {
             @{path=$_.FullName.Substring($task.root.Length+1);bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -341,12 +361,13 @@ try {
                 '--executable',$exe,'--output',(Join-Path $evidenceRoot 'timing'),'--mode',$Diagnostic)
         }
         if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
+        if ($CandidateIdentity) { $runtimeCommand+=@('--candidate-identity',$CandidateIdentity) }
         $runtimeLimit=if ($Diagnostic -like '*-full') { 900 } else { 600 }
         $runtime=Invoke-Program "runtime-$Package" $runtimeCommand $runtimeLimit -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status
         Require-Protection (Snapshot 'after-runtime')
         if ($runtime.status -ne 'PASS') { throw "Exact-package runtime investigation $($runtime.status); see operation output." }
-        $report.runtime="Completed scripted $Package checks of the original published executable; see runtime.json"
+        $report.runtime="Completed scripted $Package checks of the recorded executable; see runtime.json and timing/matrix.json"
         Scan $downloadRoot 'after-runtime'
     }
     $report.result='SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'

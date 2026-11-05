@@ -153,7 +153,21 @@ def main():
         return [h for h in windows() if name(h).startswith('Whiteboard ')]
 
     def previews():
-        return [h for h in windows() if any(bounds(h) == m.rect for m in n.monitors())]
+        found=[]
+        rectangles=[m.rect for m in n.monitors()]
+        for hwnd in windows():
+            try:
+                rect=bounds(hwnd)
+            except RuntimeError:
+                # A normally closing preview can disappear after EnumWindows.
+                # Keep errors for a still-visible owned window observable.
+                if visible(hwnd) and owner(hwnd)==process.pid:
+                    raise
+                trace('window-disappeared-during-preview-sample', hwnd=hwnd)
+                continue
+            if rect in rectangles:
+                found.append(hwnd)
+        return found
 
     def observe_transition(label):
         observed = []

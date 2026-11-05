@@ -93,7 +93,7 @@ class ScreenshotController(QObject):
         if (not all(math.isfinite(v) for v in (rect.x, rect.y, rect.width, rect.height))
                 or rect.width < 4 or rect.height < 4):
             self.cancel()
-            if rect.width and rect.height:
+            if (rect.width and rect.height) or self.platform.name != 'windows':
                 self.message.emit("Selection cancelled. Choose a screenshot region at least 4 × 4 pixels.")
             return
         excluded = tuple(identifier for overlay in self.overlays

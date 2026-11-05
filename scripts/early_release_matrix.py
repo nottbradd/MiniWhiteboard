@@ -10,6 +10,10 @@ from scripts.observed_process import run
 
 
 def cases_for(mode):
+    if mode == 'motion':
+        return [dict(action=action,profile=profile,hold_ms=20,release_index=-1,
+                     prelude=prelude,post_release_motion=True)
+                for profile in ('default','custom') for action in ('W','Q') for prelude in (0,'full')]
     if mode == 'source-pending':
         return [dict(case, source=True) for case in cases_for('pending')]
     if mode == 'pending':
@@ -63,12 +67,16 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','source-pending','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
+    parser.add_argument('--candidate-identity',type=Path)
+    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     expected='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
+    if args.candidate_identity:
+        from scripts.candidate_identity import read
+        expected=read(args.candidate_identity)['exe_sha256']
     actual=hashlib.sha256(args.executable.read_bytes()).hexdigest()
-    if actual!=expected: raise RuntimeError('Only the fixed published executable is accepted by this investigation')
+    if actual!=expected: raise RuntimeError('Executable differs from the fixed investigation identity')
     results=[]
     path=args.output/'matrix.json'
     for index,case in enumerate(cases_for(args.mode)):
@@ -86,6 +94,7 @@ def main():
         results.append({'case':case,'operation':operation,'result':result.get('result'),
                         'primary':result.get('primary'),'next':result.get('next'),'error':result.get('error')})
         path.write_text(json.dumps({'mode':args.mode,'executable_sha256':actual,'source_only':all(r['case'].get('source') for r in results),
+                                    'unpublished_candidate':bool(args.candidate_identity),
                                     'cases':results},indent=2)+'\n',encoding='utf-8')
         if operation['status'] in ('TIMED OUT','ERROR'):
             break  # No blind retries or further input after a lost process boundary.
