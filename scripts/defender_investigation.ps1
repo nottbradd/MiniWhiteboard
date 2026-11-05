@@ -1,15 +1,18 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
-param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer)
+param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
+      [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime')][string]$EvidenceName='defender-investigation',
+      [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'This script requires a disposable GitHub-hosted Windows runner.'
 }
-$evidenceRoot = Join-Path $env:GITHUB_WORKSPACE 'verification/defender-investigation'
+if ($ReuseSamples -and $BrowserExplorer) { throw 'Browser acceptance cannot reuse a programmatic download.' }
+$evidenceRoot = Join-Path $env:GITHUB_WORKSPACE "verification/$EvidenceName"
 New-Item -ItemType Directory -Path $evidenceRoot -ErrorAction Stop | Out-Null
 $operationsRoot = Join-Path $evidenceRoot 'operations'
 New-Item -ItemType Directory -Path $operationsRoot | Out-Null
 $started = Get-Date
-$workDeadline = $started.AddMinutes(18)
+$workDeadline = $started.AddMinutes($WorkBudgetMinutes)
 $collecting = $false
 $operationNumber = 0
 $report = [ordered]@{
@@ -17,7 +20,8 @@ $report = [ordered]@{
     runner_image=$env:ImageVersion; purpose='Original published-file investigation; no release acceptance claim'
     download_method='Invoke-WebRequest, not a browser; no origin marker added or removed'
     extraction_method='Expand-Archive, not Explorer'; runtime='NOT RUN'; package=$Package
-    operation_budget_minutes=18; snapshots=@(); files=@(); scans=@(); result='BLOCKED'
+    operation_budget_minutes=$WorkBudgetMinutes; reused_samples=$ReuseSamples.IsPresent
+    snapshots=@(); files=@(); scans=@(); result='BLOCKED'
 }
 if ($BrowserExplorer) {
     $report.download_method='Primary package: visible Edge browser; reference payload/predecessor: Invoke-WebRequest. See browser evidence.'
@@ -233,7 +237,9 @@ try {
     $cloud=Invoke-Program 'cloud-connection' @($script:scanner,'-ValidateMapsConnection') 60
     $report.cloud_connection_exit_code=$cloud.exit_code
     $downloadRoot=Join-Path $env:USERPROFILE 'Downloads\MiniWhiteboard-investigation'
-    New-Item -ItemType Directory -Path $downloadRoot -ErrorAction Stop | Out-Null
+    if ($ReuseSamples) {
+        if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { throw 'Prepared sample directory is missing' }
+    } else { New-Item -ItemType Directory -Path $downloadRoot -ErrorAction Stop | Out-Null }
     if ($BrowserExplorer) {
         $null=Invoke-Program 'client-desktop-readiness' @((Get-Command python).Source,'-m','scripts.client_download_check',
             'prepare','--path',$downloadRoot,'--destination',$downloadRoot,
@@ -247,7 +253,10 @@ try {
         $asset.url='https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'+$asset.name
         $path=Join-Path $downloadRoot $asset.name
         $primary=($Package -eq 'installer' -and $asset.name.EndsWith('.exe')) -or ($Package -eq 'portable' -and $asset.name.EndsWith('.zip'))
-        if ($BrowserExplorer -and $primary) {
+        if ($ReuseSamples) {
+            # Every reused file is checked against the fixed public hash and
+            # scanned again below. No download-origin metadata is changed.
+        } elseif ($BrowserExplorer -and $primary) {
             $null=Invoke-Program "browser-download-$Package" @((Get-Command python).Source,'-m','scripts.client_download_check',
                 'download','--path',$path,'--destination',$downloadRoot,'--url',$asset.url,
                 '--output',(Join-Path $evidenceRoot "browser-$Package")) 180
@@ -260,7 +269,9 @@ try {
     }
     $report.assets=$assets
     $extracted=Join-Path $downloadRoot 'portable'
-    if ($BrowserExplorer -and $Package -eq 'portable') {
+    if ($ReuseSamples) {
+        if (-not (Test-Path -LiteralPath $extracted -PathType Container)) { throw 'Prepared extracted payload is missing' }
+    } elseif ($BrowserExplorer -and $Package -eq 'portable') {
         $null=Invoke-Program 'explorer-extraction' @((Get-Command python).Source,'-m','scripts.client_download_check',
             'extract','--path',(Join-Path $downloadRoot $assets[1].name),'--destination',$extracted,
             '--output',(Join-Path $evidenceRoot 'explorer')) 160

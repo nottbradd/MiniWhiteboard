@@ -22,7 +22,7 @@ jobs:
       matrix:
         package: [installer, portable]
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -36,18 +36,33 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Inspect the published V1.3.4 HotkeyPatch with active Defender
-        timeout-minutes: 24
+      - name: Prepare and scan the published samples with active Defender
+        timeout-minutes: 8
+        shell: pwsh
+        run: ./scripts/defender_investigation.ps1 -WorkBudgetMinutes 5
+      - name: Upload the pre-execution checkpoint
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: defender-pre-execution-${{ matrix.package }}-${{ github.run_id }}
+          path: verification/defender-investigation/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Inspect runtime using the same reverified published files
+        timeout-minutes: 16
         shell: pwsh
         env:
           INVESTIGATION_PACKAGE: ${{ matrix.package }}
-        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE
+        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE -ReuseSamples -EvidenceName defender-runtime -WorkBudgetMinutes 12
       - name: Preserve security observations even when blocked
         if: always()
-        timeout-minutes: 4
+        timeout-minutes: 3
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: defender-investigation-${{ matrix.package }}-${{ github.run_id }}
-          path: verification/defender-investigation/
+          path: |
+            verification/defender-investigation/
+            verification/defender-runtime/
           if-no-files-found: error
           retention-days: 90
