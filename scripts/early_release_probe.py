@@ -42,6 +42,9 @@ def exercise(c, case):
     monitor_rects = [m.rect for m in n.monitors()]
     pending_pixels=[]
     observation_cost=[]
+    expected_pattern=None
+    observed_keys=(0x5B,0x5C,0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,
+                   c['configuration'].create.windows_key,c['configuration'].capture.windows_key,27)
 
     def now():
         return (time.perf_counter_ns()-origin)/1e6
@@ -63,7 +66,7 @@ def exercise(c, case):
                'board_count': len(boards()), 'visible_preview': bool(previews()),
                'preparation_observed': any(w['preview_geometry'] for w in windows),
                'foreground': int(foreground() or 0), 'cursor': list(n.cursor_position()),
-               'held': [vk for vk in c['pressed'] if user.GetAsyncKeyState(vk) & 0x8000],
+               'held': [vk for vk in observed_keys if user.GetAsyncKeyState(vk) & 0x8000],
                'process_exit': process.poll()}
         report['events'].append(row)
         observation_cost.append((time.perf_counter_ns()-observation_started)/1e6)
@@ -166,8 +169,9 @@ def exercise(c, case):
                 return {'result':'NOT RUN: Escape chord conflict','scope':label}
             user.UnregisterHotKey(None,probe_id)
         c['configure_trace'](label)
-        c['focus']()
-        expected_pixels = n.capture_rect(Rect(180,220,360,220)) if spec['action']=='Q' and not zero and not cancel else None
+        # The reference was captured before the prelude. A capture/DwmFlush
+        # here would change the very compositor backlog being investigated.
+        expected_pixels = expected_pattern if spec['action']=='Q' and not zero and not cancel else None
         c['start'](chord,begin)
         started = now()
         snapshots = [observe(label+'-after-injection')]
@@ -223,6 +227,8 @@ def exercise(c, case):
         before_move = next(s for s in snapshots if s['event'].endswith('before-move'))
         prepared_before_move = any(s['preparation_observed'] and s['ms']<=before_move['ms'] for s in snapshots)
         clean = not final['visible_preview'] and not final['held'] and process.poll() is None
+        focus_events=list(c['foreground_events'])
+        clean = clean and not any(e['pid'] not in (process.pid,c['target_pid']) for e in focus_events)
         if not found: clean = clean and foreground()==target
         status=classify(cancelled=cancel,zero=zero,prepared_before_move=prepared_before_move,
                         count=len(found),exact=exact,focused=focused,clean=clean)
@@ -235,6 +241,7 @@ def exercise(c, case):
                 'preview_first_ms':visible_at,'preview_latency_ms':visible_at-started if visible_at else None,
                 'board_count':len(found),'exact_geometry':exact,'paper':vars(paper) if paper else None,
                 'focus_on_result':focused,'clean':clean,'completion_ms':completion['ms'] if completion else None,
+                'foreground_events':focus_events,
                 'acceptance':'externally observed preparation before movement' if prepared_before_move else 'not established by external observation'}
         if expected_pixels is not None and exact and focused:
             pending_pixels.append((result,found[0],expected_pixels,label))
@@ -267,6 +274,9 @@ def exercise(c, case):
             report['result']='NOT RUN: configured OS shortcut conflict'
             return 1
         save(); report['resources']=[resources('fresh')]
+        c['focus']()
+        expected_pattern=n.capture_rect(Rect(180,220,360,220))
+        report['reference_capture_before_prelude_ms']=now()
         prelude(); report['resources'].append(resources('after-prelude')); save()
         report['primary']=gesture(case,'primary'); save()
         # The next gesture is a separate control, without restarting or a warm-up.
@@ -275,13 +285,15 @@ def exercise(c, case):
         expected_count=report['primary'].get('board_count',0)+report['next'].get('board_count',0)
         report['late_callback_check']={'expected_boards':expected_count,'actual_boards':len(boards()),'preview_remaining':bool(previews())}
         late_clean=len(boards())==expected_count and not previews()
+        external=c['state']()
+        report['external_input_unchanged']=(external['text']==c['original'] and not external['menu_active'] and not external['menu_shows'])
         for item in pending_pixels: verify_pixels(*item)
         if boards(): c['close_boards']()
         report['closed_board_cleanup']=not boards() and not previews() and process.poll() is None
         report['resources'].append(resources('after-next'))
         statuses=[report['primary']['result'],report['next']['result']]
         report['result']='PASS' if all(s=='PASS' for s in statuses) else 'FAIL' if any(s.startswith('FAIL') for s in statuses) else 'UNRESOLVED'
-        if not late_clean or not report['closed_board_cleanup']: report['result']='FAIL'
+        if not late_clean or not report['closed_board_cleanup'] or not report['external_input_unchanged']: report['result']='FAIL'
         return 0 if report['result']=='PASS' else 1
     except Exception as error:
         report['error']=str(error)
