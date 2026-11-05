@@ -203,13 +203,27 @@ try {
         Set-MpPreference -DisableRealtimeMonitoring $false -DisableBehaviorMonitoring $false -DisableIOAVProtection $false -DisableArchiveScanning $false -DisableScriptScanning $false -DisableBlockAtFirstSeen $false -DisableAutoExclusions $true -MAPSReporting Advanced -SubmitSamplesConsent SendSafeSamples -PUAProtection Enabled
         @{completed=$true}
     } @{} 60
-    $null=Probe 'update-intelligence' { Update-MpSignature -UpdateSource MicrosoftUpdateServer; @{completed=$true} } @{} 120
+    try {
+        $null=Probe 'update-intelligence' { Update-MpSignature -UpdateSource MicrosoftUpdateServer; @{completed=$true} } @{} 120
+    } catch {
+        # An engine update can restart the service. Preserve the first error,
+        # then allow one update retry only after active protection is observed.
+        $report.initial_update_error=$_.Exception.Message
+        Save-Json $report 'report.json'
+    }
     $readyDeadline=(Get-Date).AddSeconds(90)
     do {
-        $ready=Snapshot 'waiting-for-protection'
-        try { Require-Protection $ready; break }
-        catch { if ((Get-Date) -ge $readyDeadline) { throw }; Start-Sleep -Seconds 5 }
+        try { $ready=Snapshot 'waiting-for-protection'; Require-Protection $ready; break }
+        catch {
+            $report.readiness_errors=@($report.readiness_errors)+@($_.Exception.Message)
+            Save-Json $report 'report.json'
+            if ((Get-Date) -ge $readyDeadline) { throw }
+            Start-Sleep -Seconds 5
+        }
     } while ($true)
+    if ($report.initial_update_error) {
+        $null=Probe 'retry-update-intelligence' { Update-MpSignature -UpdateSource MicrosoftUpdateServer; @{completed=$true} } @{} 120
+    }
     Require-Protection (Snapshot 'enabled-updated')
     $report.protection_ready_utc=(Get-Date).ToUniversalTime().ToString('o')
     Processes 'before-download'
@@ -220,6 +234,11 @@ try {
     $report.cloud_connection_exit_code=$cloud.exit_code
     $downloadRoot=Join-Path $env:USERPROFILE 'Downloads\MiniWhiteboard-investigation'
     New-Item -ItemType Directory -Path $downloadRoot -ErrorAction Stop | Out-Null
+    if ($BrowserExplorer) {
+        $null=Invoke-Program 'client-desktop-readiness' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'prepare','--path',$downloadRoot,'--destination',$downloadRoot,
+            '--output',(Join-Path $evidenceRoot 'client-desktop')) 60
+    }
     $assets=@(
         @{name='MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe';bytes=27476405;sha256='29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b'},
         @{name='WinMiniWhiteboardV1.3.4-HotkeyPatch.zip';bytes=38075984;sha256='5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89'}
@@ -312,8 +331,18 @@ try {
     try { Processes 'after-runtime' } catch { $report.process_history_error=$_.Exception.Message }
     try {
         $eventData=Probe 'collect-defender-events' {
-            @{events=@(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational';StartTime=[datetime]$task.start} -ErrorAction Stop |
-                ForEach-Object { @{utc=$_.TimeCreated.ToUniversalTime().ToString('o');id=$_.Id;level=$_.LevelDisplayName;message=$_.Message;xml=$_.ToXml()} })}
+            $logName='Microsoft-Windows-Windows Defender/Operational'
+            $log=Get-WinEvent -ListLog $logName -ErrorAction Stop
+            if (-not $log.IsEnabled) { throw 'Defender operational event log is disabled' }
+            try {
+                $records=@(Get-WinEvent -FilterHashtable @{LogName=$logName;StartTime=[datetime]$task.start} -ErrorAction Stop)
+            } catch {
+                if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw }
+                $records=@()
+            }
+            @{log_enabled=$true;events=@($records | ForEach-Object {
+                @{utc=$_.TimeCreated.ToUniversalTime().ToString('o');id=$_.Id;level=$_.LevelDisplayName;message=$_.Message;xml=$_.ToXml()}
+            })}
         } @{start=$started.ToUniversalTime().ToString('o')}
         $events=@($eventData.events)
         Save-Json @($events) 'defender-events.json'

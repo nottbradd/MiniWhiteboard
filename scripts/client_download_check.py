@@ -4,6 +4,7 @@ No WebDriver security switches, HTTP download fallback, archive library,
 download-marker changes, warning dismissal or application launch is used here.
 """
 import argparse
+import ctypes
 from datetime import datetime, timezone
 import json
 import os
@@ -16,7 +17,7 @@ def main():
     if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
         raise SystemExit('Requires a disposable GitHub-hosted runner.')
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=('download', 'extract'))
+    parser.add_argument('operation', choices=('prepare', 'download', 'extract'))
     parser.add_argument('--path', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
@@ -64,6 +65,29 @@ def main():
     browser = None
     try:
         save()
+        if args.operation == 'prepare':
+            evidence('client-initial-desktop')
+            # The hosted Windows 11 image can show a non-binding first-run
+            # privacy page. Decline optional telemetry in this disposable VM;
+            # never dismiss a sign-in, license, permission or security warning.
+            for window in desktop.windows(title='Microsoft account'):
+                labels = [c.window_text() for c in window.descendants()]
+                if 'Choose privacy settings for your device' not in labels:
+                    continue
+                for control in window.descendants(control_type='Button'):
+                    if control.window_text().startswith(('Get location-based experiences',
+                            'Send optional inking and typing diagnostic data',
+                            'Let Windows use info about your device')):
+                        before = control.window_text()
+                        control.invoke()
+                        wait_for(lambda: control.window_text() != before, 5, 'Privacy choice did not change')
+                evidence('client-optional-privacy-declined')
+                window.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button').invoke()
+                wait_for(lambda: not window.exists(timeout=.1) or not window.is_visible(), 20,
+                         'Privacy page did not close')
+            evidence('client-desktop-ready')
+            report['result'] = 'PASS for client desktop preparation only'
+            return
         if args.operation == 'download':
             if not args.url or not args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'):
                 raise ValueError('Only the recorded public release URL is allowed')
@@ -92,6 +116,10 @@ def main():
             window.set_focus()
             time.sleep(2)
             evidence('release-page')
+            foreground = ctypes.windll.user32.GetForegroundWindow
+            foreground.restype = ctypes.c_void_p
+            if foreground() != window.handle:
+                raise RuntimeError('Browser does not own foreground; no keys were sent')
             # The browser handles a URL entered through its real address bar.
             window.type_keys('^l')
             window.type_keys(args.url, with_spaces=True, pause=.001)
@@ -100,7 +128,9 @@ def main():
                 wait_for(lambda: args.path.is_file() and not list(args.destination.glob('*.crdownload')),
                          90, 'Browser download incomplete or blocked; no warning was bypassed')
             finally:
-                window.type_keys('^j')
+                window.set_focus()
+                if foreground() == window.handle:
+                    window.type_keys('^j')
                 time.sleep(1)
                 evidence('downloads')
             report['bytes'] = args.path.stat().st_size

@@ -83,6 +83,7 @@ def main():
     sample_timer = QTimer()
     sample_timer.setInterval(10)
     input_tag = 0x4D574442 if args.trace_transition else 0
+    wait_observer = None
 
     def trace(kind, **detail):
         if args.trace_transition:
@@ -175,6 +176,16 @@ def main():
         trace('assertion', **row)
         if not condition:
             save_trace()
+            if wait_observer is not None:
+                gui_threads = set()
+                @enum_type
+                def find_threads(hwnd, _):
+                    if owner(hwnd) == process.pid:
+                        gui_threads.add(pid_for(hwnd, None))
+                    return True
+                enum(find_threads, 0)
+                for tid in gui_threads:
+                    wait_observer.observe(tid)
             # Preserve the original failure and its timing. Later observations
             # diagnose a delayed preview without converting it into a pass.
             observations = []
@@ -304,6 +315,8 @@ def main():
                     str((args.output/'source-timing.jsonl').resolve())] if args.source_diagnostic else [str(executable)])
         process = subprocess.Popen(command, creationflags=subprocess.CREATE_NO_WINDOW)
         if args.trace_transition:
+            from .windows_wait_chain import WaitChainObserver
+            wait_observer = WaitChainObserver(trace)
             install_keyboard = n.bind(u, 'SetWindowsHookExW', W.HHOOK, C.c_int, keyboard_type, W.HINSTANCE, W.DWORD)
             keyboard_hook = install_keyboard(13, keyboard_seen, None, 0)
             window_hook = set_hook(0x8000, 0x8003, None, window_changed, process.pid, 0, 0)
@@ -425,6 +438,8 @@ def main():
             unhook(window_hook)
         if keyboard_hook:
             n.bind(u, 'UnhookWindowsHookEx', W.BOOL, W.HHOOK)(keyboard_hook)
+        if wait_observer is not None:
+            wait_observer.close()
         save_trace()
         for child in (process, target):
             if child is not None and child.poll() is None:
