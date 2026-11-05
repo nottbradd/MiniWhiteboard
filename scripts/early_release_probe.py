@@ -28,8 +28,9 @@ def exercise(c, case):
     from mini_whiteboard.geometry import Rect
     from mini_whiteboard.settings import SHADOW
     from mini_whiteboard.hotkey_config import ACTIONS
+    from mini_whiteboard import windows as n
 
-    output, process, n, user = c['args'].output, c['process'], c['n'], c['u']
+    output, process, user = c['args'].output, c['process'], c['u']
     key, boards, previews = c['key'], c['boards'], c['previews']
     foreground, target = c['foreground'], c['target_hwnd']
     report = {'case': case, 'functional_deadline_seconds': FUNCTIONAL_SECONDS,
@@ -40,6 +41,7 @@ def exercise(c, case):
     origin = time.perf_counter_ns()
     monitor_rects = [m.rect for m in n.monitors()]
     pending_pixels=[]
+    observation_cost=[]
 
     def now():
         return (time.perf_counter_ns()-origin)/1e6
@@ -48,6 +50,7 @@ def exercise(c, case):
         path.write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
 
     def observe(label):
+        observation_started=time.perf_counter_ns()
         windows = []
         for hwnd in c['windows'](include_hidden=True):
             try:
@@ -63,6 +66,7 @@ def exercise(c, case):
                'held': [vk for vk in c['pressed'] if user.GetAsyncKeyState(vk) & 0x8000],
                'process_exit': process.poll()}
         report['events'].append(row)
+        observation_cost.append((time.perf_counter_ns()-observation_started)/1e6)
         return row
 
     def wait_until(predicate, seconds=FUNCTIONAL_SECONDS):
@@ -283,4 +287,7 @@ def exercise(c, case):
         report['error']=str(error)
         raise
     finally:
+        report['observer_cost']={'samples':len(observation_cost),'total_ms':sum(observation_cost),
+            'maximum_sample_ms':max(observation_cost,default=0),
+            'limit':'Only this probe sampling is measured; keyboard/window hooks and source profiling also affect scheduling.'}
         save()

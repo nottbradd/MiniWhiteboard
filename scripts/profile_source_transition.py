@@ -4,6 +4,7 @@ The separate native-input driver still owns the input sequence and assertions.
 Only method names and timing are recorded; no text, captures or user input.
 """
 import argparse
+import gc
 import json
 import os
 from pathlib import Path
@@ -34,13 +35,27 @@ def main():
                    'HoldTracker.activate', 'HoldTracker.release', 'PlacementController.cancel',
                    'ScreenshotController.release', 'ScreenshotController.cancel',
                    'ScreenshotController.capture_pending', 'ScreenshotController.complete',
-                   'ScreenshotController.deliver', 'NativeHotkeys.enable_escape'}
+                   'ScreenshotController.deliver', 'NativeHotkeys.enable_escape',
+                   'WindowsDesktop.display_policy', 'WindowsDesktop.displays',
+                   'WindowsDesktop.set_window_rect', 'QtDesktop.configure_overlay',
+                   'PreviewOverlay.sync_material', 'BackdropHost.__init__', 'BackdropHost.close',
+                   'RoundedBackdrop.__init__', 'RoundedBackdrop.close', 'WindowsCapture.prepare',
+                   'WindowsCapture.capture_region'}
         active = {}
 
         def profile(frame, event, _arg):
+            method = frame.f_code.co_qualname
+            if event in ('c_call','c_return','c_exception') and method in tracked:
+                name = getattr(_arg,'__qualname__',getattr(_arg,'__name__','C call'))
+                key = (id(frame),name)
+                if event == 'c_call':
+                    active[key]=time.perf_counter_ns()
+                    record('c_call',method=method,callee=name)
+                elif (entered := active.pop(key,None)) is not None:
+                    record(event,method=method,callee=name,duration_ms=(time.perf_counter_ns()-entered)/1e6)
+                return
             if event not in ('call', 'return'):
                 return
-            method = frame.f_code.co_qualname
             key = id(frame)
             if event == 'return':
                 entered = active.pop(key, None)
@@ -66,11 +81,15 @@ def main():
                 detail={'owner':instance.session.owner,'anchor':str(getattr(instance,'anchor',None))}
             record('call', method=method, **detail)
 
+        def garbage_collection(phase, info):
+            record('gc-'+phase, **info)
+        gc.callbacks.append(garbage_collection)
         sys.setprofile(profile)
         try:
             return application_main()
         finally:
             sys.setprofile(None)
+            gc.callbacks.remove(garbage_collection)
 
 
 if __name__ == '__main__':
