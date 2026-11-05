@@ -1,6 +1,6 @@
 """Do not convert missing acceptance evidence or delayed cancellation into passes."""
 import unittest
-from scripts.early_release_probe import classify
+from scripts.early_release_probe import classify, capture_pixels_match
 
 
 class EarlyReleaseJudgementTests(unittest.TestCase):
@@ -26,3 +26,15 @@ class EarlyReleaseJudgementTests(unittest.TestCase):
     def test_correct_single_result_is_distinct_from_observed_acceptance(self):
         self.assertEqual(self.result(),'PASS')
         self.assertEqual(self.result(prepared_before_move=False),'PASS')
+
+    def test_capture_comparison_requires_original_pixels_and_clear_export_gutter(self):
+        from PySide6.QtGui import QImage, QPainter, QColor
+        from PySide6.QtCore import Qt
+        expected=QImage(12,10,QImage.Format.Format_RGBA8888);expected.fill(QColor('#3186cb'))
+        exported=QImage(16,14,QImage.Format.Format_RGBA8888);exported.fill(Qt.GlobalColor.transparent)
+        painter=QPainter(exported);painter.drawImage(2,2,expected);painter.end()
+        self.assertTrue(all(capture_pixels_match(expected,expected,exported).values()))
+        corrupted=expected.copy();corrupted.setPixelColor(0,0,QColor('red'))
+        self.assertFalse(capture_pixels_match(expected,corrupted,exported)['original_pixels_equal'])
+        exported.setPixelColor(0,0,QColor('red'))
+        self.assertFalse(capture_pixels_match(expected,expected,exported)['clipboard_transparent_gutter'])

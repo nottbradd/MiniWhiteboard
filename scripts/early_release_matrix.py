@@ -10,6 +10,13 @@ from scripts.observed_process import run
 
 
 def cases_for(mode):
+    if mode=='notify':
+        return [dict(action='Q',hold_ms=600,release_index=-1,prelude=n,zero_after_prelude=True,sample=s)
+                for n in (0,1,4) for s in range(2)]+[
+                dict(action='Q',hold_ms=600,release_index=-1,prelude='full',omit_terminal_zero=True,sample=s) for s in range(2)]
+    if mode=='stale':
+        return [dict(action='Q',hold_ms=20,release_index=-1,prelude=n,post_release_motion=True,source=source)
+                for n in (0,'full') for source in (False,True)]
     if mode == 'probe-smoke':
         return [dict(action='W',hold_ms=20,release_index=-1),
                 dict(action='Q',hold_ms=20,release_index=-1),
@@ -40,7 +47,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
+    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     expected='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'

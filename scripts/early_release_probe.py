@@ -12,6 +12,19 @@ import time
 FUNCTIONAL_SECONDS = 2.0
 
 
+def capture_pixels_match(expected, original, exported):
+    """Clipboard rendering intentionally adds a two-pixel transparent gutter."""
+    from PySide6.QtGui import QImage
+    rgba=QImage.Format.Format_RGBA8888
+    w,h=expected.width(),expected.height()
+    dimensions=exported.width()==w+4 and exported.height()==h+4
+    margin_clear=dimensions and all(exported.pixelColor(x,y).alpha()==0
+        for y in range(h+4) for x in range(w+4) if x<2 or x>=w+2 or y<2 or y>=h+2)
+    return {'original_pixels_equal':original.convertToFormat(rgba)==expected.convertToFormat(rgba),
+            'clipboard_dimensions_correct':dimensions,'clipboard_transparent_gutter':margin_clear,
+            'clipboard_content_equal':dimensions and exported.copy(2,2,w,h).convertToFormat(rgba)==expected.convertToFormat(rgba)}
+
+
 def classify(*, cancelled, zero, prepared_before_move, count, exact, focused, clean):
     if not clean or count > 1:
         return 'FAIL'
@@ -150,9 +163,15 @@ def exercise(c, case):
                 if len(boards()) != 1 and not wait_until(lambda: len(boards()) == 1):
                     raise RuntimeError('Prelude rapid gesture lost')
                 c['settled']('prelude rapid'); c['close_boards']()
-            c['start'](chord,(180,220)); QTest.qWait(40); c['drain']()
-            c['settled']('prelude zero area')
-            if boards() or previews(): raise RuntimeError('Prelude zero-area cancellation failed')
+            if not case.get('omit_terminal_zero'):
+                terminal_zero()
+
+    def terminal_zero():
+        binding=c['configuration'].create
+        chord=(*(c['modifier_keys'][m][0] for m in ('meta','ctrl','alt','shift') if m in binding.modifiers),binding.windows_key)
+        c['start'](chord,(180,220)); QTest.qWait(40); c['drain']()
+        c['settled']('prelude zero area')
+        if boards() or previews(): raise RuntimeError('Prelude zero-area cancellation failed')
 
     def gesture(spec, label):
         previous_boards=set(boards())
@@ -209,8 +228,13 @@ def exercise(c, case):
                 key(27); cancel=True
         completion = None
         until = time.monotonic()+FUNCTIONAL_SECONDS
+        motion_index=0
         while time.monotonic() < until and process.poll() is None:
             QTest.qWait(5)
+            if spec.get('post_release_motion'):
+                # Native pointer movement after release, with no further keys
+                # or clicks. This exposes a queued activation or late endpoint.
+                c['set_cursor'](*((700,500),(180,220))[motion_index%2]); motion_index+=1
             snapshot = observe(label+'-after-release')
             new_boards=set(boards())-previous_boards
             if new_boards and completion is None:
@@ -290,9 +314,22 @@ def exercise(c, case):
             image=c['app'].clipboard().image()
             expected_pixels.save(str(output/(label+'-expected.png')))
             if not image.isNull(): image.save(str(output/(label+'-clipboard.png')))
-            result['capture_pixels_equal']=image.convertToFormat(QImage.Format.Format_RGBA8888)==expected_pixels.convertToFormat(QImage.Format.Format_RGBA8888)
-            if image.isNull(): result['result']='UNRESOLVED: clipboard export unavailable after menu interaction'
-            elif not result['capture_pixels_equal']: result['result']='FAIL: captured clipboard pixels differ'
+            from mini_whiteboard.settings import CLIPBOARD_MIME
+            from mini_whiteboard.clipboard import decode
+            from mini_whiteboard.document import ImageObject
+            payload=bytes(c['app'].clipboard().mimeData().data(CLIPBOARD_MIME))
+            if image.isNull() or not payload:
+                result['result']='UNRESOLVED: clipboard export unavailable after menu interaction'
+                return
+            objects,_,_=decode(payload)
+            if len(objects)!=1 or not isinstance(objects[0],ImageObject):
+                result['result']='FAIL: capture clipboard did not contain one image'
+                return
+            original=QImage.fromData(objects[0].png)
+            original.save(str(output/(label+'-original.png')))
+            result['capture_pixel_checks']=capture_pixels_match(expected_pixels,original,image)
+            result['capture_pixels_equal']=all(result['capture_pixel_checks'].values())
+            if not result['capture_pixels_equal']: result['result']='FAIL: captured clipboard pixels differ'
 
     try:
         required={ACTIONS[0] if case['action']=='W' else ACTIONS[1]}
@@ -305,7 +342,9 @@ def exercise(c, case):
         expected_patterns['primary']=n.capture_rect(Rect(180,220,360,220))
         expected_patterns['next']=n.capture_rect(Rect(600,220,360,220))
         report['reference_capture_before_prelude_ms']=now()
-        prelude(); report['resources'].append(resources('after-prelude')); save()
+        prelude()
+        if case.get('zero_after_prelude'): terminal_zero()
+        report['resources'].append(resources('after-prelude')); save()
         report['primary']=gesture(case,'primary'); save()
         # The next gesture is a separate control, without restarting or a warm-up.
         report['next']=gesture({'action':case['action'],'hold_ms':120,'release_index':-1,
