@@ -91,6 +91,12 @@ def main():
                 evidence('client-optional-privacy-declined')
                 spec = desktop.window(handle=window.handle)
                 accept = spec.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button')
+                # CloudExperienceHost removes its UIA provider when this page
+                # closes. Observe the native handle instead of querying a stale
+                # provider, which can raise EVENT_E_ALL_SUBSCRIBERS_FAILED.
+                visible = ctypes.windll.user32.IsWindowVisible
+                visible.argtypes = [ctypes.c_void_p]
+                visible.restype = ctypes.c_bool
                 spec.set_focus()
                 foreground = ctypes.windll.user32.GetForegroundWindow
                 foreground.restype = ctypes.c_void_p
@@ -100,7 +106,7 @@ def main():
                 accept.click_input()
                 time.sleep(2)
                 evidence('client-privacy-after-click')
-                if spec.exists(timeout=.1) and window.is_visible():
+                if visible(window.handle):
                     # A normal keyboard activation provides a separate input
                     # observation. Never close the process or bypass the page.
                     accept.set_focus()
@@ -108,7 +114,7 @@ def main():
                         raise RuntimeError('Privacy confirmation lacks keyboard focus; no key sent')
                     accept.type_keys('{SPACE}')
                     evidence('client-privacy-after-space')
-                wait_for(lambda: not spec.exists(timeout=.1) or not window.is_visible(), 20,
+                wait_for(lambda: not visible(window.handle), 20,
                          'Privacy page did not close')
             evidence('client-desktop-ready')
             report['result'] = 'PASS for client desktop preparation only'
