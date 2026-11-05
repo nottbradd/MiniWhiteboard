@@ -35,7 +35,10 @@ def main():
     parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
     parser.add_argument('--trace-transition', action='store_true', help='Record native input/window timing without changing gesture assertions.')
+    parser.add_argument('--source-diagnostic', action='store_true', help='Hosted-VM source timing comparison; does not test the packaged executable.')
     args = parser.parse_args()
+    if args.source_diagnostic and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
+        parser.error('Source timing comparison requires a disposable hosted runner.')
     args.output.mkdir(parents=True, exist_ok=True)
     configuration = {'default': defaults(hide='shift'), 'compatibility': compatibility(defaults(hide='shift')),
                      'custom': HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'),
@@ -90,6 +93,7 @@ def main():
         if args.trace_transition:
             (args.output/'transition-trace.json').write_text(json.dumps({
                 'executable': str(executable), 'input_api': 'keybd_event',
+                'execution_kind': 'source diagnostic, not package acceptance' if args.source_diagnostic else 'unchanged executable',
                 'origin_unix_ns': trace_unix_ns,
                 'input_tag': input_tag, 'assertion_wait_ms': 120, 'events': trace_rows,
                 'limits': ['Keyboard hook observations establish OS input observation, not application WM_HOTKEY handling.',
@@ -296,7 +300,9 @@ def main():
         check('Closing the owned board retains the tray process', not boards() and process.poll() is None)
 
     try:
-        process = subprocess.Popen([str(executable)], creationflags=subprocess.CREATE_NO_WINDOW)
+        command = ([sys.executable, '-m', 'scripts.profile_source_transition', '--output',
+                    str((args.output/'source-timing.jsonl').resolve())] if args.source_diagnostic else [str(executable)])
+        process = subprocess.Popen(command, creationflags=subprocess.CREATE_NO_WINDOW)
         if args.trace_transition:
             install_keyboard = n.bind(u, 'SetWindowsHookExW', W.HHOOK, C.c_int, keyboard_type, W.HINSTANCE, W.DWORD)
             keyboard_hook = install_keyboard(13, keyboard_seen, None, 0)
@@ -419,6 +425,7 @@ def main():
         preferences.__exit__(None, None, None)
         (args.output/'checks.json').write_text(json.dumps({'executable': str(executable),
             'profile': args.profile, 'capture_only': args.capture_only, 'configuration': json.loads(configuration.to_json()),
+            'execution_kind': 'source diagnostic, not package acceptance' if args.source_diagnostic else 'unchanged executable',
             'default_registration_probe': default_probe,
             'sha256': hashlib.sha256(executable.read_bytes()).hexdigest() if executable.is_file() else None,
             'executable_exists': executable.is_file(), 'checks': rows,

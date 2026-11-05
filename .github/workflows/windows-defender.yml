@@ -10,6 +10,7 @@ on:
       - 'scripts/defender_runtime_check.py'
       - 'scripts/observed_process.py'
       - 'scripts/packaged_shortcut_check.py'
+      - 'scripts/profile_source_transition.py'
 
 permissions:
   contents: read

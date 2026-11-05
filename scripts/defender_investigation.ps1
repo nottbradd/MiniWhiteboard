@@ -132,10 +132,27 @@ function Scan([string]$Path, [string]$Label) {
 }
 
 function Download([string]$Url, [string]$Path) {
-    $null=Probe "download-$(Split-Path -Leaf $Path)" {
-        Invoke-WebRequest -Uri $task.url -OutFile $task.path -TimeoutSec 90
-        @{completed=$true}
-    } @{url=$Url;path=$Path} 100
+    for ($attempt=1; $attempt -le 2; $attempt++) {
+        $result=Probe "download-$attempt-$(Split-Path -Leaf $Path)" {
+            try {
+                Invoke-WebRequest -Uri $task.url -OutFile $task.path -TimeoutSec 90
+                @{completed=$true}
+            } catch {
+                @{completed=$false;http_status=[int]$_.Exception.Response.StatusCode;error=$_.Exception.Message}
+            }
+        } @{url=$Url;path=$Path} 100
+        $report.download_attempts=@($report.download_attempts)+@(@{
+            name=(Split-Path -Leaf $Path);attempt=$attempt;result=$result
+        })
+        Save-Json $report 'report.json'
+        if ($result.completed) { return }
+        # Retry only an observed transient HTTP gateway/service failure. Never
+        # retry a security block, missing file, bad hash, or unsuccessful scan.
+        if ($attempt -eq 2 -or $result.http_status -notin @(502,503,504)) {
+            throw "Download failed: $($result.http_status) $($result.error)"
+        }
+        Write-Host "Recorded HTTP $($result.http_status); one bounded retry for $(Split-Path -Leaf $Path)."
+    }
 }
 
 function Processes([string]$Stage) {

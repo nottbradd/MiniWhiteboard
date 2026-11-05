@@ -113,6 +113,16 @@ def main():
             # Each suite owns and cleans up its process and preferences. Retain
             # failures while collecting the independent suites and file hashes.
             check(label + ': ' + suffix + ' native checks completed', passed, len(rows), fatal=False)
+            if suffix == 'defaults' and not passed:
+                diagnostic = args.output / (label + '-source-comparison')
+                diagnostic_exit = bounded(label + '-source-comparison',
+                    [sys.executable, '-m', 'scripts.packaged_shortcut_check', '--executable',
+                     str(directory / 'Mini Whiteboard.exe'), '--output', str(diagnostic),
+                     '--profile', 'default', '--available-defaults', '--trace-transition', '--source-diagnostic'], 180)
+                report.setdefault('source_diagnostics', []).append({
+                    'package': label, 'exit_code': diagnostic_exit,
+                    'purpose': 'Callback timings in source; excluded from exact-package acceptance'})
+                save()
         return all(completed)
 
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
