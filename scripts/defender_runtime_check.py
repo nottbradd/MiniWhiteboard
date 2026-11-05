@@ -1,0 +1,196 @@
+"""Exercise the exact reported release only inside a disposable hosted Windows VM.
+
+The caller owns continuous Defender observation. No build, executable rewriting,
+exclusions, security bypass, or release publication is performed here.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+def main():
+    if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
+        raise SystemExit('Requires a disposable GitHub-hosted runner.')
+    import winreg
+    from PySide6.QtCore import QSettings
+    from mini_whiteboard.hotkey_config import Chord, HotkeyConfig, defaults
+    from mini_whiteboard.platform.windows.login import WindowsLogin, RUN_KEY, APPROVAL_KEY, VALUE_NAME
+    from scripts.payload_manifest import verify_manifest, read_manifest
+    from scripts.build_support import verify_release_files, verify_frozen_modules
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--downloads', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    args.output.mkdir(exist_ok=True, parents=True)
+    report = {'purpose': 'Original published-package investigation, not final release acceptance',
+              'checks': [], 'native_suites': [], 'not_run': [
+                  'Genuine browser download and Explorer extraction',
+                  'School-managed policy and original threat identification',
+                  'Interactive SmartScreen/Smart App Control',
+                  'Automatic Windows sign-in',
+                  'Clean machine with development tools uninstalled']}
+    output = args.output / 'runtime.json'
+
+    def save():
+        output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+
+    def check(label, condition, detail=None):
+        row = {'check': label, 'status': 'PASS' if condition else 'FAIL', 'detail': detail}
+        report['checks'].append(row)
+        print(json.dumps(row), flush=True)
+        save()
+        if not condition:
+            raise AssertionError(label)
+
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def reg(key, name):
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key) as handle:
+                return winreg.QueryValueEx(handle, name)[0]
+        except FileNotFoundError:
+            return None
+
+    install_key = r'Software\Microsoft\Windows\CurrentVersion\Uninstall\{94CAAC15-1695-4601-9CA3-67F10E2A8A32}_is1'
+    check('Disposable account has no Mini Whiteboard install or startup entry',
+          reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None
+          and reg(APPROVAL_KEY, VALUE_NAME) is None)
+    portable = args.downloads / 'portable' / 'Mini Whiteboard'
+    installer = args.downloads / 'MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe'
+    exe_hash = 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
+    check('Installer hash is the published sample', digest(installer) ==
+          '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
+    expected = read_manifest((portable / 'MiniWhiteboard.payload').read_text(encoding='utf-8'))
+
+    def payload(directory, label, exact=False):
+        check(label + ': executable is the published sample', digest(directory / 'Mini Whiteboard.exe') == exe_hash)
+        check(label + ': all 200 intended runtime files match the portable archive',
+              all((directory / name).is_file() and digest(directory / name) == value for name, value in expected.items()))
+        check(label + ': payload manifest is identical',
+              (directory / 'MiniWhiteboard.payload').read_bytes() == (portable / 'MiniWhiteboard.payload').read_bytes())
+        if exact:
+            check(label + ': no unexpected runtime files', True, verify_manifest(directory))
+        check(label + ': dependency notices and module inventory', True,
+              {**verify_release_files(directory), **verify_frozen_modules(directory / 'Mini Whiteboard.exe')})
+
+    def native(directory, label):
+        for module, suffix, extra in (
+            ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults']),
+            ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
+            ('scripts.package_check', 'editing', []),
+        ):
+            destination = args.output / (label + '-' + suffix)
+            command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
+                       '--output', str(destination), *extra]
+            with (args.output / (label + '-' + suffix + '.txt')).open('w', encoding='utf-8') as log:
+                result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=300,
+                                        creationflags=subprocess.CREATE_NO_WINDOW)
+            rows_path = destination / 'checks.json'
+            rows = json.loads(rows_path.read_text()) if rows_path.is_file() else []
+            report['native_suites'].append({'package': label, 'module': module, 'profile': suffix,
+                                           'exit_code': result.returncode, 'reported_checks': len(rows)})
+            check(label + ': ' + suffix + ' native checks completed', result.returncode == 0 and bool(rows), len(rows))
+
+    target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
+
+    def setup(label):
+        result = subprocess.run([str(installer), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
+                                 '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
+                                timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
+        return result.returncode
+
+    def uninstall(label):
+        result = subprocess.run([str(target / 'unins000.exe'), '/VERYSILENT', '/SUPPRESSMSGBOXES',
+                                 '/NORESTART', '/LOG=' + str(args.output / (label + '.log'))],
+                                timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
+        return result.returncode
+
+    def quiet_launch(directory, label):
+        # The child has only Windows on PATH, and no Python environment hints.
+        environment = dict(os.environ, PATH=os.environ['WINDIR'] + ';' + os.environ['WINDIR'] + '\\System32')
+        for name in ('PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH'):
+            environment.pop(name, None)
+        child = subprocess.Popen([str(directory / 'Mini Whiteboard.exe')], env=environment,
+                                 cwd=str(directory), creationflags=subprocess.CREATE_NO_WINDOW)
+        try:
+            time.sleep(3)
+            check(label + ': packaged runtime stays running without Python on PATH', child.poll() is None)
+            if directory == target:
+                check('Setup refuses a running installed application', setup('running-refusal') != 0)
+                check('Uninstall refuses a running application', uninstall('uninstall-refusal') != 0)
+                check('Refusal leaves the running process alive', child.poll() is None)
+        finally:
+            # Only this test-owned process is stopped; no user desktop is involved.
+            if child.poll() is None:
+                child.terminate()
+                child.wait(timeout=10)
+
+    installed = False
+    settings = QSettings('MiniWhiteboard', 'MiniWhiteboard')
+    settings_snapshot = {key: settings.value(key) for key in settings.allKeys()}
+    try:
+        payload(portable, 'Portable before launch', exact=True)
+        quiet_launch(portable, 'Portable')
+        native(portable, 'portable')
+        payload(portable, 'Portable after execution', exact=True)
+        check('Portable did not install itself or opt into startup',
+              reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None)
+        check('Exact published installer completes a fresh silent installation', setup('fresh-install') == 0)
+        installed = True
+        payload(target, 'Installed before launch')
+        native(target, 'installed')
+        quiet_launch(target, 'Installed')
+        payload(target, 'Installed after execution')
+
+        configuration = HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'), defaults().hide)
+        settings.setValue('shortcuts/custom_windows', configuration.to_json())
+        settings.setValue('appearance/theme', 'Glass')
+        settings.sync()
+        login = WindowsLogin(target / 'Mini Whiteboard.exe', frozen=True)
+        login.set_enabled(True)
+        check('Opt-in startup registers the actual installed path', reg(RUN_KEY, VALUE_NAME) == login.command)
+        # Preserve an explicit OS-disabled approval record through repeat setup.
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, APPROVAL_KEY, 0, winreg.KEY_SET_VALUE) as handle:
+            winreg.SetValueEx(handle, VALUE_NAME, 0, winreg.REG_BINARY, b'\x03' + b'\x00' * 11)
+        approval = reg(APPROVAL_KEY, VALUE_NAME)
+        check('Same-version reinstall completes', setup('repeat-install') == 0)
+        settings.sync()
+        check('Reinstall preserves custom hotkeys, appearance and disabled startup choice',
+              settings.value('shortcuts/custom_windows') == configuration.to_json()
+              and settings.value('appearance/theme') == 'Glass'
+              and reg(RUN_KEY, VALUE_NAME) == login.command and reg(APPROVAL_KEY, VALUE_NAME) == approval)
+        payload(target, 'Installed after repeat setup')
+        check('Normal silent uninstall completes', uninstall('normal-uninstall') == 0)
+        installed = False
+        check('Uninstall removes owned app files, entry and startup registrations',
+              not (target / 'Mini Whiteboard.exe').exists() and reg(install_key, 'InstallLocation') is None
+              and reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None)
+        check('Uninstall preserves user preferences', settings.value('shortcuts/custom_windows') == configuration.to_json())
+        report['result'] = 'PASS for the listed original-package checks only'
+        report['not_run'].append('Upgrade from a preceding version; repeat-install is not that check')
+    except Exception as error:
+        report['result'] = 'FAILED'; report['error'] = str(error)
+        raise
+    finally:
+        if installed:
+            try:
+                report['cleanup_uninstall_exit'] = uninstall('cleanup-uninstall')
+            except Exception as error:
+                report['cleanup_error'] = str(error)
+        settings.clear()
+        for key, value in settings_snapshot.items():
+            settings.setValue(key, value)
+        settings.sync()
+        report['startup_restored'] = reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None
+        save()
+
+
+if __name__ == '__main__':
+    main()

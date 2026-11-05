@@ -1,5 +1,6 @@
 # Investigation of fixed, already-public bytes. This is not release acceptance.
 # Never run on a developer's desktop or a self-hosted runner.
+param([switch]$Exercise)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'This script requires a disposable GitHub-hosted Windows runner.'
@@ -14,7 +15,7 @@ $report = [ordered]@{
     purpose = 'Original published-file investigation; no release acceptance claim'
     download_method = 'Invoke-WebRequest, not a browser; no origin marker added or removed'
     extraction_method = 'Expand-Archive, not Explorer'
-    runtime = 'NOT RUN by this scan-only investigation'
+    runtime = 'NOT RUN'
     snapshots = @()
     files = @()
     scans = @()
@@ -91,6 +92,7 @@ function Scan([string]$Path, [string]$Label) {
     $report.scans += @{ label=$Label; exit_code=$LASTEXITCODE;
         started_utc=$scanStart.ToUniversalTime().ToString('o');
         ended_utc=(Get-Date).ToUniversalTime().ToString('o') }
+    if ($LASTEXITCODE -ne 0) { throw "Defender scan did not complete successfully: $Label" }
     Require-Protection (Snapshot "after-$Label")
 }
 
@@ -162,7 +164,18 @@ try {
           sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
     })
     Save-Json $inventory 'extracted-files.json'
+    if ($Exercise) {
+        Require-Protection (Snapshot 'before-runtime')
+        & python -m scripts.defender_runtime_check --downloads $downloadRoot --output $evidenceRoot `
+            *> (Join-Path $evidenceRoot 'runtime.txt')
+        $report.runtime_exit_code = $LASTEXITCODE
+        Require-Protection (Snapshot 'after-runtime')
+        if ($report.runtime_exit_code -ne 0) { throw 'Exact-package runtime investigation failed; see runtime.txt.' }
+        $report.runtime = 'Completed scripted checks of original published installer and portable executable; see runtime.json'
+        Scan $downloadRoot 'after-runtime'
+    }
     $report.result = 'SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
+    if ($Exercise) { $report.result = 'ORIGINAL PACKAGE INVESTIGATION COMPLETED; browser-download and final release acceptance NOT RUN' }
 } catch {
     $report.error = $_.Exception.Message
     Write-Warning $report.error
@@ -180,9 +193,11 @@ try {
         }) 'defender-events.json'
         $report.detection_event_count = @($events | Where-Object Id -In 1006,1007,1008,1015,1116,1117,1118,1119,1121).Count
         if ($report.detection_event_count) { $report.result = 'DETECTION OR BLOCK OBSERVED; inspect events' }
+        $report.protection_disabled_event_count = @($events | Where-Object Id -In 5001,5010,5012).Count
+        if ($report.protection_disabled_event_count) { $report.result = 'PROTECTION CHANGE OBSERVED; acceptance invalid' }
     } catch { $report.event_log_error = $_.Exception.Message }
     $report.ended_utc = (Get-Date).ToUniversalTime().ToString('o')
     Save-Json $report 'report.json'
     Write-Output $report.result
 }
-if ($report.result -notlike 'SCANS COMPLETED*') { exit 1 }
+if ($report.result -notlike 'SCANS COMPLETED*' -and $report.result -notlike 'ORIGINAL PACKAGE INVESTIGATION COMPLETED*') { exit 1 }
