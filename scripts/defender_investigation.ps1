@@ -23,7 +23,7 @@ $report = [ordered]@{
 }
 
 function Save-Json($Value, [string]$Name) {
-    $Value | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $evidenceRoot $Name) -Encoding utf8
+    ConvertTo-Json -InputObject $Value -Depth 12 | Set-Content -LiteralPath (Join-Path $evidenceRoot $Name) -Encoding utf8
 }
 
 function Snapshot([string]$Stage) {
@@ -120,6 +120,19 @@ try {
         -DisableBlockAtFirstSeen $false -DisableAutoExclusions $true -MAPSReporting Advanced `
         -SubmitSamplesConsent SendSafeSamples -PUAProtection Enabled
     Update-MpSignature -UpdateSource MicrosoftUpdateServer
+    # Preference writes complete before the realtime engine finishes starting.
+    # Wait for observed protection, never treat a successful write as readiness.
+    $readyDeadline = (Get-Date).AddSeconds(90)
+    do {
+        $ready = Snapshot 'waiting-for-protection'
+        try {
+            Require-Protection $ready
+            break
+        } catch {
+            if ((Get-Date) -ge $readyDeadline) { throw }
+            Start-Sleep -Seconds 5
+        }
+    } while ($true)
     Require-Protection (Snapshot 'enabled-updated')
     $script:scanner = (Get-ChildItem -Path "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" |
         Sort-Object FullName -Descending | Select-Object -First 1).FullName
