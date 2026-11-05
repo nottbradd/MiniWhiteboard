@@ -82,8 +82,9 @@ def main():
                         control.invoke()
                         wait_for(lambda: control.window_text() != before, 5, 'Privacy choice did not change')
                 evidence('client-optional-privacy-declined')
-                window.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button').invoke()
-                wait_for(lambda: not window.exists(timeout=.1) or not window.is_visible(), 20,
+                spec = desktop.window(handle=window.handle)
+                spec.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button').invoke()
+                wait_for(lambda: not spec.exists(timeout=.1) or not window.is_visible(), 20,
                          'Privacy page did not close')
             evidence('client-desktop-ready')
             report['result'] = 'PASS for client desktop preparation only'
