@@ -25,7 +25,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output',type=Path,default=Path('verification/v134-review01/package'))
     parser.add_argument("--executable", type=Path, default=Path("dist/windows-v134-review01/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--extended', action='store_true', help='Additional client-VM GUI routes; requires pywinauto.')
     args = parser.parse_args()
+    if args.extended and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
+        parser.error('Extended GUI checks require a disposable hosted runner.')
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
     results = []
@@ -375,13 +378,158 @@ def main():
         set_cursor(630,490)
         release_all()
         check('Packaged fresh hold recovers after cancellation', len(wait_boards(1)) == 1)
+        if args.extended:
+            from pywinauto import Desktop
+            owned_board = board_windows()[0]
+            desktop = Desktop(backend='uia')
+            text_key(ord('T'))
+            click_paper(50, 65)
+            for character in 'AVE12345':
+                text_key(ord(character))
+            text_key(ord('A'), ctrl=True)
+            text_key(ord('C'), ctrl=True)
+            app.processEvents()
+            check('Client editor receives tool letters and digits exclusively', app.clipboard().text() == 'ave12345')
+            app.clipboard().setText('Mini Whiteboard keeps this sentence inside the textbox. '
+                                    'A V E 12345 remain text while editing this second sentence.')
+            app.processEvents()
+            text_key(ord('V'), ctrl=True)
+            text_key(0x0D, ctrl=True)
+            text_key(0x1B)
+
+            def ink_bounds():
+                area = Rect(round(paper.x+16*dpi), round(paper.y+38*dpi),
+                            round(paper.width-32*dpi), round(paper.height-90*dpi))
+                shot = windows.capture_rect(area).convertToFormat(QImage.Format.Format_RGBA8888)
+                data = shot.constBits()
+                ink = [i//4 for i in range(0, len(data), 4) if max(data[i:i+3]) < 100]
+                if not ink:
+                    return None
+                xs = [v % shot.width() for v in ink]; ys = [v // shot.width() for v in ink]
+                return (area.x+min(xs), area.y+min(ys), area.x+max(xs), area.y+max(ys))
+
+            before = ink_bounds()
+            windows.capture_rect(paper).save(str(args.output/'client-wrapped-text.png'))
+            check('Client committed text visibly wraps across multiple lines',
+                  before is not None and before[3]-before[1] > 40*dpi, before)
+            text_key(ord('A'))
+            text_key(ord('A'), ctrl=True)
+            centre = (round((before[0]+before[2])/2), round((before[1]+before[3])/2))
+            delta = (round(30*dpi), round(20*dpi))
+            set_cursor(*centre)
+            check('Client selection drag targets its owned board',
+                  ancestor(get_at(W.POINT(*centre)), 2) == owned_board)
+            mouse(2, 0, 0, 0, 0)
+            try:
+                for step in range(1, 7):
+                    set_cursor(centre[0]+round(delta[0]*step/6), centre[1]+round(delta[1]*step/6))
+                    time.sleep(.025)
+            finally:
+                mouse(4, 0, 0, 0, 0)
+            time.sleep(.15)
+            text_key(0x1B)
+            moved = ink_bounds()
+            expected = tuple(value+delta[i % 2] for i,value in enumerate(before))
+            check('Client selection movement translates the visible text',
+                  moved is not None and all(abs(a-b) <= 1 for a,b in zip(moved, expected)),
+                  {'before': before, 'after': moved, 'expected': expected})
+            text_key(ord('Z'), ctrl=True)
+            text_key(0x1B)
+            check('Client movement undo restores the original visible geometry', ink_bounds() == before)
+            text_key(ord('Y'), ctrl=True)
+            text_key(0x1B)
+            check('Client movement redo restores the translated visible geometry', ink_bounds() == moved)
+            focus_helper()
+
+            def hide_restore():
+                for vk in (0xA2, 0xA4, 0xA0, ord('H')):
+                    key(vk)
+                time.sleep(.15)
+                release_all()
+
+            hide_restore()
+            check('Client Hide All removes the board while retaining the process', not board_windows() and process.poll() is None)
+            hide_restore()
+            check('Client Restore All returns the board without taking external focus',
+                  len(wait_boards(1)) == 1 and foreground() == identity['hwnd'])
+            board_ui = desktop.window(handle=owned_board)
+            board_ui.child_window(title='Minimise whiteboard', control_type='Button').click_input()
+            time.sleep(.2)
+            check('Client minimise control hides the board without deleting it', not board_windows() and process.poll() is None)
+
+            def tray_menu():
+                tray = desktop.window(class_name='Shell_TrayWnd')
+                icons = [b for b in tray.descendants(control_type='Button') if b.window_text().startswith('Mini Whiteboard')]
+                if not icons:
+                    overflow = [b for b in tray.descendants(control_type='Button')
+                                if b.window_text() in ('Show hidden icons', 'Hidden icon menu')]
+                    if not overflow:
+                        raise RuntimeError('Tray overflow control not exposed; saved GUI evidence is required')
+                    overflow[0].click_input()
+                    time.sleep(.2)
+                    icons = [b for w in desktop.windows() if w.is_visible()
+                             for b in w.descendants(control_type='Button') if b.window_text().startswith('Mini Whiteboard')]
+                if len(icons) != 1:
+                    raise RuntimeError('Cannot uniquely locate the test application tray icon')
+                icons[0].click_input(button='right')
+                time.sleep(.15)
+
+            def menu_item(prefix):
+                items = [c for w in desktop.windows(process=process.pid) if w.is_visible()
+                         for c in w.descendants(control_type='MenuItem')
+                         if c.window_text().startswith(prefix) and c.is_visible()]
+                if len(items) != 1:
+                    raise RuntimeError('Menu item not uniquely visible: '+prefix)
+                return items[0]
+
+            tray_menu()
+            menu_item('Whiteboards').move_mouse_input()
+            time.sleep(.3)
+            menu_item('Whiteboard ').click_input()
+            check('Client Whiteboards tray menu restores the minimised board', len(wait_boards(1)) == 1)
+            tray_menu()
+            menu_item('Settings').move_mouse_input()
+            time.sleep(.3)
+            menu_item('Hotkeys').click_input()
+            dialog = desktop.window(title='Mini Whiteboard · Hotkeys', process=process.pid)
+            dialog.wait('visible', timeout=5)
+            check('Client real tray settings route opens all three hotkey rows',
+                  len(dialog.descendants(control_type='ComboBox')) == 3)
+            windows.capture_rect(Rect(0, 0, 1024, 768)).save(str(args.output/'client-hotkey-settings.png'))
+            combo = dialog.child_window(title='Create whiteboard key', control_type='ComboBox')
+            combo.select('F8')
+            dialog.child_window(title='Apply', control_type='Button').click_input()
+            dialog.wait_not('visible', timeout=5)
+            from PySide6.QtCore import QSettings
+            stored = QSettings('MiniWhiteboard', 'MiniWhiteboard')
+            stored.sync()
+            check('Client hotkey Apply saves the GUI-selected trigger',
+                  json.loads(stored.value('shortcuts/custom_windows'))['bindings'][0]['key'] == 'F8')
+            board_ui.child_window(title='Delete whiteboard', control_type='Button').click_input()
+            time.sleep(.2)
+            check('Client close control removes the board and retains the tray', not board_windows() and process.poll() is None)
+            tray_menu()
+            menu_item('Exit Mini Whiteboard').click_input()
+            process.wait(timeout=5)
+            check('Client tray Exit closes the application normally', process.returncode == 0)
     finally:
         # This test created the process without boards; terminate only that
         # exact subprocess. Normal application exit is via its tray action.
         for vk in tuple(pressed):
             key_event(vk, user32.MapVirtualKeyW(vk, 0), 2 | (1 if vk in (0x5B,0x5C,0xA5) else 0), 0)
-        process.terminate()
-        process.wait(timeout=10)
+        if args.extended:
+            try:
+                windows.capture_rect(Rect(0, 0, 1024, 768)).save(str(args.output/'client-final-desktop.png'))
+                from pywinauto import Desktop
+                ui = [{'title':w.window_text(), 'pid':w.process_id(), 'controls':[
+                    {'name':c.window_text(), 'type':c.element_info.control_type}
+                    for c in w.descendants()[:350]]} for w in Desktop(backend='uia').windows() if w.is_visible()]
+                (args.output/'client-final-ui.json').write_text(json.dumps(ui, indent=2), encoding='utf-8')
+            except Exception as error:
+                print(json.dumps({'gui_evidence_error': str(error)}), flush=True)
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=10)
         if helper is not None:
             helper.terminate()
             helper.wait(timeout=10)

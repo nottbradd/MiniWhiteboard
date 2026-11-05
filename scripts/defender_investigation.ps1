@@ -297,8 +297,10 @@ try {
         Require-Protection (Snapshot 'before-runtime')
         $report.runtime="Attempting scripted $Package checks; see runtime.json"
         Save-Json $report 'report.json'
-        $runtime=Invoke-Program "runtime-$Package" @((Get-Command python).Source,'-m','scripts.defender_runtime_check',
-            '--downloads',$downloadRoot,'--output',$evidenceRoot,'--package',$Package) 600 -AllowFailure
+        $runtimeCommand=@((Get-Command python).Source,'-m','scripts.defender_runtime_check',
+            '--downloads',$downloadRoot,'--output',$evidenceRoot,'--package',$Package)
+        if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
+        $runtime=Invoke-Program "runtime-$Package" $runtimeCommand 600 -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status
         Require-Protection (Snapshot 'after-runtime')
         if ($runtime.status -ne 'PASS') { throw "Exact-package runtime investigation $($runtime.status); see operation output." }

@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--downloads', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--package', choices=('all', 'installer', 'portable'), default='all')
+    parser.add_argument('--client-gui', action='store_true')
     args = parser.parse_args()
     args.output.mkdir(exist_ok=True, parents=True)
     report = {'purpose': 'Original published-package investigation, not final release acceptance',
@@ -97,7 +98,7 @@ def main():
         for module, suffix, extra in (
             ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults', '--trace-transition']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
-            ('scripts.package_check', 'editing', []),
+            ('scripts.package_check', 'editing', ['--extended'] if args.client_gui else []),
         ):
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
