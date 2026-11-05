@@ -8,6 +8,8 @@ on:
       - '.github/workflows/windows-defender.yml'
       - 'scripts/defender_investigation.ps1'
       - 'scripts/defender_runtime_check.py'
+      - 'scripts/observed_process.py'
+      - 'scripts/packaged_shortcut_check.py'
 
 permissions:
   contents: read
@@ -34,12 +36,14 @@ jobs:
           python -m pip check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Inspect the published V1.3.4 HotkeyPatch with active Defender
+        timeout-minutes: 24
         shell: pwsh
         env:
           INVESTIGATION_PACKAGE: ${{ matrix.package }}
         run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE
       - name: Preserve security observations even when blocked
         if: always()
+        timeout-minutes: 4
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: defender-investigation-${{ matrix.package }}-${{ github.run_id }}

@@ -17,6 +17,7 @@ import tempfile
 import time
 
 os.environ['QT_QPA_PLATFORM'] = 'windows'
+from PySide6.QtCore import QTimer
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from mini_whiteboard import windows as n
@@ -33,6 +34,7 @@ def main():
     parser.add_argument('--profile', choices=('compatibility', 'custom', 'default'), default='compatibility')
     parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
+    parser.add_argument('--trace-transition', action='store_true', help='Record native input/window timing without changing gesture assertions.')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     configuration = {'default': defaults(hide='shift'), 'compatibility': compatibility(defaults(hide='shift')),
@@ -67,9 +69,32 @@ def main():
                       hook_type, W.DWORD, W.DWORD, W.DWORD)
     unhook = n.bind(u, 'UnhookWinEvent', W.BOOL, W.HANDLE)
     previous, pointer = foreground(), n.cursor_position()
-    process = target = hook = None
+    process = target = hook = keyboard_hook = window_hook = None
     pressed, rows, foreground_events = set(), [], []
     observing = False
+    trace_rows = []
+    trace_origin = time.perf_counter_ns()
+    trace_unix_ns = time.time_ns()
+    trace_label = 'startup'
+    trace_active = False
+    sample_timer = QTimer()
+    sample_timer.setInterval(10)
+    input_tag = 0x4D574442 if args.trace_transition else 0
+
+    def trace(kind, **detail):
+        if args.trace_transition:
+            trace_rows.append({'kind': kind, 'elapsed_ms': (time.perf_counter_ns()-trace_origin)/1e6,
+                               'gesture': trace_label, **detail})
+
+    def save_trace():
+        if args.trace_transition:
+            (args.output/'transition-trace.json').write_text(json.dumps({
+                'executable': str(executable), 'input_api': 'keybd_event',
+                'origin_unix_ns': trace_unix_ns,
+                'input_tag': input_tag, 'assertion_wait_ms': 120, 'events': trace_rows,
+                'limits': ['Keyboard hook observations establish OS input observation, not application WM_HOTKEY handling.',
+                           'Diagnostic instrumentation can affect scheduling; all original assertions are retained.'],
+            }, indent=2), encoding='utf-8')
     temporary = tempfile.TemporaryDirectory(prefix='miniwhiteboard-packaged-keys-')
     state_path = Path(temporary.name)/'target.json'
     from .native_preferences import compatibility_preferences
@@ -123,11 +148,29 @@ def main():
     def previews():
         return [h for h in windows() if any(bounds(h) == m.rect for m in n.monitors())]
 
+    def observe_transition(label):
+        observed = []
+        for hwnd in windows():
+            try:
+                observed.append({'hwnd': hwnd, 'title': name(hwnd), 'bounds': vars(bounds(hwnd))})
+            except RuntimeError:
+                observed.append({'hwnd': hwnd, 'disappeared': True})
+        trace('snapshot', label=label, process_exit_code=process.poll(),
+              foreground_hwnd=int(foreground() or 0), foreground_pid=owner(foreground()),
+              windows=observed, monitors=[vars(m.rect) for m in n.monitors()],
+              held_keys=[vk for vk in (0x5B,0x5C,0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,
+                                      configuration.create.windows_key,configuration.capture.windows_key,27)
+                         if u.GetAsyncKeyState(vk) & 0x8000])
+
+    sample_timer.timeout.connect(lambda: observe_transition('timer') if trace_active else None)
+
     def check(label, condition, detail=None):
         row = {'check': label, 'status': 'PASS' if condition else 'FAIL', 'detail': detail}
         rows.append(row)
         print(json.dumps(row), flush=True)
+        trace('assertion', **row)
         if not condition:
+            save_trace()
             # Preserve the original failure and its timing. Later observations
             # diagnose a delayed preview without converting it into a pass.
             observations = []
@@ -148,6 +191,7 @@ def main():
                 'failed_check': row, 'observations': observations,
                 'foreground_events': foreground_events,
             }, indent=2), encoding='utf-8')
+            save_trace()
             raise AssertionError(label)
 
     def state():
@@ -161,7 +205,12 @@ def main():
     def key(vk, up=False):
         if not up and owner(foreground()) not in (process.pid, target_pid):
             raise RuntimeError('Keyboard focus left the owned test processes')
-        key_event(vk, u.MapVirtualKeyW(vk, 0), (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), 0)
+        if args.trace_transition:
+            trace('inject-before', vk=vk, up=up, foreground_hwnd=int(foreground() or 0),
+                  foreground_pid=owner(foreground()), async_down=bool(u.GetAsyncKeyState(vk) & 0x8000))
+        key_event(vk, u.MapVirtualKeyW(vk, 0), (2 if up else 0) | (1 if vk in (0x5B, 0x5C, 0xA5) else 0), input_tag)
+        if args.trace_transition:
+            trace('inject-after', vk=vk, up=up, async_down=bool(u.GetAsyncKeyState(vk) & 0x8000))
         pressed.discard(vk) if up else pressed.add(vk)
 
     def drain():
@@ -191,6 +240,32 @@ def main():
     def foreground_changed(_hook, _event, hwnd, *_args):
         if observing:
             foreground_events.append({'hwnd': int(hwnd or 0), 'pid': owner(hwnd), 'title': name(hwnd)})
+            trace('foreground-event', hwnd=int(hwnd or 0), pid=owner(hwnd), title=name(hwnd))
+
+    # Observe only tagged keys injected by this test. Never log user typing or
+    # inject into the application process. The hook always forwards input.
+    class KeyboardEvent(C.Structure):
+        _fields_ = [('vkCode', W.DWORD), ('scanCode', W.DWORD), ('flags', W.DWORD),
+                    ('time', W.DWORD), ('dwExtraInfo', C.c_size_t)]
+
+    keyboard_type = C.WINFUNCTYPE(C.c_ssize_t, C.c_int, W.WPARAM, W.LPARAM)
+    next_keyboard = n.bind(u, 'CallNextHookEx', C.c_ssize_t, W.HHOOK, C.c_int, W.WPARAM, W.LPARAM)
+
+    @keyboard_type
+    def keyboard_seen(code, message, data):
+        if code >= 0:
+            event = C.cast(data, C.POINTER(KeyboardEvent)).contents
+            if event.dwExtraInfo == input_tag and input_tag:
+                trace('keyboard-observed', vk=event.vkCode, scan=event.scanCode,
+                      flags=event.flags, message=int(message), event_tick_ms=event.time,
+                      foreground_hwnd=int(foreground() or 0), foreground_pid=owner(foreground()))
+        return next_keyboard(None, code, message, data)
+
+    @hook_type
+    def window_changed(_hook, event, hwnd, object_id, child_id, thread_id, event_time):
+        if trace_active:
+            trace('window-event', event=int(event), hwnd=int(hwnd or 0), object_id=int(object_id),
+                  child_id=int(child_id), thread_id=int(thread_id), event_tick_ms=int(event_time))
 
     def start(chord, point):
         nonlocal observing
@@ -222,6 +297,13 @@ def main():
 
     try:
         process = subprocess.Popen([str(executable)], creationflags=subprocess.CREATE_NO_WINDOW)
+        if args.trace_transition:
+            install_keyboard = n.bind(u, 'SetWindowsHookExW', W.HHOOK, C.c_int, keyboard_type, W.HINSTANCE, W.DWORD)
+            keyboard_hook = install_keyboard(13, keyboard_seen, None, 0)
+            window_hook = set_hook(0x8000, 0x8003, None, window_changed, process.pid, 0, 0)
+            if not keyboard_hook or not window_hook:
+                raise RuntimeError('Native transition observer could not be installed')
+            sample_timer.start()
         QTest.qWait(1800)
         check('Final executable starts quietly', process.poll() is None and not windows())
         target = subprocess.Popen([sys.executable, '-m', 'scripts.creation_shortcut_check',
@@ -244,9 +326,17 @@ def main():
             for variant, modifiers in enumerate(variants):
                 chord = (*modifiers, trigger_key)
                 for index, first in enumerate(chord):
+                    trace_label = f'{trigger}-variant-{variant}-release-{index}'
+                    trace_active = args.trace_transition and identifier == ACTIONS[1] and variant == 0 and index == 0
                     begin, end = points[index]
+                    if trace_active:
+                        observe_transition('before-input')
+                        save_trace()
                     start(chord, begin)
+                    trace('hold-wait-start')
                     QTest.qWait(120)
+                    if trace_active:
+                        observe_transition('assertion-time')
                     check(trigger+' actual native hold starts only a passive preview',
                           bool(previews()) and not boards() and foreground() == target_hwnd,
                           {'modifiers': modifiers, 'first_release': first, 'begin': begin, 'end': end})
@@ -273,6 +363,10 @@ def main():
                         n.capture_rect(paper).save(str(args.output/(trigger+'-actual-result.png')))
                     settled(trigger+' completed gesture')
                     close_boards()
+                    if trace_active:
+                        observe_transition('after-close')
+                        save_trace()
+                    trace_active = False
                 start(chord, (180, 220))
                 QTest.qWait(100)
                 set_cursor(540, 440)
@@ -305,9 +399,15 @@ def main():
         check('Selected configuration passed in the final executable', True, args.profile)
     finally:
         observing = False
+        sample_timer.stop()
         drain()
         if hook:
             unhook(hook)
+        if window_hook:
+            unhook(window_hook)
+        if keyboard_hook:
+            n.bind(u, 'UnhookWindowsHookEx', W.BOOL, W.HHOOK)(keyboard_hook)
+        save_trace()
         for child in (process, target):
             if child is not None and child.poll() is None:
                 child.terminate()
@@ -320,7 +420,8 @@ def main():
         (args.output/'checks.json').write_text(json.dumps({'executable': str(executable),
             'profile': args.profile, 'capture_only': args.capture_only, 'configuration': json.loads(configuration.to_json()),
             'default_registration_probe': default_probe,
-            'sha256': hashlib.sha256(executable.read_bytes()).hexdigest(), 'checks': rows,
+            'sha256': hashlib.sha256(executable.read_bytes()).hexdigest() if executable.is_file() else None,
+            'executable_exists': executable.is_file(), 'checks': rows,
             'limits': ['Physical negative-coordinate and mixed-DPI monitors were not available.']}, indent=2), encoding='utf-8')
     return 0
 

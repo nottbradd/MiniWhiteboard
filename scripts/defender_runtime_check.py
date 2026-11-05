@@ -22,6 +22,7 @@ def main():
     from mini_whiteboard.platform.windows.login import WindowsLogin, RUN_KEY, APPROVAL_KEY, VALUE_NAME
     from scripts.payload_manifest import verify_manifest, read_manifest
     from scripts.build_support import verify_release_files, verify_frozen_modules
+    from scripts.observed_process import run as observed_run
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--downloads', type=Path, required=True)
@@ -51,6 +52,16 @@ def main():
 
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def bounded(label, command, timeout):
+        report['current_operation'] = label
+        save()
+        result = observed_run(command, args.output/'runtime-operations'/label, label, timeout)
+        report.setdefault('operations', []).append(result)
+        save()
+        if result['status'] in ('TIMED OUT', 'ERROR'):
+            raise RuntimeError(f"{label}: {result['status']}; retained partial output")
+        return result['exit_code']
 
     def reg(key, name):
         try:
@@ -84,22 +95,20 @@ def main():
     def native(directory, label):
         completed = []
         for module, suffix, extra in (
-            ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults']),
+            ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults', '--trace-transition']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
             ('scripts.package_check', 'editing', []),
         ):
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
                        '--output', str(destination), *extra]
-            with (args.output / (label + '-' + suffix + '.txt')).open('w', encoding='utf-8') as log:
-                result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=300,
-                                        creationflags=subprocess.CREATE_NO_WINDOW)
+            exit_code = bounded(label + '-' + suffix, command, 180)
             rows_path = destination / 'checks.json'
             document = json.loads(rows_path.read_text()) if rows_path.is_file() else []
             rows = document.get('checks', []) if isinstance(document, dict) else document
             report['native_suites'].append({'package': label, 'module': module, 'profile': suffix,
-                                           'exit_code': result.returncode, 'reported_checks': len(rows)})
-            passed = result.returncode == 0 and bool(rows) and all(row['status'] == 'PASS' for row in rows)
+                                           'exit_code': exit_code, 'reported_checks': len(rows)})
+            passed = exit_code == 0 and bool(rows) and all(row['status'] == 'PASS' for row in rows)
             completed.append(passed)
             # Each suite owns and cleans up its process and preferences. Retain
             # failures while collecting the independent suites and file hashes.
@@ -109,18 +118,18 @@ def main():
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
 
     def setup(label, package=installer):
-        result = subprocess.run([str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
+        return bounded(label, [str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
                                  '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
-                                timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
-        return result.returncode
+                       60)
 
     def uninstall(label):
-        result = subprocess.run([str(target / 'unins000.exe'), '/VERYSILENT', '/SUPPRESSMSGBOXES',
+        return bounded(label, [str(target / 'unins000.exe'), '/VERYSILENT', '/SUPPRESSMSGBOXES',
                                  '/NORESTART', '/LOG=' + str(args.output / (label + '.log'))],
-                                timeout=120, creationflags=subprocess.CREATE_NO_WINDOW)
-        return result.returncode
+                       45)
 
     def quiet_launch(directory, label):
+        report['current_operation'] = label + ': quiet launch'
+        save()
         # The child has only Windows on PATH, and no Python environment hints.
         environment = dict(os.environ, PATH=os.environ['WINDIR'] + ';' + os.environ['WINDIR'] + '\\System32')
         for name in ('PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH'):
