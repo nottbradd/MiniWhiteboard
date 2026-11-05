@@ -2,6 +2,12 @@ name: Windows Defender investigation
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: Published package to investigate
+        type: choice
+        default: all
+        options: [all, installer, portable]
   push:
     branches: [codex/v1.3.5-defender-investigation]
     paths:
@@ -20,7 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [installer, portable]
+        # Keep the completed installer evidence; branch pushes iterate the
+        # portable timing diagnostic. Manual runs can select either or both.
+        package: ${{ fromJSON(github.event_name == 'push' && '["portable"]' || inputs.package == 'installer' && '["installer"]' || inputs.package == 'portable' && '["portable"]' || '["installer","portable"]') }}
     runs-on: windows-2025
     timeout-minutes: 35
     steps:

@@ -114,7 +114,7 @@ def main():
             # Each suite owns and cleans up its process and preferences. Retain
             # failures while collecting the independent suites and file hashes.
             check(label + ': ' + suffix + ' native checks completed', passed, len(rows), fatal=False)
-            if suffix == 'defaults' and not passed:
+            if suffix == 'defaults' and (not passed or label == 'portable'):
                 for diagnostic_name, diagnostic_option, purpose in (
                     ('capture-isolated', '--capture-only', 'Q without prior W workload'),
                     ('capture-after-cancel', '--cancel-prelude', 'Q after only one zero-area W cancellation'),
@@ -128,6 +128,7 @@ def main():
                         'package': label, 'exit_code': isolated_exit,
                         'purpose': 'Fresh unchanged executable: '+purpose+'; does not replace the failed full acceptance sequence'})
                     save()
+            if suffix == 'defaults' and not passed:
                 diagnostic = args.output / (label + '-source-comparison')
                 diagnostic_exit = bounded(label + '-source-comparison',
                     [sys.executable, '-m', 'scripts.packaged_shortcut_check', '--executable',
