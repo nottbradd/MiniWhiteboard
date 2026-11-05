@@ -25,38 +25,81 @@ Status: **In progress**; final determination: **Pending**. The current Cloud and
 Client detection fields show **No malware detected**, with no analyst explanation.
 This automated scan result is not a final determination or a confirmed false positive.
 
-The [isolated investigation](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41987507856)
-used separate Windows Server 2025 VMs (build 26100), Defender platform
-4.18.26100.4, engine 1.1.26100.4 and intelligence 1.463.134.0, updated at
-01:25:39 UTC on 5 November. Antivirus, real-time, behaviour, IOAV, archive and cloud
-protection were active; the runner's broad exclusions were removed before downloads.
+The investigation uses separate disposable Windows VMs. Completed package runs
+used Server 2025 (build 26100), Defender platform 4.18.26100.4, engine 1.1.26100.4
+and intelligence 1.463.134.0 or 1.463.135.0. Antivirus, real-time, behaviour, IOAV,
+archive and cloud protection were active; the runner's broad exclusions were
+removed before downloads.
 
-- **Installer:** fresh install, original V1.3.4 → HotkeyPatch upgrade, settings and
-  startup-choice preservation, running-app refusal, uninstall and 1,246 native
-  checks passed. Installed payload matched the portable archive. No Defender
-  detections or disabled-protection events were recorded during 07:29:24–07:33:11 UTC.
-  A later installer rerun exceeded its 30-minute limit and was cancelled without
-  producing an evidence artifact; that attempt is **INCOMPLETE**, not a pass.
+- **Installer:** the [completed original run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41987507856)
+  and [instrumented rerun](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42011689832)
+  passed fresh install, original V1.3.4 → HotkeyPatch upgrade, settings/startup-choice
+  preservation, running-app refusal, uninstall and 1,246 native checks. The rerun
+  also passed all 41 lifecycle/integrity checks, with no recorded detections or
+  disabled-protection events during 10:34:17–10:40:38 UTC. Two other installer
+  attempts exceeded their 30-minute job limit and supplied neither installer
+  artifacts nor retrievable job logs. Their stalled operation remains unknown;
+  those attempts are **INCOMPLETE**. Operation deadlines, progress logs and a
+  separately uploaded pre-execution checkpoint now preserve more diagnostic evidence.
+  A later VM skipped application execution after a detection and then stalled in
+  post-job cleanup, after uploading its evidence. The last retrieved log line is
+  `Cleaning up orphan processes`, after Git credential cleanup commands completed.
+  This establishes a separate CI cleanup stall, not the cause of the older timeouts.
 - **Portable:** the [diagnostic run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41988838464)
   passed scans, launch, all 1,246 native checks and file-integrity checks, with no
-  detections during 07:40:41–07:43:36 UTC. Two earlier attempts each failed the
-  first Q-preview assertion after 438 passes. That intermittent failure remains
-  unexplained; no assertion was relaxed and no application code was changed.
-- **Source regressions:** 319 passed, with two Mac-only skips (321 total).
+  detections during 07:40:41–07:43:36 UTC. Other attempts failed native timing
+  assertions, most often the first Q preview after 438 passes. New traces record
+  accepted injected keys, stable external focus and a later visible preview.
+  In [two](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42005755059)
+  [follow-through runs](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42006254739),
+  previews observed after approximately 172 ms and 466 ms still completed on
+  release with one correctly positioned, focused board. The original 120 ms
+  assertions remain **FAIL**. The delay is narrowed down, but its application,
+  harness or environment cause is unresolved. Separate source callback timing
+  and Windows wait-chain observations did not establish the cause.
+  A [fresh-instance comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42010289247)
+  passed 438 capture checks with the first preview visible at approximately 33 ms;
+  the full W → Q sequence in the same VM failed at 120 ms and showed its preview
+  at approximately 315 ms. This suggests a dependency on the preceding sequence; the
+  isolated pass does not replace the failed full run.
+  A later full portable run also passed all 1,246 native checks with no detections
+  during 10:34:18–10:39:49 UTC; the intermittent failures remain unresolved.
+  The [final comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42013013521)
+  reproduced the full-sequence delay at approximately 324 ms, while fresh capture
+  passed 438 checks and capture after one zero-size cancellation passed 442 checks
+  (first previews approximately 34 ms and 13 ms). A lone cancellation does not
+  reproduce the delay. The longer workload or accumulated state needs further
+  profiling before changing the application or assertion.
+- **Source regressions:** 322 passed, with two Mac-only skips (324 total), including
+  three new subprocess timeout/evidence-retention tests. Application code and
+  the published binaries are unchanged.
 
-An earlier VM recorded `Trojan:Win32/Gracing.I` against a temporary `provjobd`
-process outside the application payload. It is not an established detection of
-Mini Whiteboard or a reproduction of the reported quarantine.
+Several VMs recorded `Trojan:Win32/Gracing.I` against temporary `provjobd` processes
+observed before application execution, including a client attempt that never
+reached sample download. This is not an established detection of Mini Whiteboard
+or a reproduction of the reported quarantine. Neither the path nor the timing
+establishes that the detected process is harmless. Affected runs remain flagged;
+no threat was allowed or restored.
 
-Downloads used Invoke-WebRequest and extraction used Expand-Archive; origin
-markers were absent, and none were added or removed. Genuine browser/Explorer
-acceptance, school-managed policy, interactive SmartScreen/Smart App Control and
-a clean PC without development tools are **NOT RUN**. The exact-package GUI checks
+Completed downloads used Invoke-WebRequest and extraction used Expand-Archive;
+origin markers were absent, and none were added or removed. Windows 11 ARM client
+attempts with x64 emulation reached the release page after resolving a first-run
+privacy-screen harness issue, then stopped on a browser foreground check. A later
+run exceeded its 24-minute test-step budget and was cancelled; both job-log
+downloads returned `BlobNotFound`, and no artifact was uploaded. Browser-download,
+Explorer-extraction and subsequent GUI acceptance remain **INCOMPLETE / UNVERIFIED**.
+The hosted image also shows a Test Mode watermark and is not clean retail-client
+acceptance. School-managed policy, interactive
+SmartScreen/Smart App Control and a clean PC without development tools remain
+**NOT RUN**. The remaining exact-package GUI checks
 for wrapping, selection/movement, Hide/Restore, minimize, tray menus and hotkey
-settings are also **NOT RUN** in this investigation. Actual Windows sign-in
+settings have no completed acceptance evidence in this investigation. Actual Windows sign-in
 remains **NOT RUN (not tested)** under the existing waiver. Mac remains unchanged
 **Universal2 Preview**, macOS 14+, with its existing interactive-testing limits.
 No replacement binary has been built; historical releases and assets are preserved.
+If Microsoft clears the unchanged file and no application defect is established,
+completed verification of V1.3.4 may be sufficient. A V1.3.5 build, if justified,
+requires separate acceptance of its exact installer and portable ZIP.
 See [security troubleshooting and acceptance requirements](TESTING.md#security-reports-and-release-acceptance).
 
 ## V1.3.4

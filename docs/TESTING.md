@@ -33,6 +33,37 @@ samples. It preserves Defender events and histories on failure. This script refu
 to operate on a local desktop or self-hosted runner. Its programmatic downloads and
 Expand-Archive extraction are explicitly **not browser/Explorer acceptance**.
 
+The Server workflow uploads a scan/environment checkpoint before runtime testing,
+then rechecks the same files' hashes and scans them before execution. Subprocesses
+write progress, stdout/stderr and deadline results to separate operation folders.
+Setup has a 60-second limit, uninstall 45 seconds and each native suite 180 seconds;
+outer step budgets leave time for final evidence collection and upload. A missing
+artifact or timed-out operation is incomplete evidence, never a successful check.
+An unresponsive runner can still prevent its final upload; the earlier checkpoint
+does not prove anything about operations performed after it.
+Branch pushes run the portable diagnostics; manual dispatch can select the
+installer, portable package or both. The portable run compares fresh capture and
+capture after one zero-size board cancellation separately from the full sequence.
+
+The separate [Windows client workflow](../.github/workflows/windows-client.yml)
+uses the hosted Windows 11 ARM image and x64 emulation. It verifies active Defender
+before entering the primary package URL in visible Edge, and uses Explorer's
+Extract all dialog for the portable ZIP. It records screenshots, UI state and
+origin-marker presence without removing markers or bypassing warnings. Reference
+payloads obtained programmatically are labelled separately. Desktop readiness,
+download, extraction and execution are distinct stages: reaching one does not
+accept the others. Recent client attempts remain incomplete after desktop/focus
+issues and a run that returned no evidence artifact. This environment also cannot
+establish native x64, school-policy or clean-PC behaviour.
+
+`packaged_shortcut_check --trace-transition` records only its tagged test input,
+foreground changes and the owned application's window/thread state. It retains
+the original assertion timing and observes a late preview separately, including
+release and result geometry. These observations cannot convert a failed assertion
+into a pass. Source callback profiling is a separate diagnostic and does not
+execute or accept the published EXE. Keep the failure until the cause is understood;
+do not increase a timeout solely to obtain a passing run.
+
 A replacement release requires an evidence-supported resolution and tests of the
 exact frozen candidate files. Record Windows/Defender versions, active/passive
 mode, cloud settings, exclusions and download-origin information. Test the genuine
