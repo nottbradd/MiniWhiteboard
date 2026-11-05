@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
     parser.add_argument('--trace-transition', action='store_true', help='Record native input/window timing without changing gesture assertions.')
     parser.add_argument('--source-diagnostic', action='store_true', help='Hosted-VM source timing comparison; does not test the packaged executable.')
+    parser.add_argument('--cancel-prelude', action='store_true', help='Diagnostic only: one zero-area W cancellation before Q; not full sequence acceptance.')
     args = parser.parse_args()
     if args.source_diagnostic and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
         parser.error('Source timing comparison requires a disposable hosted runner.')
@@ -368,17 +369,17 @@ def main():
                 continue
             trigger, trigger_key = binding.key, binding.windows_key
             variants = tuple(itertools.product(*(modifier_keys[m] for m in ('meta', 'ctrl', 'alt', 'shift') if m in binding.modifiers)))
-            if args.source_diagnostic and identifier == ACTIONS[0]:
+            if (args.source_diagnostic or args.cancel_prelude) and identifier == ACTIONS[0]:
                 # Isolate the operation immediately preceding the failing Q
                 # transition. Do not let unrelated source board-rendering
                 # timings prevent this diagnostic from reaching that boundary.
-                trace_label = 'W-zero-area-source-prelude'
+                trace_label = 'W-zero-area-diagnostic-prelude'
                 trace_active = args.trace_transition
                 start((*variants[0], trigger_key), (180, 220))
                 QTest.qWait(40)
                 drain()
-                check('Source diagnostic zero-area W cancels', not boards() and not previews())
-                settled('Source diagnostic W zero-area gesture')
+                check('Diagnostic zero-area W cancels', not boards() and not previews())
+                settled('Diagnostic W zero-area gesture')
                 continue
             for variant, modifiers in enumerate(variants):
                 chord = (*modifiers, trigger_key)
@@ -477,7 +478,8 @@ def main():
         temporary.cleanup()
         preferences.__exit__(None, None, None)
         (args.output/'checks.json').write_text(json.dumps({'executable': str(executable),
-            'profile': args.profile, 'capture_only': args.capture_only, 'configuration': json.loads(configuration.to_json()),
+            'profile': args.profile, 'capture_only': args.capture_only, 'cancel_prelude': args.cancel_prelude,
+            'configuration': json.loads(configuration.to_json()),
             'execution_kind': 'source diagnostic, not package acceptance' if args.source_diagnostic else 'unchanged executable',
             'default_registration_probe': default_probe,
             'sha256': hashlib.sha256(executable.read_bytes()).hexdigest() if executable.is_file() else None,

@@ -115,15 +115,19 @@ def main():
             # failures while collecting the independent suites and file hashes.
             check(label + ': ' + suffix + ' native checks completed', passed, len(rows), fatal=False)
             if suffix == 'defaults' and not passed:
-                isolated = args.output / (label + '-capture-isolated')
-                isolated_exit = bounded(label + '-capture-isolated',
-                    [sys.executable, '-m', 'scripts.packaged_shortcut_check', '--executable',
-                     str(directory / 'Mini Whiteboard.exe'), '--output', str(isolated),
-                     '--profile', 'default', '--available-defaults', '--trace-transition', '--capture-only'], 180)
-                report.setdefault('frozen_diagnostics', []).append({
-                    'package': label, 'exit_code': isolated_exit,
-                    'purpose': 'Fresh unchanged executable, Q sequence without prior W workload; does not replace the failed full acceptance sequence'})
-                save()
+                for diagnostic_name, diagnostic_option, purpose in (
+                    ('capture-isolated', '--capture-only', 'Q without prior W workload'),
+                    ('capture-after-cancel', '--cancel-prelude', 'Q after only one zero-area W cancellation'),
+                ):
+                    isolated = args.output / (label + '-' + diagnostic_name)
+                    isolated_exit = bounded(label + '-' + diagnostic_name,
+                        [sys.executable, '-m', 'scripts.packaged_shortcut_check', '--executable',
+                         str(directory / 'Mini Whiteboard.exe'), '--output', str(isolated),
+                         '--profile', 'default', '--available-defaults', '--trace-transition', diagnostic_option], 180)
+                    report.setdefault('frozen_diagnostics', []).append({
+                        'package': label, 'exit_code': isolated_exit,
+                        'purpose': 'Fresh unchanged executable: '+purpose+'; does not replace the failed full acceptance sequence'})
+                    save()
                 diagnostic = args.output / (label + '-source-comparison')
                 diagnostic_exit = bounded(label + '-source-comparison',
                     [sys.executable, '-m', 'scripts.packaged_shortcut_check', '--executable',
