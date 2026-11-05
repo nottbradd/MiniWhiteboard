@@ -35,6 +35,8 @@ protection were active; the runner's broad exclusions were removed before downlo
   startup-choice preservation, running-app refusal, uninstall and 1,246 native
   checks passed. Installed payload matched the portable archive. No Defender
   detections or disabled-protection events were recorded during 07:29:24–07:33:11 UTC.
+  A later installer rerun exceeded its 30-minute limit and was cancelled without
+  producing an evidence artifact; that attempt is **INCOMPLETE**, not a pass.
 - **Portable:** the [diagnostic run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41988838464)
   passed scans, launch, all 1,246 native checks and file-integrity checks, with no
   detections during 07:40:41–07:43:36 UTC. Two earlier attempts each failed the
