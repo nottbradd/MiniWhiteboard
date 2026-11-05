@@ -1,0 +1,152 @@
+"""Drive ordinary Edge download and Explorer extraction in a disposable client VM.
+
+No WebDriver security switches, HTTP download fallback, archive library,
+download-marker changes, warning dismissal or application launch is used here.
+"""
+import argparse
+from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+
+
+def main():
+    if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
+        raise SystemExit('Requires a disposable GitHub-hosted runner.')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('operation', choices=('download', 'extract'))
+    parser.add_argument('--path', type=Path, required=True)
+    parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--url')
+    args = parser.parse_args()
+    from PIL import ImageGrab
+    from pywinauto import Desktop
+
+    args.output.mkdir(parents=True, exist_ok=True)
+    desktop = Desktop(backend='uia')
+    report = {'operation': args.operation, 'started_utc': datetime.now(timezone.utc).isoformat(),
+              'security_warning_dismissed': False, 'origin_marker_changed': False, 'steps': []}
+
+    def save():
+        (args.output/'result.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
+
+    def evidence(label):
+        ImageGrab.grab(all_screens=True).save(args.output/(label+'.png'))
+        rows = []
+        for window in desktop.windows():
+            if not window.is_visible():
+                continue
+            info = {'title': window.window_text(), 'pid': window.process_id(), 'controls': []}
+            try:
+                for control in window.descendants()[:350]:
+                    info['controls'].append({'name': control.window_text(),
+                        'type': control.element_info.control_type,
+                        'automation_id': control.element_info.automation_id})
+            except Exception as error:
+                info['inspection_error'] = str(error)
+            rows.append(info)
+        (args.output/(label+'.json')).write_text(json.dumps(rows, indent=2), encoding='utf-8')
+        report['steps'].append({'label': label, 'utc': datetime.now(timezone.utc).isoformat()})
+        save()
+
+    def wait_for(predicate, seconds, description):
+        deadline = time.monotonic()+seconds
+        while time.monotonic() < deadline:
+            result = predicate()
+            if result:
+                return result
+            time.sleep(.25)
+        raise TimeoutError(description)
+
+    browser = None
+    try:
+        save()
+        if args.operation == 'download':
+            if not args.url or not args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'):
+                raise ValueError('Only the recorded public release URL is allowed')
+            args.destination.mkdir(exist_ok=True, parents=True)
+            if args.path.exists():
+                raise FileExistsError('Browser download requires a fresh destination')
+            profile = args.output/'edge-profile'
+            (profile/'Default').mkdir(parents=True)
+            # Only the download destination is configured. Browser protection
+            # and download-origin handling retain their normal settings.
+            (profile/'Default/Preferences').write_text(json.dumps({'download': {
+                'default_directory': str(args.destination.resolve())}}), encoding='utf-8')
+            edge = next((p for p in (Path(os.environ.get('ProgramFiles(x86)', 'C:/Program Files (x86)')),
+                                    Path(os.environ['ProgramFiles']))
+                         if (p/'Microsoft/Edge/Application/msedge.exe').is_file()), None)
+            if edge is None:
+                raise FileNotFoundError('Microsoft Edge is not installed')
+            command = [str(edge/'Microsoft/Edge/Application/msedge.exe'),
+                       '--user-data-dir='+str(profile.resolve()), '--no-first-run',
+                       '--no-default-browser-check', '--force-renderer-accessibility',
+                       'https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4']
+            browser = subprocess.Popen(command)
+            report['browser_command'] = command
+            window = desktop.window(process=browser.pid, class_name='Chrome_WidgetWin_1')
+            window.wait('visible', timeout=30)
+            window.set_focus()
+            time.sleep(2)
+            evidence('release-page')
+            # The browser handles a URL entered through its real address bar.
+            window.type_keys('^l')
+            window.type_keys(args.url, with_spaces=True, pause=.001)
+            window.type_keys('{ENTER}')
+            try:
+                wait_for(lambda: args.path.is_file() and not list(args.destination.glob('*.crdownload')),
+                         90, 'Browser download incomplete or blocked; no warning was bypassed')
+            finally:
+                window.type_keys('^j')
+                time.sleep(1)
+                evidence('downloads')
+            report['bytes'] = args.path.stat().st_size
+            report['method'] = 'Visible Microsoft Edge; real address-bar navigation'
+            # Close only the isolated browser profile opened by this test.
+            window.close()
+        else:
+            if args.destination.exists():
+                raise FileExistsError('Explorer extraction requires a fresh destination')
+            subprocess.Popen([str(Path(os.environ['WINDIR'])/'explorer.exe'), str(args.path.resolve())])
+
+            def extract_button():
+                for window in desktop.windows(class_name='CabinetWClass'):
+                    if not window.is_visible():
+                        continue
+                    for control in window.descendants(control_type='Button'):
+                        if control.window_text().lower().strip().startswith('extract all'):
+                            return control
+                return None
+
+            button = wait_for(extract_button, 30, 'Explorer Extract all command unavailable')
+            evidence('explorer-archive')
+            button.click_input()
+            wizard = desktop.window(title_re='Extract Compressed.*')
+            wizard.wait('visible', timeout=15)
+            edit = wizard.child_window(control_type='Edit', found_index=0)
+            edit.set_edit_text(str(args.destination.resolve()))
+            evidence('explorer-extract-dialog')
+            wizard.child_window(title='Extract', control_type='Button').click_input()
+            wait_for(lambda: (args.destination/'Mini Whiteboard/Mini Whiteboard.exe').is_file()
+                     and not wizard.exists(timeout=.1), 90, 'Explorer extraction incomplete or blocked')
+            evidence('explorer-extracted')
+            report['method'] = 'Explorer compressed-folder Extract all dialog'
+        report['result'] = 'PASS for this operation only'
+    except Exception as error:
+        report['result'] = 'BLOCKED'
+        report['error'] = str(error)
+        try:
+            evidence('failure')
+        except Exception as collection_error:
+            report['evidence_error'] = str(collection_error)
+        raise
+    finally:
+        report['ended_utc'] = datetime.now(timezone.utc).isoformat()
+        save()
+
+
+if __name__ == '__main__':
+    main()

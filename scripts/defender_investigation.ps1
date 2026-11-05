@@ -1,5 +1,5 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
-param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all')
+param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'This script requires a disposable GitHub-hosted Windows runner.'
@@ -18,6 +18,11 @@ $report = [ordered]@{
     download_method='Invoke-WebRequest, not a browser; no origin marker added or removed'
     extraction_method='Expand-Archive, not Explorer'; runtime='NOT RUN'; package=$Package
     operation_budget_minutes=18; snapshots=@(); files=@(); scans=@(); result='BLOCKED'
+}
+if ($BrowserExplorer) {
+    $report.download_method='Primary package: visible Edge browser; reference payload/predecessor: Invoke-WebRequest. See browser evidence.'
+    $report.extraction_method=if ($Package -eq 'portable') { 'Explorer Extract all' } else { 'Expand-Archive for reference payload only' }
+    $report.client_limit='Windows 11 Arm64 hosted VM; x64 application under emulation; developer tools present'
 }
 
 function Save-Json($Value, [string]$Name) {
@@ -64,7 +69,8 @@ function Snapshot([string]$Stage) {
     $snapshot = Probe "snapshot-$Stage" {
         @{
             stage=$task.stage; utc=(Get-Date).ToUniversalTime().ToString('o')
-            os=Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture
+            os=Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture,ProductType
+            processor=Get-CimInstance Win32_Processor | Select-Object Name,Architecture
             status=Get-MpComputerStatus | Select-Object AMRunningMode,AMServiceEnabled,AntivirusEnabled,
                 AntispywareEnabled,RealTimeProtectionEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,
                 OnAccessProtectionEnabled,IsTamperProtected,AMProductVersion,AMEngineVersion,
@@ -161,7 +167,26 @@ function Processes([string]$Stage) {
 }
 
 try {
-    $null=Snapshot 'runner-defaults'
+    $initial=Snapshot 'runner-defaults'
+    if ($BrowserExplorer -and ($initial.os.ProductType -ne 1 -or [int]$initial.os.BuildNumber -lt 22000)) {
+        throw 'Browser/Explorer client checks require Windows 11 workstation, not Windows Server.'
+    }
+    if ($BrowserExplorer) {
+        $browserPolicy=Probe 'browser-policy' {
+            @('HKLM:\SOFTWARE\Policies\Microsoft\Edge','HKCU:\SOFTWARE\Policies\Microsoft\Edge') | ForEach-Object {
+                @{path=$_;settings=Get-ItemProperty -LiteralPath $_ -ErrorAction SilentlyContinue |
+                    Select-Object SmartScreenEnabled,SmartScreenPuaEnabled,DownloadRestrictions,SmartScreenForTrustedDownloadsEnabled}
+            }
+        }
+        Save-Json $browserPolicy 'browser-policy.json'
+        foreach ($policy in $browserPolicy) {
+            foreach ($name in @('SmartScreenEnabled','SmartScreenPuaEnabled','SmartScreenForTrustedDownloadsEnabled')) {
+                if ($null -ne $policy.settings.$name -and $policy.settings.$name -eq 0) {
+                    throw "Browser protection disabled by runner policy: $name"
+                }
+            }
+        }
+    }
     # Strengthen only this disposable VM; never allow or exclude a detection.
     $null=Probe 'enable-protection' {
         $preferences=Get-MpPreference
@@ -202,7 +227,12 @@ try {
     foreach ($asset in $assets) {
         $asset.url='https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'+$asset.name
         $path=Join-Path $downloadRoot $asset.name
-        Download $asset.url $path
+        $primary=($Package -eq 'installer' -and $asset.name.EndsWith('.exe')) -or ($Package -eq 'portable' -and $asset.name.EndsWith('.zip'))
+        if ($BrowserExplorer -and $primary) {
+            $null=Invoke-Program "browser-download-$Package" @((Get-Command python).Source,'-m','scripts.client_download_check',
+                'download','--path',$path,'--destination',$downloadRoot,'--url',$asset.url,
+                '--output',(Join-Path $evidenceRoot "browser-$Package")) 180
+        } else { Download $asset.url $path }
         $file=Record-File $path 'downloaded'
         if ($file.sha256 -ne $asset.sha256 -or $file.bytes -ne $asset.bytes) { throw 'Published download identity mismatch.' }
         Scan $path $asset.name
@@ -211,10 +241,16 @@ try {
     }
     $report.assets=$assets
     $extracted=Join-Path $downloadRoot 'portable'
-    $null=Probe 'extract-portable' {
-        Expand-Archive -LiteralPath $task.archive -DestinationPath $task.destination
-        @{completed=$true}
-    } @{archive=(Join-Path $downloadRoot $assets[1].name);destination=$extracted} 60
+    if ($BrowserExplorer -and $Package -eq 'portable') {
+        $null=Invoke-Program 'explorer-extraction' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'extract','--path',(Join-Path $downloadRoot $assets[1].name),'--destination',$extracted,
+            '--output',(Join-Path $evidenceRoot 'explorer')) 160
+    } else {
+        $null=Probe 'extract-portable' {
+            Expand-Archive -LiteralPath $task.archive -DestinationPath $task.destination
+            @{completed=$true}
+        } @{archive=(Join-Path $downloadRoot $assets[1].name);destination=$extracted} 60
+    }
     $exe=Join-Path $extracted 'Mini Whiteboard\Mini Whiteboard.exe'
     $file=Record-File $exe 'after-extraction'
     if ($file.sha256 -ne 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716') { throw 'Extracted executable missing or different.' }
