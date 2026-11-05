@@ -12,7 +12,7 @@ on:
         description: Focused portable experiment, or the established standard suites
         type: choice
         default: standard
-        options: [standard, probe-smoke, reduce, source, notify, stale, early-default-fresh, early-default-full, early-custom-fresh, early-custom-full]
+        options: [standard, probe-smoke, reduce, source, notify, stale, pending, early-default-fresh, early-default-full, early-custom-fresh, early-custom-full]
 
 permissions:
   contents: read

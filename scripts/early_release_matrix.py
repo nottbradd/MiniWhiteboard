@@ -10,6 +10,20 @@ from scripts.observed_process import run
 
 
 def cases_for(mode):
+    if mode == 'pending':
+        cases=[]
+        for profile,count in (('default',4),('custom',3)):
+            for action in ('W','Q'):
+                # Fixed short schedules, never held until a preview appears.
+                for index in range(count):
+                    cases.append(dict(action=action,profile=profile,hold_ms=5,
+                                      release_index=index,side=index%2))
+                cases.append(dict(action=action,profile=profile,hold_ms=5,
+                                  release_index=-1,escape=True,side=1))
+                cases.append(dict(action=action,profile=profile,hold_ms=20,
+                                  release_index=-1,repeats=True,side=1))
+        cases.append(dict(action='W',hold_ms=20,release_index=-1,post_release_motion=True))
+        return cases
     if mode=='notify':
         return [dict(action='Q',hold_ms=600,release_index=-1,prelude=n,zero_after_prelude=True,sample=s)
                 for n in (0,1,4) for s in range(2)]+[
@@ -47,7 +61,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
+    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     expected='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
