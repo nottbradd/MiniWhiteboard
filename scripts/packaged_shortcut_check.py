@@ -329,6 +329,18 @@ def main():
                 continue
             trigger, trigger_key = binding.key, binding.windows_key
             variants = tuple(itertools.product(*(modifier_keys[m] for m in ('meta', 'ctrl', 'alt', 'shift') if m in binding.modifiers)))
+            if args.source_diagnostic and identifier == ACTIONS[0]:
+                # Isolate the operation immediately preceding the failing Q
+                # transition. Do not let unrelated source board-rendering
+                # timings prevent this diagnostic from reaching that boundary.
+                trace_label = 'W-zero-area-source-prelude'
+                trace_active = args.trace_transition
+                start((*variants[0], trigger_key), (180, 220))
+                QTest.qWait(40)
+                drain()
+                check('Source diagnostic zero-area W cancels', not boards() and not previews())
+                settled('Source diagnostic W zero-area gesture')
+                continue
             for variant, modifiers in enumerate(variants):
                 chord = (*modifiers, trigger_key)
                 for index, first in enumerate(chord):
