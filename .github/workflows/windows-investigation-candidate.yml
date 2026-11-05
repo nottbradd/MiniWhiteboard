@@ -2,6 +2,9 @@ name: Unpublished Windows investigation candidate
 
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/v1.3.5-defender-investigation]
+    paths: [.github/workflows/windows-investigation-candidate.yml]
 
 permissions:
   contents: read
