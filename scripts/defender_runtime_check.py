@@ -41,12 +41,12 @@ def main():
     def save():
         output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
 
-    def check(label, condition, detail=None):
+    def check(label, condition, detail=None, *, fatal=True):
         row = {'check': label, 'status': 'PASS' if condition else 'FAIL', 'detail': detail}
         report['checks'].append(row)
         print(json.dumps(row), flush=True)
         save()
-        if not condition:
+        if not condition and fatal:
             raise AssertionError(label)
 
     def digest(path):
@@ -82,6 +82,7 @@ def main():
               {**verify_release_files(directory), **verify_frozen_modules(directory / 'Mini Whiteboard.exe')})
 
     def native(directory, label):
+        completed = []
         for module, suffix, extra in (
             ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
@@ -98,7 +99,12 @@ def main():
             rows = document.get('checks', []) if isinstance(document, dict) else document
             report['native_suites'].append({'package': label, 'module': module, 'profile': suffix,
                                            'exit_code': result.returncode, 'reported_checks': len(rows)})
-            check(label + ': ' + suffix + ' native checks completed', result.returncode == 0 and bool(rows), len(rows))
+            passed = result.returncode == 0 and bool(rows) and all(row['status'] == 'PASS' for row in rows)
+            completed.append(passed)
+            # Each suite owns and cleans up its process and preferences. Retain
+            # failures while collecting the independent suites and file hashes.
+            check(label + ': ' + suffix + ' native checks completed', passed, len(rows), fatal=False)
+        return all(completed)
 
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
 
@@ -141,10 +147,11 @@ def main():
         if args.package != 'installer':
             payload(portable, 'Portable before launch', exact=True)
             quiet_launch(portable, 'Portable')
-            native(portable, 'portable')
+            native_passed = native(portable, 'portable')
             payload(portable, 'Portable after execution', exact=True)
             check('Portable did not install itself or opt into startup',
                   reg(install_key, 'InstallLocation') is None and reg(RUN_KEY, VALUE_NAME) is None)
+            check('All requested portable native suites passed', native_passed)
             if args.package == 'portable':
                 report['result'] = 'PASS for the listed original portable-package checks only'
                 return
@@ -182,13 +189,15 @@ def main():
         payload(target, 'Installed after upgrade')
         check('Same-version repeat install completes', setup('repeat-install') == 0)
         payload(target, 'Installed after repeat setup')
-        native(target, 'installed')
+        native_passed = native(target, 'installed')
+        payload(target, 'Installed after native suites')
         check('Normal silent uninstall completes', uninstall('normal-uninstall') == 0)
         installed = False
         check('Uninstall removes owned app files, entry and startup registrations',
               not (target / 'Mini Whiteboard.exe').exists() and reg(install_key, 'InstallLocation') is None
               and reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None)
         check('Uninstall preserves user preferences', settings.value('shortcuts/custom_windows') == configuration.to_json())
+        check('All requested installed native suites passed', native_passed)
         report['result'] = 'PASS for the listed original-package checks only'
     except Exception as error:
         report['result'] = 'FAILED'; report['error'] = str(error)

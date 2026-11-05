@@ -14,6 +14,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 
 os.environ['QT_QPA_PLATFORM'] = 'windows'
 from PySide6.QtTest import QTest
@@ -127,6 +128,26 @@ def main():
         rows.append(row)
         print(json.dumps(row), flush=True)
         if not condition:
+            # Preserve the original failure and its timing. Later observations
+            # diagnose a delayed preview without converting it into a pass.
+            observations = []
+            started = time.monotonic()
+            for delay in (0, 100, 400, 500):
+                if delay:
+                    QTest.qWait(delay)
+                observed = windows()
+                observations.append({
+                    'elapsed_ms': round((time.monotonic() - started) * 1000),
+                    'process_exit_code': process.poll(),
+                    'foreground_pid': owner(foreground()),
+                    'foreground_title': name(foreground()),
+                    'windows': [{'title': name(h), 'bounds': vars(bounds(h))} for h in observed],
+                    'held_keys': [vk for vk in pressed if u.GetAsyncKeyState(vk) & 0x8000],
+                })
+            (args.output/'failure-observations.json').write_text(json.dumps({
+                'failed_check': row, 'observations': observations,
+                'foreground_events': foreground_events,
+            }, indent=2), encoding='utf-8')
             raise AssertionError(label)
 
     def state():

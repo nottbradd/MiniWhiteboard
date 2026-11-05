@@ -190,12 +190,13 @@ try {
             Scan $previousPath 'predecessor'
         }
         Require-Protection (Snapshot 'before-runtime')
+        $report.runtime = "Attempting scripted $Package checks; see runtime.json for individual outcomes"
         & python -m scripts.defender_runtime_check --downloads $downloadRoot --output $evidenceRoot --package $Package `
             *> (Join-Path $evidenceRoot 'runtime.txt')
         $report.runtime_exit_code = $LASTEXITCODE
         Require-Protection (Snapshot 'after-runtime')
         if ($report.runtime_exit_code -ne 0) { throw 'Exact-package runtime investigation failed; see runtime.txt.' }
-        $report.runtime = 'Completed scripted checks of original published installer and portable executable; see runtime.json'
+        $report.runtime = "Completed scripted $Package checks of the original published executable; see runtime.json"
         Scan $downloadRoot 'after-runtime'
     }
     $report.result = 'SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
