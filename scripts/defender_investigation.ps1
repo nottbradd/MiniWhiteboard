@@ -1,6 +1,7 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
       [switch]$ClientPreflight,
+      [ValidateSet('standard','probe-smoke','reduce','source','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
       [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight')][string]$EvidenceName='defender-investigation',
       [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
 $ErrorActionPreference = 'Stop'
@@ -334,6 +335,11 @@ try {
         Save-Json $report 'report.json'
         $runtimeCommand=@((Get-Command python).Source,'-m','scripts.defender_runtime_check',
             '--downloads',$downloadRoot,'--output',$evidenceRoot,'--package',$Package)
+        if ($Diagnostic -ne 'standard') {
+            if ($Package -ne 'portable' -or $BrowserExplorer) { throw 'Focused timing diagnostics require the fixed portable baseline.' }
+            $runtimeCommand=@((Get-Command python).Source,'-m','scripts.early_release_matrix',
+                '--executable',$exe,'--output',(Join-Path $evidenceRoot 'timing'),'--mode',$Diagnostic)
+        }
         if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
         $runtime=Invoke-Program "runtime-$Package" $runtimeCommand 600 -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status

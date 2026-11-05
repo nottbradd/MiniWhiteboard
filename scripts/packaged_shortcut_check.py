@@ -37,8 +37,9 @@ def main():
     parser.add_argument('--trace-transition', action='store_true', help='Record native input/window timing without changing gesture assertions.')
     parser.add_argument('--source-diagnostic', action='store_true', help='Hosted-VM source timing comparison; does not test the packaged executable.')
     parser.add_argument('--cancel-prelude', action='store_true', help='Diagnostic only: one zero-area W cancellation before Q; not full sequence acceptance.')
+    parser.add_argument('--timing-case', type=Path, help='Hosted early-release diagnostic case; original acceptance assertions stay separate.')
     args = parser.parse_args()
-    if args.source_diagnostic and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
+    if (args.source_diagnostic or args.timing_case) and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
         parser.error('Source timing comparison requires a disposable hosted runner.')
     args.output.mkdir(parents=True, exist_ok=True)
     configuration = {'default': defaults(hide='shift'), 'compatibility': compatibility(defaults(hide='shift')),
@@ -138,11 +139,11 @@ def main():
             raise RuntimeError('Owned window disappeared')
         return Rect(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top)
 
-    def windows():
+    def windows(include_hidden=False):
         found = []
         @enum_type
         def visit(hwnd, _):
-            if owner(hwnd) == process.pid and visible(hwnd):
+            if owner(hwnd) == process.pid and (include_hidden or visible(hwnd)):
                 found.append(int(hwnd))
             return True
         enum(visit, 0)
@@ -167,6 +168,10 @@ def main():
               held_keys=[vk for vk in (0x5B,0x5C,0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,
                                       configuration.create.windows_key,configuration.capture.windows_key,27)
                          if u.GetAsyncKeyState(vk) & 0x8000])
+
+    def configure_trace(label):
+        nonlocal trace_active, trace_label
+        trace_active, trace_label = True, label
 
     sample_timer.timeout.connect(lambda: observe_transition('timer') if trace_active else None)
 
@@ -353,12 +358,15 @@ def main():
         QTest.qWait(1800)
         check('Final executable starts quietly', process.poll() is None and not windows())
         target = subprocess.Popen([sys.executable, '-m', 'scripts.creation_shortcut_check',
-                                   '--focus-target', str(state_path)], creationflags=subprocess.CREATE_NO_WINDOW)
+                                   '--focus-target', str(state_path), *(['--pattern-target'] if args.timing_case else [])], creationflags=subprocess.CREATE_NO_WINDOW)
         identity = state()
         target_hwnd, target_pid = identity['hwnd'], identity['pid']
         original = identity['text']
         hook = set_hook(3, 3, None, foreground_changed, 0, 0, 0)
         check('Foreground observer is active', bool(hook))
+        if args.timing_case:
+            from .early_release_probe import exercise
+            return exercise(locals(), json.loads(args.timing_case.read_text(encoding='utf-8')))
         points = (((180, 220), (540, 440)), ((540, 440), (180, 220)),
                   ((180, 440), (540, 220)), ((540, 220), (180, 440)))
         for identifier, binding in configuration.items()[:2]:

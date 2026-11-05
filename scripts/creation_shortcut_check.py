@@ -26,11 +26,13 @@ from mini_whiteboard.snapping import SnapPreferences
 from mini_whiteboard.hotkey_config import compatibility, defaults
 
 
-def focus_target(path):
+def focus_target(path, pattern=False):
     app = QApplication([])
     window = QMainWindow()
     window.setWindowTitle('Mini Whiteboard disposable shortcut target')
     edit = QTextEdit('Owned test content. Global creation must leave this text and its menus alone.')
+    if pattern:
+        edit.setStyleSheet('QTextEdit { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #d34156,stop:0.4 #43b8a2,stop:1 #3763cd); }')
     window.setCentralWidget(edit)
     menu = window.menuBar().addMenu('File')
     menu.addAction('Test command')
@@ -53,11 +55,12 @@ def focus_target(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--focus-target', type=Path)
+    parser.add_argument('--pattern-target', action='store_true')
     parser.add_argument('--output', type=Path, default=Path('verification/v134-review01/creation-shortcuts.json'))
     parser.add_argument('--require-both', action='store_true')
     args = parser.parse_args()
     if args.focus_target:
-        return focus_target(args.focus_target)
+        return focus_target(args.focus_target,args.pattern_target)
     n.enable_dpi_awareness()
     app = QApplication([])
     app.setQuitOnLastWindowClosed(False)

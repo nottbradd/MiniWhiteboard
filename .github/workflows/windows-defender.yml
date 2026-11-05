@@ -8,6 +8,11 @@ on:
         type: choice
         default: all
         options: [all, installer, portable]
+      diagnostic:
+        description: Focused portable experiment, or the established standard suites
+        type: choice
+        default: standard
+        options: [standard, probe-smoke, reduce, source, early-default-fresh, early-default-full, early-custom-fresh, early-custom-full]
 
 permissions:
   contents: read
@@ -52,7 +57,8 @@ jobs:
         shell: pwsh
         env:
           INVESTIGATION_PACKAGE: ${{ matrix.package }}
-        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE -ReuseSamples -EvidenceName defender-runtime -WorkBudgetMinutes 12
+          INVESTIGATION_DIAGNOSTIC: ${{ inputs.diagnostic }}
+        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE -Diagnostic $env:INVESTIGATION_DIAGNOSTIC -ReuseSamples -EvidenceName defender-runtime -WorkBudgetMinutes 12
       - name: Preserve security observations even when blocked
         if: always()
         timeout-minutes: 3

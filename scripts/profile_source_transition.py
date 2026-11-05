@@ -30,7 +30,11 @@ def main():
                purpose='Source timing comparison only; this does not execute or accept the published EXE.')
         tracked = {'WhiteboardApplication.notify', 'ScreenshotController.start',
                    'PreviewOverlay.__init__', 'PreviewOverlay.showEvent',
-                   'PlacementController.release', 'PlacementController.start_at'}
+                   'PreviewOverlay.paintEvent', 'PlacementController.release', 'PlacementController.start_at',
+                   'HoldTracker.activate', 'HoldTracker.release', 'PlacementController.cancel',
+                   'ScreenshotController.release', 'ScreenshotController.cancel',
+                   'ScreenshotController.capture_pending', 'ScreenshotController.complete',
+                   'ScreenshotController.deliver', 'NativeHotkeys.enable_escape'}
         active = {}
 
         def profile(frame, event, _arg):
@@ -52,7 +56,15 @@ def main():
                 if message.message != native.WM_HOTKEY:
                     return
             active[key] = time.perf_counter_ns()
-            record('call', method=method)
+            detail={}
+            instance=frame.f_locals.get('self')
+            if method == 'HoldTracker.activate':
+                detail={'identifier':frame.f_locals.get('identifier'),'previous_active':instance.active,'blocked':list(instance.blocked)}
+            elif method == 'NativeHotkeys.nativeEventFilter':
+                detail={'identifier':int(message.wParam),'message_tick':int(message.time)}
+            elif method.startswith(('PlacementController.','ScreenshotController.')):
+                detail={'owner':instance.session.owner,'anchor':str(getattr(instance,'anchor',None))}
+            record('call', method=method, **detail)
 
         sys.setprofile(profile)
         try:
