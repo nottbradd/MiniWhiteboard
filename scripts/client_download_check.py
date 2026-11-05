@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--url')
     args = parser.parse_args()
     from PIL import ImageGrab
-    from pywinauto import Desktop
+    from pywinauto import Desktop, mouse
 
     args.output.mkdir(parents=True, exist_ok=True)
     desktop = Desktop(backend='uia')
@@ -68,6 +68,33 @@ def main():
                 return result
             time.sleep(.25)
         raise TimeoutError(description)
+
+    def activate_browser(window):
+        # UIA SetFocus can focus an element without bringing Edge in front of
+        # the shell. Use its native top-level window, then confirm ownership.
+        foreground = ctypes.windll.user32.GetForegroundWindow
+        foreground.restype = ctypes.c_void_p
+        try:
+            Desktop(backend='win32').window(handle=window.handle).set_focus()
+        except Exception as error:
+            report.setdefault('browser_focus_errors', []).append(str(error))
+        if foreground() != window.handle:
+            # Normal title-bar click, only when the point really belongs to
+            # this browser. Never click through an intervening dialog/warning.
+            from ctypes import wintypes
+            hit = ctypes.windll.user32.WindowFromPoint
+            hit.argtypes = [wintypes.POINT]
+            hit.restype = ctypes.c_void_p
+            ancestor = ctypes.windll.user32.GetAncestor
+            ancestor.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+            ancestor.restype = ctypes.c_void_p
+            rect = window.rectangle()
+            point = (rect.left+(rect.right-rect.left)//2, rect.top+18)
+            if ancestor(hit(wintypes.POINT(*point)), 2) != window.handle:
+                raise RuntimeError('Browser title bar is occluded; no click sent')
+            mouse.click(coords=point)
+        wait_for(lambda: foreground() == window.handle, 3,
+                 'Browser does not own foreground; no keys were sent')
 
     browser = None
     try:
@@ -144,7 +171,7 @@ def main():
             report['browser_command'] = command
             window = desktop.window(process=browser.pid, class_name='Chrome_WidgetWin_1')
             window.wait('visible', timeout=30)
-            window.set_focus()
+            activate_browser(window)
             time.sleep(2)
             evidence('release-page')
             foreground = ctypes.windll.user32.GetForegroundWindow
@@ -159,7 +186,7 @@ def main():
                 wait_for(lambda: args.path.is_file() and not list(args.destination.glob('*.crdownload')),
                          90, 'Browser download incomplete or blocked; no warning was bypassed')
             finally:
-                window.set_focus()
+                activate_browser(window)
                 if foreground() == window.handle:
                     window.type_keys('^j')
                 time.sleep(1)
