@@ -202,9 +202,35 @@ def main():
                     'windows': [{'title': name(h), 'bounds': vars(bounds(h))} for h in observed],
                     'held_keys': [vk for vk in pressed if u.GetAsyncKeyState(vk) & 0x8000],
                 })
+            recovery = None
+            if (args.trace_transition and label.endswith('actual native hold starts only a passive preview')
+                    and detail and previews() and not boards() and foreground() == target_hwnd):
+                # Follow through only after recording the unchanged failed
+                # assertion. This distinguishes a late, working preview from a
+                # lost gesture; it can never turn the failed check into a pass.
+                set_cursor(*detail['end'])
+                first = detail['first_release']
+                key(first, True)
+                for vk in tuple(pressed):
+                    key(vk, True)
+                deadline = time.monotonic()+2
+                while len(boards()) != 1 and process.poll() is None and time.monotonic() < deadline:
+                    QTest.qWait(10)
+                result_boards = boards()
+                recovery = {'board_count': len(result_boards), 'process_exit_code': process.poll(),
+                            'focus_on_result': len(result_boards) == 1 and foreground() == result_boards[0]}
+                if len(result_boards) == 1:
+                    r = bounds(result_boards[0])
+                    pad = round(SHADOW*u.GetDpiForWindow(result_boards[0])/96)
+                    paper = Rect(r.x+pad, r.y+pad, r.width-2*pad, r.height-2*pad)
+                    begin, end = detail['begin'], detail['end']
+                    expected = Rect(min(begin[0], end[0]), min(begin[1], end[1]),
+                                    abs(end[0]-begin[0]), abs(end[1]-begin[1]))
+                    recovery.update(paper=vars(paper), expected=vars(expected), exact_rectangle=paper == expected)
+                trace('failed-preview-follow-through', **recovery)
             (args.output/'failure-observations.json').write_text(json.dumps({
                 'failed_check': row, 'observations': observations,
-                'foreground_events': foreground_events,
+                'foreground_events': foreground_events, 'diagnostic_follow_through': recovery,
             }, indent=2), encoding='utf-8')
             save_trace()
             raise AssertionError(label)
