@@ -101,6 +101,7 @@ class WindowsConfigurationTests(QtCase):
                                GetAsyncKeyState=lambda key: 0x8000 if key in self.down else 0)
         self.enterContext(patch.object(native, 'IS_WINDOWS', True))
         self.enterContext(patch.object(native, 'user32', user, create=True))
+        self.enterContext(patch.object(native, 'cursor_position', return_value=(540, 440)))
         self.enterContext(patch.object(native, 'kernel32', SimpleNamespace(GetTickCount=lambda: self.clock), create=True))
         self.enterContext(patch.object(native.C, 'get_last_error', lambda: 1409, create=True))
         self.enterContext(patch.object(native.C, 'WinError', lambda error: OSError('1409: already registered'), create=True))
@@ -163,6 +164,7 @@ class WindowsConfigurationTests(QtCase):
         self.keys.hide_latch.poll()
         self.message(CREATE_HOTKEY, CUSTOM.create, 101)
         self.assertFalse(events)
+        self.down = {0x77, 0xA2, 0xA0}
         self.message(CREATE_HOTKEY, CUSTOM.create, 104)
         self.assertEqual(events, ['create'])
 

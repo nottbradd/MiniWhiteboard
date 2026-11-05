@@ -11,6 +11,7 @@ from PySide6.QtGui import QGuiApplication
 from ...geometry import Rect
 from ..base import HotkeyEvents
 from ..hold import HoldTracker
+from .release_watch import ReleaseWatch
 from ..toggle import ToggleLatch
 from ..base import HIDE_HOTKEY
 from ...hotkey_config import ConfigurableHotkeys, defaults
@@ -185,6 +186,8 @@ class NativeHotkeys(QAbstractNativeEventFilter, ConfigurableHotkeys):
         self.registered = set()
         self.hide_shortcut = hide_shortcut
         self.initialize_configuration(defaults(hide=hide_shortcut))
+        self.release_watch = ReleaseWatch(self._sample_keys, cursor_position)
+        self.press_point = None
         self.hold = HoldTracker(app, self.events, self.sample,
                                 {Qt.Key.Key_W: CREATE_HOTKEY, Qt.Key.Key_Q: CAPTURE_HOTKEY})
         self.hide_latch = ToggleLatch(app, self.events.hide_toggle,
@@ -195,18 +198,37 @@ class NativeHotkeys(QAbstractNativeEventFilter, ConfigurableHotkeys):
         self.last_release = {}
         self.events.create_released.connect(lambda: self.record_release(CREATE_HOTKEY))
         self.events.capture_released.connect(lambda: self.record_release(CAPTURE_HOTKEY))
+        self.events.cancel.connect(self.release_watch.stop)
         app.installNativeEventFilter(self)
 
     def record_release(self, identifier):
         self.last_release[identifier] = kernel32.GetTickCount()
 
-    def sample(self):
+    def _sample_keys(self):
         down = {identifier for identifier, chord in self.configuration.items()[:2]
                 if user32.GetAsyncKeyState(chord.windows_key) & 0x8000}
         keys = {'meta': (0x5B, 0x5C), 'alt': (0xA4, 0xA5), 'shift': (0xA0, 0xA1), 'ctrl': (0xA2, 0xA3)}
         held = {name for name, codes in keys.items() if any(user32.GetAsyncKeyState(key) & 0x8000 for key in codes)}
         complete = {identifier for identifier in down if self.configuration[identifier].modifiers <= held}
         return down, complete, bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
+
+    def sample(self):
+        down, complete, escape = self._sample_keys()
+        if self.hold.active is not None:
+            end = self.release_watch.observe((down, complete, escape))
+            if end is not None:
+                if end.error:
+                    raise OSError(end.error)
+                complete.discard(self.release_watch.identifier)
+                escape = escape or end.cancelled
+        return down, complete, escape
+
+    def gesture_start_point(self):
+        return self.press_point if self.press_point is not None else cursor_position()
+
+    def gesture_release_point(self):
+        end = self.release_watch.result
+        return end.point if end is not None and end.point is not None else cursor_position()
 
     def register(self, identifier, modifiers, key):
         if not IS_WINDOWS:
@@ -284,6 +306,15 @@ class NativeHotkeys(QAbstractNativeEventFilter, ConfigurableHotkeys):
                         if msg.wParam == HIDE_HOTKEY:
                             self.hide_latch.activate()
                         else:
+                            if self.hold.active is None and not self.hold.blocked:
+                                # A queued press whose chord has already ended
+                                # was never accepted. Do not create it later at
+                                # the pointer's new location.
+                                if msg.wParam not in self._sample_keys()[1]:
+                                    self.record_release(msg.wParam)
+                                    return True, 0
+                                self.press_point = (msg.pt.x, msg.pt.y)
+                                self.release_watch.begin(msg.wParam)
                             self.hold.activate(msg.wParam)
                 return True, 0
         return False, 0
@@ -291,6 +322,7 @@ class NativeHotkeys(QAbstractNativeEventFilter, ConfigurableHotkeys):
     def close(self):
         self.events.cancel.emit()
         self.hold.close()
+        self.release_watch.stop()
         self.hide_latch.close()
         for identifier in tuple(self.registered):
             user32.UnregisterHotKey(None, identifier)

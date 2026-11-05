@@ -49,7 +49,7 @@ class ScreenshotController(QObject):
         if not self.session.claim("capture"):
             return
         try:
-            self.anchor = self.desktop.cursor_position()
+            self.anchor = getattr(self.hotkeys, 'gesture_start_point', self.desktop.cursor_position)()
             self.hotkeys.enable_escape()
             for monitor in self.desktop.displays():
                 overlay = PreviewOverlay(monitor, platform=self.platform)
@@ -81,7 +81,7 @@ class ScreenshotController(QObject):
         if self.anchor is None:
             return
         try:
-            self.finish(self.desktop.cursor_position())
+            self.finish(getattr(self.hotkeys, 'gesture_release_point', self.desktop.cursor_position)())
         except Exception as error:
             self.cancel()
             self.message.emit(f"Screenshot selection cancelled: {error}")
@@ -93,7 +93,8 @@ class ScreenshotController(QObject):
         if (not all(math.isfinite(v) for v in (rect.x, rect.y, rect.width, rect.height))
                 or rect.width < 4 or rect.height < 4):
             self.cancel()
-            self.message.emit("Selection cancelled. Choose a screenshot region at least 4 × 4 pixels.")
+            if rect.width and rect.height:
+                self.message.emit("Selection cancelled. Choose a screenshot region at least 4 × 4 pixels.")
             return
         excluded = tuple(identifier for overlay in self.overlays
                          if (identifier := self.desktop.capture_window_identifier(overlay)) is not None)

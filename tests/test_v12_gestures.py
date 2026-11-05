@@ -74,6 +74,27 @@ class HoldGestureTests(QtCase):
         self.assert_idle()
         self.assertFalse(self.tracker.timer.isActive())
 
+    def test_retained_native_release_point_ignores_subsequent_pointer_motion(self):
+        self.keys.gesture_start_point = lambda: (180, 220)
+        self.keys.gesture_release_point = lambda: (540, 440)
+        self.begin(W)
+        self.release(W, point=(700, 500))
+        self.assertEqual(self.rects, [Rect(180, 220, 360, 220)])
+        self.begin(S)
+        self.release(S, point=(700, 500))
+        self.assertEqual(self.capture.pending_rect, Rect(180, 220, 360, 220))
+
+    def test_zero_size_cancel_is_silent_but_nonzero_undersize_explains_limit(self):
+        self.placement.message.connect(self.messages.append)
+        for identifier in (W, S):
+            self.begin(identifier, (180, 220))
+            self.release(identifier, (180, 220))
+            self.assert_idle()
+        self.assertEqual(self.messages, [])
+        self.begin(W, (180, 220))
+        self.release(W, (181, 221))
+        self.assertEqual(len(self.messages), 1)
+
     def test_long_repeat_and_duplicate_release_produce_one_result(self):
         self.begin()
         for _ in range(100):

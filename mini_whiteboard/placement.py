@@ -140,7 +140,7 @@ class PlacementController(QObject):
         if self.session.owner is not None:
             return
         try:
-            self.start_at(self.desktop.cursor_position())
+            self.start_at(getattr(self.hotkeys, 'gesture_start_point', self.desktop.cursor_position)())
         except Exception as error:
             self.cancel()
             self.message.emit(f"Placement could not start: {error}")
@@ -149,13 +149,14 @@ class PlacementController(QObject):
         if self.session.owner != "board" or not self.state.active:
             return
         try:
-            point = self.desktop.cursor_position()
+            point = getattr(self.hotkeys, 'gesture_release_point', self.desktop.cursor_position)()
             rect = normalized(self.state.anchor, point)
             scale = self.desktop.placement_scale(rect)
             status, rect = self.state.release(point, scale)
             self.cancel()
             if status == "too_small":
-                self.message.emit("Selection cancelled. Choose at least 160 × 100 logical pixels.")
+                if rect.width and rect.height:
+                    self.message.emit("Selection cancelled. Choose at least 160 × 100 logical pixels.")
                 return
             self.confirmed.emit(rect)
         except Exception as error:

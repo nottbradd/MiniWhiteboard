@@ -10,6 +10,8 @@ from scripts.observed_process import run
 
 
 def cases_for(mode):
+    if mode == 'source-pending':
+        return [dict(case, source=True) for case in cases_for('pending')]
     if mode == 'pending':
         cases=[]
         for profile,count in (('default',4),('custom',3)):
@@ -61,7 +63,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
+    parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','source-pending','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     expected='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
@@ -83,7 +85,7 @@ def main():
         result=json.loads(result_path.read_text()) if result_path.is_file() else {'result':'INCOMPLETE: no case result'}
         results.append({'case':case,'operation':operation,'result':result.get('result'),
                         'primary':result.get('primary'),'next':result.get('next'),'error':result.get('error')})
-        path.write_text(json.dumps({'mode':args.mode,'executable_sha256':actual,'source_only':args.mode=='source',
+        path.write_text(json.dumps({'mode':args.mode,'executable_sha256':actual,'source_only':all(r['case'].get('source') for r in results),
                                     'cases':results},indent=2)+'\n',encoding='utf-8')
         if operation['status'] in ('TIMED OUT','ERROR'):
             break  # No blind retries or further input after a lost process boundary.
