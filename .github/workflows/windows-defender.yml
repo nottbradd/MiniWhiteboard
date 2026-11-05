@@ -25,7 +25,7 @@ jobs:
         # Reuse completed evidence; explicitly choose the next diagnostic run.
         package: ${{ fromJSON(inputs.package == 'installer' && '["installer"]' || inputs.package == 'portable' && '["portable"]' || '["installer","portable"]') }}
     runs-on: windows-2025
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -53,12 +53,12 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Inspect runtime using the same reverified published files
-        timeout-minutes: 16
+        timeout-minutes: 20
         shell: pwsh
         env:
           INVESTIGATION_PACKAGE: ${{ matrix.package }}
           INVESTIGATION_DIAGNOSTIC: ${{ inputs.diagnostic }}
-        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE -Diagnostic $env:INVESTIGATION_DIAGNOSTIC -ReuseSamples -EvidenceName defender-runtime -WorkBudgetMinutes 12
+        run: ./scripts/defender_investigation.ps1 -Exercise -Package $env:INVESTIGATION_PACKAGE -Diagnostic $env:INVESTIGATION_DIAGNOSTIC -ReuseSamples -EvidenceName defender-runtime -WorkBudgetMinutes 17
       - name: Preserve security observations even when blocked
         if: always()
         timeout-minutes: 3

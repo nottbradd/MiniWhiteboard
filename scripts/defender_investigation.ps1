@@ -341,7 +341,8 @@ try {
                 '--executable',$exe,'--output',(Join-Path $evidenceRoot 'timing'),'--mode',$Diagnostic)
         }
         if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
-        $runtime=Invoke-Program "runtime-$Package" $runtimeCommand 600 -AllowFailure
+        $runtimeLimit=if ($Diagnostic -like '*-full') { 900 } else { 600 }
+        $runtime=Invoke-Program "runtime-$Package" $runtimeCommand $runtimeLimit -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status
         Require-Protection (Snapshot 'after-runtime')
         if ($runtime.status -ne 'PASS') { throw "Exact-package runtime investigation $($runtime.status); see operation output." }

@@ -163,8 +163,9 @@ def exercise(c, case):
         begin, end = tuple(spec.get('begin',(180,220))), tuple(spec.get('end',(540,440)))
         expected_rect=Rect(min(begin[0],end[0]),min(begin[1],end[1]),abs(end[0]-begin[0]),abs(end[1]-begin[1]))
         zero, cancel = bool(spec.get('zero')), bool(spec.get('escape'))
+        cancel_after=spec.get('cancel_after_release_ms')
         if zero: end = begin
-        if cancel:
+        if cancel or cancel_after is not None:
             probe_id = 0x7D41
             if not user.RegisterHotKey(None,probe_id,binding.windows_modifiers|n.MOD_NOREPEAT,27):
                 return {'result':'NOT RUN: Escape chord conflict','scope':label}
@@ -200,6 +201,12 @@ def exercise(c, case):
             key(27)
         else:
             key(first,True)
+        cancellation_snapshot=None
+        if cancel_after is not None:
+            QTest.qWait(cancel_after)
+            cancellation_snapshot=observe(label+'-cancel-after-release')
+            if not (set(boards())-previous_boards):
+                key(27); cancel=True
         completion = None
         until = time.monotonic()+FUNCTIONAL_SECONDS
         while time.monotonic() < until and process.poll() is None:
@@ -235,7 +242,7 @@ def exercise(c, case):
                         count=len(found),exact=exact,focused=focused,clean=clean)
         visible_at = next((s['ms'] for s in report['events'] if s['event'].startswith(label+'-') and s['visible_preview']),None)
         result={'scope':label,'result':status,'injection_finished_ms':started,'release_ms':release_time,
-                'actual_hold_ms':release_time-started,'first_released_vk':27 if cancel else first,
+                'actual_hold_ms':release_time-started,'first_released_vk':27 if spec.get('escape') else first,
                 'preview_visible_at_release':at_release['visible_preview'],
                 'preparation_observed_before_move':prepared_before_move,
                 'preparation_first_ms':prepared['ms'] if prepared else None,
@@ -243,6 +250,7 @@ def exercise(c, case):
                 'board_count':len(found),'exact_geometry':exact,'paper':vars(paper) if paper else None,
                 'focus_on_result':focused,'clean':clean,'completion_ms':completion['ms'] if completion else None,
                 'foreground_events':focus_events,
+                'cancellation_after_release':cancellation_snapshot,
                 'acceptance':'externally observed preparation before movement' if prepared_before_move else 'not established by external observation'}
         if expected_pixels is not None and exact and focused:
             pending_pixels.append((result,found[0],expected_pixels,label))

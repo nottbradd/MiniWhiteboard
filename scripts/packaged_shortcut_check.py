@@ -109,8 +109,8 @@ def main():
     preferences.__enter__()
     available_actions = set(ACTIONS)
     default_probe = None
-    if args.available_defaults:
-        if args.profile != 'default':
+    if args.available_defaults or args.timing_case:
+        if args.available_defaults and args.profile != 'default':
             raise ValueError('--available-defaults requires --profile default')
         probe = n.NativeHotkeys(app)
         probe.configure(configuration)

@@ -30,6 +30,7 @@ def cases_for(mode):
                               side=index%2,profile=profile,prelude=prelude))
         for extra in ({'zero':True,'hold_ms':20},{'escape':True,'hold_ms':60},{'repeats':True,'hold_ms':240}):
             cases.append(dict(action=action,release_index=-1,side=1,profile=profile,prelude=prelude,**extra))
+    cases.append(dict(action='Q',hold_ms=60,release_index=-1,profile=profile,prelude=prelude,cancel_after_release_ms=5))
     return cases
 
 
