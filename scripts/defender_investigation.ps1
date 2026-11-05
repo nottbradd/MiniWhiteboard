@@ -1,12 +1,14 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
-      [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime')][string]$EvidenceName='defender-investigation',
+      [switch]$ClientPreflight,
+      [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight')][string]$EvidenceName='defender-investigation',
       [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'This script requires a disposable GitHub-hosted Windows runner.'
 }
 if ($ReuseSamples -and $BrowserExplorer) { throw 'Browser acceptance cannot reuse a programmatic download.' }
+if ($ClientPreflight -and (-not $BrowserExplorer -or $Exercise)) { throw 'Client preflight uses only a harmless ZIP, without application execution.' }
 $evidenceRoot = Join-Path $env:GITHUB_WORKSPACE "verification/$EvidenceName"
 New-Item -ItemType Directory -Path $evidenceRoot -ErrorAction Stop | Out-Null
 $operationsRoot = Join-Path $evidenceRoot 'operations'
@@ -236,7 +238,7 @@ try {
     if (-not $script:scanner) { $script:scanner="$env:ProgramFiles\Windows Defender\MpCmdRun.exe" }
     $cloud=Invoke-Program 'cloud-connection' @($script:scanner,'-ValidateMapsConnection') 60
     $report.cloud_connection_exit_code=$cloud.exit_code
-    $downloadRoot=Join-Path $env:USERPROFILE 'Downloads\MiniWhiteboard-investigation'
+    $downloadRoot=Join-Path $env:USERPROFILE $(if ($ClientPreflight) { 'Downloads\MiniWhiteboard-preflight' } else { 'Downloads\MiniWhiteboard-investigation' })
     if ($ReuseSamples) {
         if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { throw 'Prepared sample directory is missing' }
     } else { New-Item -ItemType Directory -Path $downloadRoot -ErrorAction Stop | Out-Null }
@@ -245,6 +247,28 @@ try {
             'prepare','--path',$downloadRoot,'--destination',$downloadRoot,
             '--output',(Join-Path $evidenceRoot 'client-desktop')) 60
     }
+    if ($ClientPreflight) {
+        $fixture=Join-Path $env:GITHUB_WORKSPACE 'tests\fixtures\client-preflight.zip'
+        $expected=(Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash.ToLowerInvariant()
+        $download=Join-Path $downloadRoot 'client-preflight.zip'
+        $url="https://raw.githubusercontent.com/nottbradd/MiniWhiteboard/$env:GITHUB_SHA/tests/fixtures/client-preflight.zip"
+        $null=Invoke-Program 'preflight-browser-download' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'download','--path',$download,'--destination',$downloadRoot,'--url',$url,
+            '--output',(Join-Path $evidenceRoot 'browser-harmless')) 120
+        $file=Record-File $download 'preflight-browser-download'
+        if ($file.sha256 -ne $expected) { throw 'Harmless browser download did not match the fixture.' }
+        Scan $download 'harmless-archive'
+        $destination=Join-Path $downloadRoot 'extracted'
+        $null=Invoke-Program 'preflight-explorer-extract' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'extract','--path',$download,'--destination',$destination,'--expected-entry','preflight.txt',
+            '--output',(Join-Path $evidenceRoot 'explorer-harmless')) 60
+        $file=Record-File (Join-Path $destination 'preflight.txt') 'preflight-extracted'
+        $text=[System.IO.File]::ReadAllText((Join-Path $destination 'preflight.txt'))
+        if ($text -ne "Mini Whiteboard browser and Explorer preflight. Plain text only.`r`n") { throw 'Extracted harmless fixture content differs.' }
+        Scan $destination 'harmless-extracted'
+        $report.result='CLIENT PREFLIGHT COMPLETED; no application package downloaded or executed'
+        $report.fixture_sha256=$expected
+    } else {
     $assets=@(
         @{name='MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe';bytes=27476405;sha256='29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b'},
         @{name='WinMiniWhiteboardV1.3.4-HotkeyPatch.zip';bytes=38075984;sha256='5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89'}
@@ -320,6 +344,7 @@ try {
     }
     $report.result='SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
     if ($Exercise) { $report.result='ORIGINAL PACKAGE INVESTIGATION COMPLETED; browser-download and final release acceptance NOT RUN' }
+    }
 } catch {
     $report.error=$_.Exception.Message
     Write-Warning $report.error
@@ -370,4 +395,4 @@ try {
     Save-Json $report 'report.json'
     Write-Output $report.result
 }
-if ($report.result -notlike 'SCANS COMPLETED*' -and $report.result -notlike 'ORIGINAL PACKAGE INVESTIGATION COMPLETED*') { exit 1 }
+if ($report.result -notlike 'SCANS COMPLETED*' -and $report.result -notlike 'ORIGINAL PACKAGE INVESTIGATION COMPLETED*' -and $report.result -notlike 'CLIENT PREFLIGHT COMPLETED*') { exit 1 }

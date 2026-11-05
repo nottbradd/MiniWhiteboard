@@ -8,15 +8,6 @@ on:
         type: choice
         default: all
         options: [all, installer, portable]
-  push:
-    branches: [codex/v1.3.5-defender-investigation]
-    paths:
-      - '.github/workflows/windows-defender.yml'
-      - 'scripts/defender_investigation.ps1'
-      - 'scripts/defender_runtime_check.py'
-      - 'scripts/observed_process.py'
-      - 'scripts/packaged_shortcut_check.py'
-      - 'scripts/profile_source_transition.py'
 
 permissions:
   contents: read
@@ -26,9 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Keep the completed installer evidence; branch pushes iterate the
-        # portable timing diagnostic. Manual runs can select either or both.
-        package: ${{ fromJSON(github.event_name == 'push' && '["portable"]' || inputs.package == 'installer' && '["installer"]' || inputs.package == 'portable' && '["portable"]' || '["installer","portable"]') }}
+        # Reuse completed evidence; explicitly choose the next diagnostic run.
+        package: ${{ fromJSON(inputs.package == 'installer' && '["installer"]' || inputs.package == 'portable' && '["portable"]' || '["installer","portable"]') }}
     runs-on: windows-2025
     timeout-minutes: 35
     steps:

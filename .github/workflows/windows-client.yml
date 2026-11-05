@@ -2,6 +2,16 @@ name: Windows client download investigation
 
 on:
   workflow_dispatch:
+    inputs:
+      acceptance:
+        description: Run one exact package only after preflight and its upload pass
+        type: boolean
+        default: false
+      package:
+        description: Package for a successful preflight environment
+        type: choice
+        options: [portable, installer]
+        default: portable
   push:
     branches: [codex/v1.3.5-defender-investigation]
     paths:
@@ -14,12 +24,8 @@ permissions:
 
 jobs:
   client-download:
-    strategy:
-      fail-fast: false
-      matrix:
-        package: [installer, portable]
     runs-on: windows-11-arm
-    timeout-minutes: 30
+    timeout-minutes: 38
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -34,18 +40,36 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Harmless browser and Explorer preflight with active Defender
+        id: preflight
+        timeout-minutes: 8
+        shell: pwsh
+        run: ./scripts/defender_investigation.ps1 -ClientPreflight -BrowserExplorer -EvidenceName client-preflight -WorkBudgetMinutes 5
+      - name: Preserve the preflight before any application execution
+        id: checkpoint
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-client-preflight-${{ github.run_id }}
+          path: |
+            verification/client-preflight/
+            !verification/client-preflight/browser-*/edge-profile/
+          if-no-files-found: error
+          retention-days: 90
       - name: Test the unchanged primary package through the Windows client download path
-        timeout-minutes: 24
+        if: success() && inputs.acceptance && steps.preflight.outcome == 'success' && steps.checkpoint.outcome == 'success'
+        timeout-minutes: 18
         shell: pwsh
         env:
-          INVESTIGATION_PACKAGE: ${{ matrix.package }}
-        run: ./scripts/defender_investigation.ps1 -Exercise -BrowserExplorer -Package $env:INVESTIGATION_PACKAGE
+          INVESTIGATION_PACKAGE: ${{ inputs.package }}
+        run: ./scripts/defender_investigation.ps1 -Exercise -BrowserExplorer -Package $env:INVESTIGATION_PACKAGE -WorkBudgetMinutes 14
       - name: Preserve observations and warnings
-        if: always()
+        if: always() && inputs.acceptance && steps.preflight.outcome == 'success'
         timeout-minutes: 4
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: windows-client-${{ matrix.package }}-${{ github.run_id }}
+          name: windows-client-${{ inputs.package }}-${{ github.run_id }}
           path: |
             verification/defender-investigation/
             !verification/defender-investigation/browser-*/edge-profile/

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
 
@@ -22,6 +23,7 @@ def main():
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--url')
+    parser.add_argument('--expected-entry', default='Mini Whiteboard/Mini Whiteboard.exe')
     args = parser.parse_args()
     from PIL import ImageGrab
     from pywinauto import Desktop, mouse
@@ -35,29 +37,36 @@ def main():
         (args.output/'result.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
 
     def evidence(label):
+        # Commit the stage and pixels before any accessibility provider call.
+        # UIA enumeration itself can hang on the hosted first-run desktop.
+        report['steps'].append({'label': label, 'utc': datetime.now(timezone.utc).isoformat()})
+        save()
         ImageGrab.grab(all_screens=True).save(args.output/(label+'.png'))
         rows = []
-        for window in desktop.windows():
-            if not window.is_visible():
-                continue
-            info = {'title': window.window_text(), 'pid': window.process_id(),
-                    'handle': window.handle, 'enabled': window.is_enabled(), 'controls': []}
-            try:
-                for control in window.descendants()[:350]:
-                    rectangle = control.rectangle()
-                    info['controls'].append({'name': control.window_text(),
-                        'type': control.element_info.control_type,
-                        'automation_id': control.element_info.automation_id,
-                        'enabled': control.is_enabled(), 'visible': control.is_visible(),
-                        'rectangle': [rectangle.left, rectangle.top, rectangle.right, rectangle.bottom]})
-            except Exception as error:
-                info['inspection_error'] = str(error)
-            rows.append(info)
+        from ctypes import wintypes
+        user = ctypes.windll.user32
+        callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        user.IsWindowVisible.argtypes = [wintypes.HWND]
+        user.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        user.EnumWindows.argtypes = [callback_type, wintypes.LPARAM]
+        @callback_type
+        def visit(hwnd, _):
+            if user.IsWindowVisible(hwnd):
+                title = ctypes.create_unicode_buffer(256)
+                user.GetWindowTextW(hwnd, title, len(title))
+                pid, rect = wintypes.DWORD(), wintypes.RECT()
+                user.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                user.GetWindowRect(hwnd, ctypes.byref(rect))
+                rows.append({'title': title.value, 'pid': pid.value, 'handle': int(hwnd),
+                             'rectangle': [rect.left, rect.top, rect.right, rect.bottom]})
+            return True
+        user.EnumWindows(visit, 0)
         (args.output/(label+'.json')).write_text(json.dumps(rows, indent=2), encoding='utf-8')
         foreground = ctypes.windll.user32.GetForegroundWindow
         foreground.restype = ctypes.c_void_p
-        report['steps'].append({'label': label, 'utc': datetime.now(timezone.utc).isoformat(),
-                                'foreground_handle': foreground()})
+        report['steps'][-1]['foreground_handle'] = foreground()
         save()
 
     def wait_for(predicate, seconds, description):
@@ -74,10 +83,15 @@ def main():
         # the shell. Use its native top-level window, then confirm ownership.
         foreground = ctypes.windll.user32.GetForegroundWindow
         foreground.restype = ctypes.c_void_p
-        try:
-            Desktop(backend='win32').window(handle=window.handle).set_focus()
-        except Exception as error:
-            report.setdefault('browser_focus_errors', []).append(str(error))
+        # Avoid pywinauto's AttachThreadInput/WaitForInputIdle focus path: a
+        # stalled GUI thread can block it beyond the operation deadline.
+        from ctypes import wintypes
+        user = ctypes.windll.user32
+        user.ShowWindowAsync.argtypes = [wintypes.HWND, ctypes.c_int]
+        user.SetForegroundWindow.argtypes = [wintypes.HWND]
+        user.ShowWindowAsync(window.handle, 9)
+        user.SetForegroundWindow(window.handle)
+        evidence('browser-focus-attempt')
         if foreground() != window.handle:
             # Normal title-bar click, only when the point really belongs to
             # this browser. Never click through an intervening dialog/warning.
@@ -147,7 +161,9 @@ def main():
             report['result'] = 'PASS for client desktop preparation only'
             return
         if args.operation == 'download':
-            if not args.url or not args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/'):
+            fixture_url = bool(args.url and re.fullmatch(
+                r'https://raw\.githubusercontent\.com/nottbradd/MiniWhiteboard/[0-9a-f]{40}/tests/fixtures/client-preflight\.zip', args.url))
+            if not args.url or not (fixture_url or args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/')):
                 raise ValueError('Only the recorded public release URL is allowed')
             args.destination.mkdir(exist_ok=True, parents=True)
             if args.path.exists():
@@ -218,7 +234,10 @@ def main():
             edit.set_edit_text(str(args.destination.resolve()))
             evidence('explorer-extract-dialog')
             wizard.child_window(title='Extract', control_type='Button').click_input()
-            wait_for(lambda: (args.destination/'Mini Whiteboard/Mini Whiteboard.exe').is_file()
+            expected = Path(args.expected_entry)
+            if expected.is_absolute() or '..' in expected.parts:
+                raise ValueError('Expected extracted entry must stay inside the destination')
+            wait_for(lambda: (args.destination/expected).is_file()
                      and not wizard.exists(timeout=.1), 90, 'Explorer extraction incomplete or blocked')
             evidence('explorer-extracted')
             report['method'] = 'Explorer compressed-folder Extract all dialog'
