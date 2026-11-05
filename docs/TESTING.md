@@ -6,6 +6,52 @@ Qt-delivered. Mark each unperformed check **NOT RUN**. Current results belong in
 [release notes](RELEASE_NOTES.md); build/setup commands are in
 [CONTRIBUTING](../CONTRIBUTING.md).
 
+## Security reports and release acceptance
+
+V1.3.4 HotkeyPatch has an unresolved report of a Defender quarantine and Setup
+blocking during Preparing to Install. **Suspicious Behaviour** is the reported
+category, not a threat name. Preserve the original download and record the exact
+threat name, detection time/time zone, action, affected resource, Defender versions
+and original installer/ZIP SHA-256 when available. Do not restore a quarantined
+file to gather its hash. Redact personal paths and device identifiers before
+sharing diagnostics. See [Microsoft's Defender event reference](https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-microsoft-defender-antivirus).
+
+A school or work device can separately restrict unapproved applications through
+[App Control or AppLocker](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/appcontrol-and-applocker-overview).
+Ask its administrator to identify the relevant event and approval policy. The MIT
+license, a publisher signature, Defender classification and organizational approval
+are different things. A policy restriction does not establish the cause of a
+Defender quarantine. Do not disable protection, create exclusions or bypass the
+organization's controls.
+
+The manual [Defender investigation workflow](../.github/workflows/windows-defender.yml)
+targets the fixed, published V1.3.4 HotkeyPatch hashes on a disposable hosted Windows
+VM. It records the initial runner configuration, removes the runner's broad
+exclusions, enables protection, updates intelligence and requires observed active
+real-time, behaviour, downloaded-file, archive and cloud protection before fetching
+samples. It preserves Defender events and histories on failure. This script refuses
+to operate on a local desktop or self-hosted runner. Its programmatic downloads and
+Expand-Archive extraction are explicitly **not browser/Explorer acceptance**.
+
+A replacement release requires an evidence-supported resolution and tests of the
+exact frozen candidate files. Record Windows/Defender versions, active/passive
+mode, cloud settings, exclusions and download-origin information. Test the genuine
+browser-download path and normal extraction where available, then both fresh
+installation and portable execution, an upgrade with retained settings/startup,
+running-app refusal and uninstall. Exercise normal board/capture, hold/release,
+text/wrapping, selection, undo/redo, Hide/Restore, controls and tray/settings routes
+with protection enabled. Check file survival and hashes, Protection History and
+events through a recorded observation period. A zero scan exit code or a clean
+scan alone is insufficient; record SmartScreen, Smart App Control and publisher
+warnings separately. Earlier source/CI results do not accept a different EXE.
+
+If Microsoft analysis is needed, use its
+[software-developer submission](https://www.microsoft.com/en-us/wdsi/filesubmission)
+with only the public samples and sanitized diagnostics. Record the actual
+submission ID and determination. Pending review is not a clean determination.
+Keep a replacement unpublished while the cause or required acceptance is unresolved.
+Actual Windows sign-in retains its existing **NOT RUN (not tested)** waiver.
+
 ## Automated and native checks
 
 The GUI suite uses Qt offscreen and fake platform services.

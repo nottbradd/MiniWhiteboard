@@ -1,5 +1,62 @@
 # Release notes
 
+## Windows security investigation — 5 November 2026
+
+**Unresolved; V1.3.5 is not released.** A user reported a Severe Defender quarantine
+of `Mini Whiteboard.exe` from the V1.3.4 HotkeyPatch portable download, and Setup
+blocking during Preparing to Install. The original threat name, detection time
+and affected download hash are unavailable. The reported school-device policy
+has not been confirmed as the cause. No evidence-supported application fix or
+false-positive determination has been established.
+
+Fresh official installer and ZIP downloads match GitHub's asset hashes and the
+[published checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboardV1.3.4-HotkeyPatch-SHA256SUMS.txt).
+The EXE is `a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716`.
+Its frozen application modules match the recorded patch source. The intended
+runtime files and 18 dependency notices are present. All 58 DLL/PYD files match
+the original V1.3.4 package and have valid signatures; the application EXE and
+installer remain **unsigned**. The published Python 3.12.14 runtime differs from
+the earlier CI build's Python 3.12.10 runtime. That CI result does not accept the
+published EXE and does not identify a detection cause.
+
+Microsoft received the unchanged public EXE under submission
+[`ce562150-3eef-4354-9bd0-07e374d0747a`](https://www.microsoft.com/en-us/wdsi/submission/ce562150-3eef-4354-9bd0-07e374d0747a).
+Status: **In progress**; final determination: **Pending**. The current Cloud and
+Client detection fields show **No malware detected**, with no analyst explanation.
+This automated scan result is not a final determination or a confirmed false positive.
+
+The [isolated investigation](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41987507856)
+used separate Windows Server 2025 VMs (build 26100), Defender platform
+4.18.26100.4, engine 1.1.26100.4 and intelligence 1.463.134.0, updated at
+01:25:39 UTC on 5 November. Antivirus, real-time, behaviour, IOAV, archive and cloud
+protection were active; the runner's broad exclusions were removed before downloads.
+
+- **Installer:** fresh install, original V1.3.4 → HotkeyPatch upgrade, settings and
+  startup-choice preservation, running-app refusal, uninstall and 1,246 native
+  checks passed. Installed payload matched the portable archive. No Defender
+  detections or disabled-protection events were recorded during 07:29:24–07:33:11 UTC.
+- **Portable:** the [diagnostic run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41988838464)
+  passed scans, launch, all 1,246 native checks and file-integrity checks, with no
+  detections during 07:40:41–07:43:36 UTC. Two earlier attempts each failed the
+  first Q-preview assertion after 438 passes. That intermittent failure remains
+  unexplained; no assertion was relaxed and no application code was changed.
+- **Source regressions:** 319 passed, with two Mac-only skips (321 total).
+
+An earlier VM recorded `Trojan:Win32/Gracing.I` against a temporary `provjobd`
+process outside the application payload. It is not an established detection of
+Mini Whiteboard or a reproduction of the reported quarantine.
+
+Downloads used Invoke-WebRequest and extraction used Expand-Archive; origin
+markers were absent, and none were added or removed. Genuine browser/Explorer
+acceptance, school-managed policy, interactive SmartScreen/Smart App Control and
+a clean PC without development tools are **NOT RUN**. The exact-package GUI checks
+for wrapping, selection/movement, Hide/Restore, minimize, tray menus and hotkey
+settings are also **NOT RUN** in this investigation. Actual Windows sign-in
+remains **NOT RUN (not tested)** under the existing waiver. Mac remains unchanged
+**Universal2 Preview**, macOS 14+, with its existing interactive-testing limits.
+No replacement binary has been built; historical releases and assets are preserved.
+See [security troubleshooting and acceptance requirements](TESTING.md#security-reports-and-release-acceptance).
+
 ## V1.3.4
 
 ### Hotkey patch — 29 October 2026

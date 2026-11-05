@@ -10,6 +10,13 @@ toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
 **V1.3.4 hotkey patch is available.** Windows defaults are now **Ctrl+Win+Shift+W/Q**.
 The version remains 1.3.4. Windows is the stable release; Mac remains a **Universal2 Preview**.
 
+**Windows security report under investigation (5 November 2026):** a Defender
+quarantine and installation block were reported for the V1.3.4 HotkeyPatch
+downloads. The original threat name and affected file hash are not yet available;
+the cause is unresolved. A replacement has not been released. See the
+[investigation results](docs/RELEASE_NOTES.md#windows-security-investigation--5-november-2026)
+and [security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
+
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
 ## Download V1.3.4
