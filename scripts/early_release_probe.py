@@ -42,7 +42,7 @@ def exercise(c, case):
     monitor_rects = [m.rect for m in n.monitors()]
     pending_pixels=[]
     observation_cost=[]
-    expected_pattern=None
+    expected_patterns={}
     observed_keys=(0x5B,0x5C,0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,
                    c['configuration'].create.windows_key,c['configuration'].capture.windows_key,27)
 
@@ -160,7 +160,8 @@ def exercise(c, case):
         modifiers = tuple(c['modifier_keys'][m][spec.get('side',0)] for m in ('meta','ctrl','alt','shift') if m in binding.modifiers)
         chord = (*modifiers,binding.windows_key)
         first = chord[spec.get('release_index',-1)]
-        begin, end = (180,220), (540,440)
+        begin, end = tuple(spec.get('begin',(180,220))), tuple(spec.get('end',(540,440)))
+        expected_rect=Rect(min(begin[0],end[0]),min(begin[1],end[1]),abs(end[0]-begin[0]),abs(end[1]-begin[1]))
         zero, cancel = bool(spec.get('zero')), bool(spec.get('escape'))
         if zero: end = begin
         if cancel:
@@ -171,7 +172,7 @@ def exercise(c, case):
         c['configure_trace'](label)
         # The reference was captured before the prelude. A capture/DwmFlush
         # here would change the very compositor backlog being investigated.
-        expected_pixels = expected_pattern if spec['action']=='Q' and not zero and not cancel else None
+        expected_pixels = expected_patterns[label] if spec['action']=='Q' and not zero and not cancel else None
         c['start'](chord,begin)
         started = now()
         snapshots = [observe(label+'-after-injection')]
@@ -221,7 +222,7 @@ def exercise(c, case):
         if len(found)==1:
             r = c['bounds'](found[0]); shadow=round(SHADOW*user.GetDpiForWindow(found[0])/96)
             paper=Rect(r.x+shadow,r.y+shadow,r.width-2*shadow,r.height-2*shadow)
-            exact = paper == Rect(180,220,360,220)
+            exact = paper == expected_rect
             focused = foreground()==found[0]
         prepared = next((s for s in snapshots if s['preparation_observed']),None)
         before_move = next(s for s in snapshots if s['event'].endswith('before-move'))
@@ -248,24 +249,42 @@ def exercise(c, case):
         return result
 
     def verify_pixels(result,hwnd,expected_pixels,label):
+            from pywinauto import Desktop
             user.SetForegroundWindow(hwnd)
-            if foreground()!=hwnd:
+            if not wait_until(lambda:foreground()==hwnd,.5):
                 result['capture_export_error']='Owned board did not acquire focus'
                 result['result']='UNRESOLVED: clipboard inspection focus unavailable'
                 return
             # Verify the actual captured object through normal context-menu and
             # clipboard commands. The owned target is static in the sampled region.
             c['app'].clipboard().clear()
-            c['set_cursor'](360,330); c['mouse'](8,0,0,0,0); c['mouse'](16,0,0,0,0)
+            paper=result['paper']
+            c['set_cursor'](round(paper['x']+paper['width']/2),round(paper['y']+paper['height']/2))
+            c['mouse'](8,0,0,0,0); c['mouse'](16,0,0,0,0)
             QTest.qWait(100)
-            for vk in (0x24,0x28,0x0D): key(vk); key(vk,True); QTest.qWait(30)
+            # Use the menu's actual accessible action, not an assumed count of
+            # keyboard stops among disabled actions and a disabled heading.
+            actions=[]
+            for window in Desktop(backend='uia').windows(process=process.pid):
+                for item in window.descendants(control_type='MenuItem'):
+                    if item.window_text()=='Unlock this object' and item.is_visible() and item.is_enabled():
+                        actions.append(item)
+            result['unlock_actions_observed']=len(actions)
+            n.capture_rect(Rect(0,0,1024,768)).save(str(output/(label+'-unlock-menu.png')))
+            if len(actions)!=1:
+                result['result']='UNRESOLVED: unlock menu action not uniquely observable'
+                key(27);key(27,True)
+                return
+            actions[0].click_input()
+            QTest.qWait(60)
             key(0xA2); key(ord('C')); key(ord('C'),True); key(0xA2,True)
             wait_until(lambda:not c['app'].clipboard().image().isNull(),1)
             image=c['app'].clipboard().image()
             expected_pixels.save(str(output/(label+'-expected.png')))
             if not image.isNull(): image.save(str(output/(label+'-clipboard.png')))
             result['capture_pixels_equal']=image.convertToFormat(QImage.Format.Format_RGBA8888)==expected_pixels.convertToFormat(QImage.Format.Format_RGBA8888)
-            if not result['capture_pixels_equal']: result['result']='FAIL: captured clipboard pixels differ or export was unavailable'
+            if image.isNull(): result['result']='UNRESOLVED: clipboard export unavailable after menu interaction'
+            elif not result['capture_pixels_equal']: result['result']='FAIL: captured clipboard pixels differ'
 
     try:
         required={ACTIONS[0] if case['action']=='W' else ACTIONS[1]}
@@ -275,12 +294,14 @@ def exercise(c, case):
             return 1
         save(); report['resources']=[resources('fresh')]
         c['focus']()
-        expected_pattern=n.capture_rect(Rect(180,220,360,220))
+        expected_patterns['primary']=n.capture_rect(Rect(180,220,360,220))
+        expected_patterns['next']=n.capture_rect(Rect(600,220,360,220))
         report['reference_capture_before_prelude_ms']=now()
         prelude(); report['resources'].append(resources('after-prelude')); save()
         report['primary']=gesture(case,'primary'); save()
         # The next gesture is a separate control, without restarting or a warm-up.
-        report['next']=gesture({'action':case['action'],'hold_ms':120,'release_index':-1},'next')
+        report['next']=gesture({'action':case['action'],'hold_ms':120,'release_index':-1,
+                                'begin':(600,220),'end':(960,440)},'next')
         QTest.qWait(1000)  # Observe late callbacks after the two consecutive gestures, never before the next input.
         expected_count=report['primary'].get('board_count',0)+report['next'].get('board_count',0)
         report['late_callback_check']={'expected_boards':expected_count,'actual_boards':len(boards()),'preview_remaining':bool(previews())}

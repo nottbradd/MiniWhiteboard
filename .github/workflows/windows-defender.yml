@@ -35,7 +35,7 @@ jobs:
           python-version: '3.12'
       - name: Install the test harness (the release runtime is not rebuilt)
         run: |
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements-dev.txt pywinauto==0.6.9
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

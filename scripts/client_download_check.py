@@ -226,9 +226,15 @@ def main():
                 return None
 
             button = wait_for(extract_button, 30, 'Explorer Extract all command unavailable')
+            rectangle=button.rectangle()
+            report['extract_action']={'name':button.window_text(),'visible':button.is_visible(),
+                                      'enabled':button.is_enabled(),
+                                      'rectangle':[rectangle.left,rectangle.top,rectangle.right,rectangle.bottom]}
             evidence('explorer-archive')
-            button.click_input()
-            wizard = desktop.window(title_re='Extract Compressed.*')
+            # Windows 11 puts this command in the overflow on narrower windows.
+            # Invoke the advertised UIA command rather than clicking an offscreen rectangle.
+            button.invoke()
+            wizard = desktop.window(title_re='Extract.*')
             wizard.wait('visible', timeout=15)
             edit = wizard.child_window(control_type='Edit', found_index=0)
             edit.set_edit_text(str(args.destination.resolve()))
