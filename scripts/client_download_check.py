@@ -40,17 +40,24 @@ def main():
         for window in desktop.windows():
             if not window.is_visible():
                 continue
-            info = {'title': window.window_text(), 'pid': window.process_id(), 'controls': []}
+            info = {'title': window.window_text(), 'pid': window.process_id(),
+                    'handle': window.handle, 'enabled': window.is_enabled(), 'controls': []}
             try:
                 for control in window.descendants()[:350]:
+                    rectangle = control.rectangle()
                     info['controls'].append({'name': control.window_text(),
                         'type': control.element_info.control_type,
-                        'automation_id': control.element_info.automation_id})
+                        'automation_id': control.element_info.automation_id,
+                        'enabled': control.is_enabled(), 'visible': control.is_visible(),
+                        'rectangle': [rectangle.left, rectangle.top, rectangle.right, rectangle.bottom]})
             except Exception as error:
                 info['inspection_error'] = str(error)
             rows.append(info)
         (args.output/(label+'.json')).write_text(json.dumps(rows, indent=2), encoding='utf-8')
-        report['steps'].append({'label': label, 'utc': datetime.now(timezone.utc).isoformat()})
+        foreground = ctypes.windll.user32.GetForegroundWindow
+        foreground.restype = ctypes.c_void_p
+        report['steps'].append({'label': label, 'utc': datetime.now(timezone.utc).isoformat(),
+                                'foreground_handle': foreground()})
         save()
 
     def wait_for(predicate, seconds, description):
@@ -83,7 +90,24 @@ def main():
                         wait_for(lambda: control.window_text() != before, 5, 'Privacy choice did not change')
                 evidence('client-optional-privacy-declined')
                 spec = desktop.window(handle=window.handle)
-                spec.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button').click_input()
+                accept = spec.child_window(auto_id='OobeSettingsAcceptButton', control_type='Button')
+                spec.set_focus()
+                foreground = ctypes.windll.user32.GetForegroundWindow
+                foreground.restype = ctypes.c_void_p
+                if foreground() != window.handle:
+                    raise RuntimeError('Privacy page does not own foreground; no native input sent')
+                evidence('client-privacy-before-confirmation')
+                accept.click_input()
+                time.sleep(2)
+                evidence('client-privacy-after-click')
+                if spec.exists(timeout=.1) and window.is_visible():
+                    # A normal keyboard activation provides a separate input
+                    # observation. Never close the process or bypass the page.
+                    accept.set_focus()
+                    if foreground() != window.handle or not accept.has_keyboard_focus():
+                        raise RuntimeError('Privacy confirmation lacks keyboard focus; no key sent')
+                    accept.type_keys('{SPACE}')
+                    evidence('client-privacy-after-space')
                 wait_for(lambda: not spec.exists(timeout=.1) or not window.is_visible(), 20,
                          'Privacy page did not close')
             evidence('client-desktop-ready')
