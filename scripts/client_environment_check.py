@@ -8,6 +8,44 @@ from pathlib import Path
 import time
 
 
+def setup_wsl(output):
+    """Use Microsoft's normal update once; never disable features or protection."""
+    if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':
+        raise RuntimeError('Disposable hosted client only')
+    from scripts.observed_process import run
+    from scripts.client_wizard_check import native_windows
+    from PIL import ImageGrab
+    output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    report=dict(scope='Authorised normal WSL setup on an owned disposable VM',
+                started_utc=datetime.now(timezone.utc).isoformat(),operations=[],result='INCOMPLETE',
+                security_settings_changed=False,distribution_installed=False)
+    def save():
+        (output/'setup.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+    def observe(label):
+        (output/(label+'.json')).write_text(json.dumps(native_windows(),indent=2),encoding='utf-8')
+        ImageGrab.grab(all_screens=True).save(output/(label+'.png'))
+    def operation(label,command,timeout):
+        report['phase']=label;save()
+        result=run(command,output/label,label,timeout)
+        report['operations'].append(result);save()
+        return result
+    executable=str(Path(os.environ['WINDIR'])/'System32/wsl.exe')
+    try:
+        save();observe('before')
+        before=operation('version-before',[executable,'--version'],10)
+        updated=operation('normal-update',[executable,'--update','--web-download'],180)
+        if updated['status']!='PASS':
+            raise RuntimeError('Normal WSL update failed or timed out; no further setup or reboot attempted')
+        after=operation('version-after',[executable,'--version'],15)
+        if after['status']!='PASS':
+            raise RuntimeError('WSL version still unavailable after the bounded update')
+        report['result']='PASS for WSL command readiness; desktop preflight remains separate'
+    except Exception as error:
+        report.update(result='BLOCKED',error=str(error));raise
+    finally:
+        observe('after');report['ended_utc']=datetime.now(timezone.utc).isoformat();save()
+
+
 def dismiss_wsl_prompt():
     """Close only the observed unrelated WSL terminal, at most once per VM job."""
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':
@@ -56,3 +94,24 @@ def dismiss_wsl_prompt():
     ImageGrab.grab(all_screens=True).save(output/'wsl-after-close.png')
     if not data['closed']:
         raise RuntimeError('WSL prompt did not close; client remains unusable')
+
+
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    action=parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--setup',type=Path)
+    action.add_argument('--observe',type=Path)
+    args=parser.parse_args()
+    if args.setup:
+        setup_wsl(args.setup)
+    else:
+        if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':
+            raise RuntimeError('Disposable hosted client only')
+        from scripts.client_wizard_check import native_windows
+        from PIL import ImageGrab
+        args.observe.mkdir(parents=True,exist_ok=True)
+        (args.observe/'before.json').write_text(json.dumps(dict(
+            utc=datetime.now(timezone.utc).isoformat(),windows=native_windows(),
+            scope='Initial VM state before normal WSL setup; no application bytes executed'),indent=2),encoding='utf-8')
+        ImageGrab.grab(all_screens=True).save(args.observe/'before.png')

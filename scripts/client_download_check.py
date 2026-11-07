@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--artifact-id',type=int)
     parser.add_argument('--artifact-sha')
     parser.add_argument('--source-revision')
+    parser.add_argument('--stable-foreground',action='store_true')
     args = parser.parse_args()
     from PIL import ImageGrab
     from pywinauto import Desktop, mouse
@@ -356,6 +357,24 @@ def main():
             wait_for(lambda: (args.destination/expected).is_file()
                      and not wizard.exists(timeout=.1), 90, 'Explorer extraction incomplete or blocked')
             evidence('explorer-extracted')
+            if args.stable_foreground:
+                # An actual Explorer command has completed. Require its desktop
+                # foreground to stay stable, rather than accepting file bytes
+                # while an unrelated setup prompt owns input.
+                foreground=ctypes.windll.user32.GetForegroundWindow
+                foreground.restype=wintypes.HWND
+                get_class=ctypes.windll.user32.GetClassNameW
+                get_class.argtypes=[wintypes.HWND,wintypes.LPWSTR,ctypes.c_int]
+                rows=[]
+                for _ in range(30):
+                    hwnd=foreground();name=ctypes.create_unicode_buffer(256)
+                    get_class(hwnd,name,256)
+                    rows.append(dict(utc=datetime.now(timezone.utc).isoformat(),handle=hwnd,class_name=name.value))
+                    time.sleep(.1)
+                report['foreground_stability']=rows;save()
+                evidence('explorer-foreground-stability')
+                if len({r['handle'] for r in rows})!=1 or any(r['class_name']!='CabinetWClass' for r in rows):
+                    raise RuntimeError('Explorer foreground was interrupted during the three-second readiness observation')
             report['method'] = 'Explorer compressed-folder Extract all dialog'
         report['result'] = 'PASS for this operation only'
     except Exception as error:

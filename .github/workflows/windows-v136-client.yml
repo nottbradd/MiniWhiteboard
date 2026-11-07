@@ -11,7 +11,7 @@ on:
         description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, visuals, editing, gestures, download, environment]
+        options: [all, visuals, editing, gestures, download, preflight, environment]
 permissions:
   contents: read
   actions: read
@@ -51,6 +51,29 @@ jobs:
           foreach ($name in @('client_download_check.py','client_environment_check.py','client_graphics_check.py','client_wizard_check.py','defender_investigation.ps1','defender_runtime_check.py','floating_tools_check.py','package_check.py','packaged_drawing_check.py')) {
             Copy-Item -LiteralPath "scripts/$name" -Destination verification/client-source/scripts
           }
+      - name: Record the initial client before setup
+        timeout-minutes: 1
+        run: python -m scripts.client_environment_check --observe verification/client-desktop/initial
+      - name: Preserve the initial client before bounded setup
+        timeout-minutes: 2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: client-initial-${{ matrix.package }}
+          path: verification/client-desktop/initial/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Complete normal WSL setup once on the disposable client
+        timeout-minutes: 5
+        run: python -m scripts.client_environment_check --setup verification/client-desktop/wsl-setup
+      - name: Preserve the setup result before browser interaction
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: client-setup-${{ matrix.package }}
+          path: verification/client-desktop/wsl-setup/
+          if-no-files-found: warn
+          retention-days: 90
       - name: Prepare the disposable client desktop
         timeout-minutes: 2
         run: python -m scripts.observed_process --directory verification/client-desktop/operation --label desktop --timeout 45 -- python -m scripts.client_download_check prepare --path verification/client-desktop --destination verification/client-desktop --output verification/client-desktop/ui
@@ -58,6 +81,7 @@ jobs:
         timeout-minutes: 8
         run: ./scripts/defender_investigation.ps1 -ClientPreflight -BrowserExplorer -EvidenceName client-preflight -WorkBudgetMinutes 5
       - name: Record graphics policy and source-only compositor diagnostics
+        if: inputs.checks != 'preflight'
         timeout-minutes: 2
         run: |
           Push-Location verification/client-source
@@ -77,6 +101,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Browser download, Explorer extraction and exact package GUI checks
+        if: inputs.checks != 'preflight'
         timeout-minutes: 21
         env:
           CLIENT_PACKAGE: ${{ matrix.package }}

@@ -285,7 +285,7 @@ try {
         $destination=Join-Path $downloadRoot 'extracted'
         $null=Invoke-Program 'preflight-explorer-extract' @((Get-Command python).Source,'-m','scripts.client_download_check',
             'extract','--path',$download,'--destination',$destination,'--expected-entry','preflight.txt',
-            '--output',(Join-Path $evidenceRoot 'explorer-harmless')) 60
+            '--stable-foreground','--output',(Join-Path $evidenceRoot 'explorer-harmless')) 60
         $file=Record-File (Join-Path $destination 'preflight.txt') 'preflight-extracted'
         $text=[System.IO.File]::ReadAllText((Join-Path $destination 'preflight.txt'))
         if ($text -ne "Mini Whiteboard browser and Explorer preflight. Plain text only.`r`n") { throw 'Extracted harmless fixture content differs.' }
