@@ -1,10 +1,24 @@
 # Release notes
 
-## V1.3.6 candidate — unpublished
+## V1.3.6 — early tester prerelease — 8 November 2026
 
-The intended distribution is **Mini Whiteboard V1.3.6 — early tester release.**
-It will be a GitHub prerelease under a separate tag, with V1.3.4 retained as the
-default stable download. No V1.3.6 release or public download URL exists yet.
+[Mini Whiteboard V1.3.6 — early tester release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
+uses tag **v1.3.6-early.1** and the GitHub prerelease flag. V1.3.4 HotkeyPatch remains
+the default stable download. The three review-02 packages are distributed unchanged.
+
+This early tester release retains the grey client Glass appearance, one unresolved
+editable-clipboard case and incomplete client tray/settings and HotkeyPatch
+upgrade/rollback/reinstall/uninstall acceptance. Protection History UI acceptance
+is also incomplete. These results are not relabelled as passes. Microsoft's
+completed written analyst response supplies the Microsoft review for this
+prerelease; the portal still displayed a **Pending** file-level determination,
+not a definitive **Not malware** classification. Details and testing limits follow.
+
+Use the **Windows installer** for the recommended Windows download. Close the app
+and run Setup to replace the registered installed copy in its existing directory.
+Portable users must close the old copy and replace the complete application folder
+manually. Setup does not remove separate portable copies or old downloaded ZIPs.
+Mac remains **Universal2 Preview**; quit and replace the app in Applications.
 
 - Optional **Settings → Show floating tools**, off by default and remembered.
   One 46 px-high palette follows the active board, with 20 px icons, 42 px tool
@@ -16,10 +30,10 @@ default stable download. No V1.3.6 release or public download URL exists yet.
 - Freehand previews retain one gesture-local incremental path instead of caching
   each growing immutable stroke. Exact path, raster, endpoint and undo regressions
   preserve the document representation. No new runtime dependency was added.
-- Includes the tested but unpublished V1.3.5 `c83104b` creation-gesture fix.
-  Neither release is published. The public download links remain V1.3.4 HotkeyPatch.
+- Includes the tested V1.3.5 `c83104b` creation-gesture fix. V1.3.5 itself remains
+  unpublished; V1.3.4 HotkeyPatch remains the stable release.
 
-### Review-02 candidate — 7 November 2026
+### Review-02 package verification — 7 November 2026
 
 Colour swatches now have a subtle outline, including unselected White. Tool-options
 titles use compact semibold text. Fill colours, 42 px targets, accessible names,
@@ -206,7 +220,7 @@ hashes match; unrelated files must remain.
 **Microsoft review.** Submission
 [`1804af5a-568e-4420-bcaa-ea1161006797`](https://www.microsoft.com/en-us/wdsi/submission/1804af5a-568e-4420-bcaa-ea1161006797)
 shows **Completed** for the case and **Pending** as the file's final determination,
-checked at approximately **00:47 AEDT on 8 November 2026**. Cloud and client
+rechecked on **8 November 2026** before publication. Cloud and client
 current-detection fields say **No malware detected**, definition **1.463.174.0**.
 Protection icons/tooltips contradict those fields; neither threat nor clearance
 is inferred. The analyst reported no positive scan or telemetry indicators and
@@ -214,8 +228,9 @@ closed the case without further action. Affected-system diagnostics would be
 needed to investigate an actual detection; none were collected or uploaded. The
 same sample was rescanned once at 23:14 AEDT on 7 November. The uploaded EXE hash
 is above; the portal does not display it. V1.3.4's earlier **Not malware** decision
-covers only its submitted hash. **V1.3.6 remains unpublished** pending its own
-final determination and remaining acceptance.
+covers only its submitted hash. The completed written analyst response is used
+for this early tester prerelease's Microsoft review. No definitive **Not malware**
+classification or full client acceptance is claimed for V1.3.6.
 
 Drawing measurements below remain attributed to review-01 and its baseline.
 The drawing implementation is unchanged in review-02; these are not new-package
@@ -344,9 +359,10 @@ retained instead of folding them into a smoother drawing claim.
   confirmation is not a SmartScreen or Defender detection.
 - Interactive Mac toolbar/shortcuts/focus/permissions/capture/Spaces, macOS 14
   execution and Intel execution: **NOT RUN**. Mac remains **Universal2 Preview**.
-- Microsoft's V1.3.6 case header is Completed, but the required file-level final
-  determination remains Pending. V1.3.4's Not malware result applies only to its
-  submitted executable.
+- Microsoft's V1.3.6 case header is Completed and its written response reports no
+  positive scanner or telemetry indicators. The portal file-level determination
+  still displayed Pending. V1.3.4's Not malware result applies only to its own
+  submitted executable; it is not a classification of V1.3.6.
 - Earlier blocked V1.3.6 VMs and the first native drawing diagnostic retained a
   `Trojan:Win32/Gracing.I` detection involving temporary `provjobd` processes before
   app execution. It is not established as a Mini Whiteboard detection and has not

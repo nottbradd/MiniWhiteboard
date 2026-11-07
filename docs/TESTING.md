@@ -191,7 +191,11 @@ If Microsoft analysis is needed, use its
 [software-developer submission](https://www.microsoft.com/en-us/wdsi/filesubmission)
 with only the public samples and sanitized diagnostics. Record the actual
 submission ID and determination. Pending review is not a clean determination.
-Keep a replacement unpublished while the cause or required acceptance is unresolved.
+Stable-release acceptance remains distinct from an explicitly scoped early tester
+prerelease. Its notes must identify incomplete checks and the exact Microsoft
+response without turning either into a pass or a definitive classification.
+V1.3.6 early-tester status and retained limitations are in the
+[release notes](RELEASE_NOTES.md#v136--early-tester-prerelease--8-november-2026).
 Actual Windows sign-in retains its existing **NOT RUN (not tested)** waiver.
 
 ## Automated and native checks

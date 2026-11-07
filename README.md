@@ -6,35 +6,17 @@
 Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots with keyboard shortcuts or optional floating tools. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.6 is an unpublished candidate.** It adds optional compact floating tools
-and reduces repeated geometry work during freehand drawing. V1.3.5 is also
-unpublished; this candidate includes its tested `c83104b` creation-gesture fix. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
-
-V1.3.6 is being verified for an **early tester prerelease**. Windows client
-acceptance, the Glass comparison and the candidate's final Microsoft determination
-are still open. V1.3.4 remains the default stable download.
-
-[Review the unpublished Windows candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361831062/artifacts/13569539601)
-and [Mac Universal2 Preview candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361845681/artifacts/13570237411)
-in Actions (GitHub sign-in required; artifacts expire). These are frozen review-02 builds from `b4b9d27`,
-not a published V1.3.6 release.
+**V1.3.4 HotkeyPatch remains the default stable download.**
+[V1.3.6 — early tester release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
+adds optional compact floating tools and reduces repeated geometry work during
+freehand drawing. It is a prerelease with known visual and acceptance limitations.
 
 Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
 (screenshot). Mac remains **Universal2 Preview**.
 
-The reported Windows quarantine remains unexplained. Microsoft's original
-V1.3.4 submission was **Completed / Not malware** when checked on 7 November,
-with an analyst comment saying the detection was removed. That determination
-covers only the submitted V1.3.4 executable. The separate V1.3.6 submission is
-**Completed** at the case level, but its file-level final determination is still
-**Pending**; client acceptance and final file analysis remain
-release requirements. See the
-[investigation and candidate results](docs/RELEASE_NOTES.md) and
-[security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
-
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
-## Download V1.3.4
+## Download V1.3.4 — stable
 
 | Download | Platform | Installation |
 |---|---|---|
@@ -50,6 +32,33 @@ remain available.
 The Windows files labelled **HotkeyPatch** include the new defaults. Existing saved
 hotkeys stay as chosen; use **Settings → Hotkeys → Reset Defaults → Apply** to
 switch to the new pair. The original V1.3.4 files remain available on the release.
+
+## Download V1.3.6 — early tester prerelease
+
+[Release notes and known limitations](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
+cover the unchanged review-02 packages from source `b4b9d27`.
+
+| Download | Platform | Installation |
+|---|---|---|
+| [Windows installer — recommended for early testers](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/MiniWhiteboard-1.3.6-Setup.exe) | Windows x64 | Close Mini Whiteboard and run Setup to replace the registered installed copy. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/WinMiniWhiteboardV1.3.6.zip) | Windows x64 | Close the old copy, extract the new ZIP and replace the complete application folder manually. |
+| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/MacMiniWhiteboardV1.3.6-Preview.zip) | macOS 14+, arm64/x86_64 bundle | Quit, extract on a Mac and replace Mini Whiteboard.app in Applications. Interactive Mac acceptance is NOT RUN. |
+
+[SHA-256 checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/SHA256SUMS.txt)
+are provided with the release. Enable **Settings → Show floating tools** from the
+tray/menu bar. Tap a tool, hold or right-click for options, and drag the dotted grip.
+The toolbar starts off and follows the active board when enabled.
+
+Glass remains grey on the tested hosted Windows client; **Appearance → White**
+provides the verified opaque appearance. One editable-clipboard case and complete
+client tray/settings and HotkeyPatch upgrade/rollback/reinstall/uninstall acceptance
+remain unresolved. See the [verification details](docs/RELEASE_NOTES.md#v136--early-tester-prerelease--8-november-2026).
+
+Microsoft's completed written response reported no positive scanner or telemetry
+indicators for the submitted V1.3.6 EXE. Its portal file-level determination still
+displayed **Pending** on 8 November; this is not a definitive **Not malware**
+classification. The original reported quarantine remains unexplained. See
+[security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
 
 Windows is unsigned. The Mac preview is ad-hoc signed and has not been notarized.
 For a trusted Mac download blocked by Gatekeeper, follow
@@ -149,7 +158,7 @@ Screenshot content reaches the rounded board boundary. Small translucent control
 and temporary feedback sit over the image; copied image content excludes them.
 The top edge still moves the window and its edges/corners resize it.
 
-## Optional floating tools (V1.3.6 candidate)
+## Optional floating tools (V1.3.6 early tester)
 
 Enable **tray/menu bar → Settings → Show floating tools**. This preference is
 remembered and starts off. One compact palette follows the active board; other
@@ -218,7 +227,7 @@ three stroke lengths and repeated drawing/whole-stroke erasing/undo/redo.
 These are offscreen processing measurements, not pen latency or display FPS.
 Stroke completion can take longer, and boundary clipping remains expensive.
 The friend's several-second freeze has not been conclusively reproduced. See
-[measurement scope, package results and remaining limits](docs/RELEASE_NOTES.md#v136-candidate--unpublished).
+[measurement scope, package results and remaining limits](docs/RELEASE_NOTES.md#v136--early-tester-prerelease--8-november-2026).
 
 ## Tools and shortcuts
 
