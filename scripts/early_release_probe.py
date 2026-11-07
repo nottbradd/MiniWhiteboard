@@ -282,6 +282,16 @@ def exercise(c, case):
 
     def verify_pixels(result,hwnd,expected_pixels,label):
             from pywinauto import Desktop
+            from mini_whiteboard.settings import CLIPBOARD_MIME
+            from mini_whiteboard.clipboard import decode
+            from mini_whiteboard.document import ImageObject
+            sequence=n.bind(user,'GetClipboardSequenceNumber',W.DWORD)
+            owner=n.bind(user,'GetClipboardOwner',W.HWND)
+            def clipboard_state(phase):
+                row=dict(phase=phase,ms=now(),sequence=sequence(),owner=owner(),foreground=foreground(),
+                         formats=list(c['app'].clipboard().mimeData().formats()))
+                result.setdefault('clipboard_observations',[]).append(row)
+                save()
             user.SetForegroundWindow(hwnd)
             if not wait_until(lambda:foreground()==hwnd,.5):
                 result['capture_export_error']='Owned board did not acquire focus'
@@ -290,6 +300,8 @@ def exercise(c, case):
             # Verify the actual captured object through normal context-menu and
             # clipboard commands. The owned target is static in the sampled region.
             c['app'].clipboard().clear()
+            QTest.qWait(20)
+            clipboard_state('cleared-before-menu')
             paper=result['paper']
             c['set_cursor'](round(paper['x']+paper['width']/2),round(paper['y']+paper['height']/2))
             c['mouse'](8,0,0,0,0); c['mouse'](16,0,0,0,0)
@@ -309,14 +321,20 @@ def exercise(c, case):
                 return
             actions[0].click_input()
             QTest.qWait(60)
+            clipboard_state('before-copy')
             key(0xA2); key(ord('C')); key(ord('C'),True); key(0xA2,True)
-            wait_until(lambda:not c['app'].clipboard().image().isNull(),1)
+            # Delayed Windows clipboard rendering can expose an image before
+            # Qt has observed the custom MIME payload. The existing one-second
+            # export deadline applies to both required formats, not just PNG.
+            clipboard_state('copy-sent')
+            export_started=now()
+            wait_until(lambda:not c['app'].clipboard().image().isNull() and
+                       bool(c['app'].clipboard().mimeData().data(CLIPBOARD_MIME)),1)
+            result['clipboard_export_observed_ms']=now()-export_started
+            clipboard_state('export-observed')
             image=c['app'].clipboard().image()
             expected_pixels.save(str(output/(label+'-expected.png')))
             if not image.isNull(): image.save(str(output/(label+'-clipboard.png')))
-            from mini_whiteboard.settings import CLIPBOARD_MIME
-            from mini_whiteboard.clipboard import decode
-            from mini_whiteboard.document import ImageObject
             payload=bytes(c['app'].clipboard().mimeData().data(CLIPBOARD_MIME))
             if image.isNull() or not payload:
                 result['result']='UNRESOLVED: clipboard export unavailable after menu interaction'

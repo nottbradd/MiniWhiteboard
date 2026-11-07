@@ -212,13 +212,23 @@ def main():
                         return uia_control(windows()['Mini Whiteboard floating tools'][0],name,'state')['checked']
                     tap(after[0]+91*scale,after[1]+23*scale)
                     wait_for('First board retains Eraser as the selected tool',lambda:checked_tool('Eraser'))
+                    first_tools_hwnd=windows()['Mini Whiteboard floating tools'][0]
                     move(380,310)
                     for vk in (0xA2,0x5B,0xA0,0x57):press(vk)
                     time.sleep(.15);move(min(880,int(m.x+m.width-90)),min(610,int(m.y+m.height-120)));time.sleep(.1)
                     for vk in (0x57,0xA0,0x5B,0xA2):release(vk)
                     wait_for('Second board is created independently',lambda:'Whiteboard 2' in windows())
+                    # Activating another board retires the old ToolPalette on
+                    # the Qt event loop. Board creation alone is not evidence
+                    # that its replacement toolbar has appeared yet.
+                    wait_for('Second board has its replacement toolbar',lambda:
+                        bool((entry:=windows().get('Mini Whiteboard floating tools')) and entry[0]!=first_tools_hwnd))
+                    capture_state('second-board-tools-ready')
                     wait_for('Second board toolbar starts with Draw',lambda:checked_tool('Draw'))
+                    second_tools_hwnd=windows()['Mini Whiteboard floating tools'][0]
                     tap(rect[0]+65,rect[1]+16)
+                    wait_for('First board has its replacement toolbar after activation',lambda:
+                        foreground()==hwnd and bool((entry:=windows().get('Mini Whiteboard floating tools')) and entry[0]!=second_tools_hwnd))
                     wait_for('Switching back restores the first board tool',lambda:foreground()==hwnd and checked_tool('Eraser'))
                     check('Switching boards preserves the first board toolbar position',windows()['Mini Whiteboard floating tools'][1]==after)
                     n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-board-switch.png'))
