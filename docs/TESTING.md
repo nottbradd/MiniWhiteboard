@@ -21,6 +21,16 @@ fresh processes; add `--toolbar` for V1.3.6. Reports contain samples, mean, p50,
 p95, maxima, CPU time, working set, paint and release cost. Input is an unpaced
 backlog with a paint opportunity every four samples (240/60 Hz equivalent), not
 hardware latency or FPS. Profiling adds overhead: compare unprofiled runs.
+Use `--contexts boundary` for strokes crossing the canvas edge; clipping costs
+must be reported separately. Rapid cycles exercise both circular and whole-stroke
+erasing. Earlier reports using whole-stroke erasing alone retain that scope.
+
+`scripts.packaged_drawing_check` requires an isolated GitHub-hosted Windows
+desktop and an explicit executable SHA-256. It injects native mouse input and
+probes the GUI thread with bounded WM_NULL messages. Report the measured input
+duration and probe samples; the nominal 240 Hz request is not proof of a 240 Hz
+device or screen. Run it through the Defender diagnostic workflow so protection,
+pre/post scans and blocked runs are retained alongside package identity.
 
 Use 16.7 ms as a diagnostic 60 Hz processing budget and 100 ms as a noticeable
 stall threshold, not a functional assertion or guarantee. Record longer stalls;

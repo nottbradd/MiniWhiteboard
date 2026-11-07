@@ -2,20 +2,141 @@
 
 ## V1.3.6 candidate — unpublished
 
-- Optional **Settings → Show floating tools**, off by default. One compact
-  palette follows the active board, with 42 px targets, tap/hold options, colour,
-  undo/redo and a drag grip. It chooses above, below or inside placement.
+- Optional **Settings → Show floating tools**, off by default and remembered.
+  One 46 px-high palette follows the active board, with 20 px icons, 42 px tool
+  targets, tap/hold options, colour, undo/redo and a drag grip. It chooses above,
+  below or inside placement. Each board keeps its tool settings.
+- Keyboard and palette actions share the existing canvas state. Text retains
+  ownership of typing, clipboard and editor undo; selecting a tool finishes the
+  editor. Tool chrome stays out of document exports and screenshot backgrounds.
 - Freehand previews retain one gesture-local incremental path instead of caching
-  each growing immutable stroke. Final artwork, smoothing, masks and history
-  retain the document representation. A same-environment comparison is in progress.
-- Based on the tested but unpublished V1.3.5 `c83104b` candidate as explicitly
-  approved. Neither release is published. Candidate package verification and
-  native UI captures are in progress; no clearance or release acceptance is implied.
-- Windows sign-in remains **NOT RUN (not tested)** under the existing waiver.
-  Real pen, physical mixed-DPI and Windows client browser/Explorer acceptance
-  remain **NOT RUN**. Mac remains **Universal2 Preview**, macOS 14+, ad-hoc signed
-  and not notarized. Interactive Mac, macOS 14 and Intel execution are **NOT RUN**.
+  each growing immutable stroke. Exact path, raster, endpoint and undo regressions
+  preserve the document representation. No new runtime dependency was added.
+- Includes the tested but unpublished V1.3.5 `c83104b` creation-gesture fix.
+  Neither release is published. The public download links remain V1.3.4 HotkeyPatch.
 
+### Packages and verification
+
+Candidate packages were built from `1ff34f4ee353b51c37b892731288d41365d96042`.
+Later changes are documentation and test tooling only. The Windows installer is
+recommended; the portable ZIP and **Mac Universal2 Preview** remain available.
+Windows is unsigned. Mac targets macOS 14+, is ad-hoc signed and is not notarized.
+
+| Candidate | SHA-256 |
+|---|---|
+| MiniWhiteboard-1.3.6-Setup.exe | `ec58fa1fa62c3c901023df18e22a0de54b9db6a07f910f0ff5426fc71e4a0a71` |
+| WinMiniWhiteboardV1.3.6.zip | `63ba93c288a2976dfc7a641eb0143727375ef00064bc4637512335123f300969` |
+| MacMiniWhiteboardV1.3.6-Preview.zip | `98c81f3b57e3330d732b6fbc27ad9f14afa85c52e9f3d577e7281382b896e3d3` |
+
+The Windows EXE is `eccb41017d954d2381a912c19bed491905267ac3fa61f420f6cb763f2c411678`.
+The [Windows build and acceptance artifacts](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282383)
+and [Mac build artifacts](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282242)
+retain the exact packages and detailed results. Actions downloads require GitHub
+sign-in and expire; these are not published release assets.
+
+Windows unit tests: **353 passed, 2 Mac-only skips (355 total)**. Mac unit tests:
+**354 passed, 1 Windows-only skip (355 total)**. All 48 Windows frozen application
+modules match the package source. ZIP CRC, payload inventory and required notices
+passed: 18 notices on Windows, 16 on Mac. Mac Universal2 bundle, architecture,
+limited eight-second startup, ad-hoc signature and ditto extraction checks passed
+on macOS 15.8.2 arm64. Those checks do not establish interactive Mac acceptance.
+
+The native source-widget checks passed 15 assertions at each of five Qt scale
+overrides (100/125/150/175/200%). Captures show above/below/inside placement,
+dragging, long press, White/Glass and small boards. Tablet/barrel-button/touch
+regressions are synthetic. Glass appeared solid grey on the hosted Server VM;
+client compositor appearance with the new controls remains unverified.
+
+The final Windows installer/portable run completed **57 lifecycle checks**,
+including install, upgrade, uninstall, saved preferences, registration and
+controlled startup. Frozen native suites passed **1,246 assertions for each
+installed and portable copy**, plus 880 focused portable capture assertions.
+Focused matrices passed 23 pending-creation, 8 release/pointer-motion and 13
+custom full-prefix cases. These hosted Server checks had zero recorded Defender
+detection events and zero protection-disable events. Browser/Explorer client
+acceptance remains separate.
+
+The final **default full-prefix matrix is INCOMPLETE**. Its pre-execution
+checkpoint passed, but the runtime job exceeded its configured 20-minute step
+limit without uploading a runtime report. Cancellation was requested at
+09:34 UTC on 7 November. This does not establish an application failure or a
+successful run; the cause remains unresolved. The earlier `f6e6094` candidate
+completed all 15 cases with zero recorded Defender detections, but that is
+retained as earlier-package evidence, not substituted for the final EXE.
+
+### Measured drawing work
+
+The matched source workload used Windows Server 2025, Python 3.12.10, Qt 6.11.2,
+a 960 × 640 logical board and DPR 1. Each fresh process ran 18 combinations:
+120/480/1,920 points, White/Glass, empty/200-shape/screenshot backgrounds, plus
+20 draw/whole-stroke erase/undo/redo cycles per combination. Events were unpaced,
+with painting every four samples (240/60 Hz equivalent); this measures processing
+work, not hardware latency or display FPS.
+
+For the empty White board with 1,920 move samples, 501 paints and 480 event drains:
+
+| Metric | V1.3.5 baseline | V1.3.6 tools off | V1.3.6 tools on |
+|---|---:|---:|---:|
+| Paint mean / p95 / max, ms | 6.45 / 12.50 / 22.10 | 0.58 / 0.72 / 5.37 | 0.57 / 0.72 / 5.19 |
+| Input p95 / max, ms | 0.079 / 0.849 | 0.048 / 0.108 | 0.049 / 0.158 |
+| Event drain p95 / max, ms | 12.70 / 22.30 | 0.79 / 0.95 | 0.80 / 1.59 |
+| Release and paint, ms | 6.07 | 12.25 | 12.49 |
+| CPU seconds, including rapid cycles | 3.55 | 0.47 | 0.53 |
+
+The largest paint in the full matrix was 22.10 ms before, 8.81 ms after with tools
+off, and 10.64 ms with tools on. All sampled points were retained (1,921 points
+including the initial press in this row). Reports include every row, memory and
+raw sample counts in the Windows tools/performance artifact.
+
+A separate local Ryzen 5 5500/32 GiB/Python 3.12.14 offscreen comparison extended
+the same stroke to 7,680 moves: paint p95 **123.21 → 5.62 ms**, maximum
+**218.23 → 31.22 ms**, CPU **115.25 → 6.53 s**, end working set
+**3,094.62 → 78.80 MiB**. Release cost increased **36.54 → 68.56 ms**.
+A 1,920-point boundary-crossing case still had **23.70 ms p95 paint** and
+**51.61 ms release** after the change. Clipping remains a material cost.
+
+Profiling located repeated full-path construction, stroke expansion/intersection
+and retained intermediate cache entries on the GUI thread. Incremental preview
+geometry removes that repeated work and bounds preview memory; final geometry
+is built at release. These results support a focused PySide6 fix, not a Rust/Tauri
+migration. The friend's several-second freeze was not conclusively reproduced
+or attributed; no universal 60 FPS or pen-latency claim is made.
+
+The [same-VM native packaged drawing comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358907310)
+also passed for the exact V1.3.5 baseline and V1.3.6 EXE with tools off/on,
+with Defender enabled and zero recorded detections. Each run injected a
+1,920-point long stroke and 30 short strokes (720 more points). The long stroke
+took 8.94 / 8.85 / 8.85 seconds respectively; requested 240 Hz input was not a
+hardware rate guarantee. GUI-thread WM_NULL probes had p95 **5.83 / 0.36 / 0.41 ms**,
+max **9.04 / 1.01 / 1.40 ms**, and **571 / 572 / 572 samples**. No probe timed out
+or exceeded 100 ms in any run. These liveness probes are not display latency.
+Native tool taps retained board focus; long press and its release kept options open.
+
+A second matched 18-case synthetic run added circular erasing to the rapid
+cycles (360 cycles per baseline/off/on process). It completed with maximum
+whole-cycle times **32.14 / 24.48 / 42.96 ms**, respectively. Opening popovers and
+erasing are broader operations than drawing-input latency; their maxima are
+retained instead of folding them into a smoother drawing claim.
+
+### Remaining acceptance limits
+
+- Automatic launch during an actual Windows sign-in: **NOT RUN (not tested)**,
+  under the existing waiver. Registration and controlled command launches are
+  covered by the scripted checks, not a real sign-in.
+- Real stylus, physical mixed-DPI/multiple monitors, Windows 10, and the normal
+  Windows client browser-download/Explorer-extraction/SmartScreen route: **NOT RUN**.
+  Hosted Server runs use artifact downloads and Expand-Archive without download
+  origin markers. They do not complete client acceptance or identify school policy.
+- New toolbar Glass appearance on a Windows client, physical pen latency and
+  friend-device reproduction: **NOT RUN**.
+- Interactive Mac toolbar/shortcuts/focus/permissions/capture/Spaces,
+  macOS 14 execution and Intel execution: **NOT RUN**. Mac remains **Universal2 Preview**.
+- Microsoft's V1.3.4 determination does not cover the new V1.3.6 EXE. Earlier
+  blocked V1.3.6 VMs and the first native drawing diagnostic retained a
+  `Trojan:Win32/Gracing.I` detection involving temporary `provjobd` processes,
+  before app execution. That is not established as a Mini Whiteboard detection
+  and has not been classified as harmless. The runs stopped without exclusions,
+  restoration or reduced protection; their evidence remains available.
 
 ## Windows investigation and unpublished V1.3.5 candidate — 5 November 2026
 

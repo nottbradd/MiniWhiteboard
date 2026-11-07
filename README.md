@@ -8,8 +8,12 @@ releasing. Draw, type, paste images and annotate screenshots with keyboard short
 
 **V1.3.6 is an unpublished candidate.** It adds optional compact floating tools
 and reduces repeated geometry work during freehand drawing. V1.3.5 is also
-unpublished; this candidate uses its tested `c83104b` source with the user's
-approval. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
+unpublished; this candidate includes its tested `c83104b` creation-gesture fix. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
+
+[Review the unpublished Windows candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282383/artifacts/13568526984)
+and [Mac Universal2 Preview candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282242/artifacts/13569055693)
+in Actions (GitHub sign-in required; artifacts expire). These are review builds,
+not a published V1.3.6 release.
 
 Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
 (screenshot). Mac remains **Universal2 Preview**.
@@ -155,6 +159,47 @@ Selecting a tool finishes the current textbox; ordinary tool keys still type
 normally inside the text editor. Real stylus and physical mixed-DPI acceptance
 remain **NOT RUN**.
 
+![Compact floating tools above a White board](docs/media/floating-tools-white-above-v136.png)
+
+Actual V1.3.6 application capture on the Windows Server 2025 test desktop.
+The pastel background is a separate demonstration window. The palette is
+375 × 46 logical pixels with 20-pixel icons and 42-pixel tool targets.
+
+<details>
+<summary>Placement, customisation and small-board examples</summary>
+
+![Tool options after a long press](docs/media/floating-tools-white-options-v136.png)
+
+![Tools below a board at the top edge](docs/media/floating-tools-white-below-v136.png)
+
+![Tools inside a screen-filling board](docs/media/floating-tools-white-inside-v136.png)
+
+![Drag the grip and select Eraser](docs/media/floating-tools-white-dragged-eraser-v136.png)
+
+![Compact controls on a small board](docs/media/floating-tools-white-small-v136.png)
+
+![Small board at a 200% Qt scale override](docs/media/floating-tools-white-small-200-v136.png)
+
+![Glass rendered as solid grey on the hosted test VM](docs/media/floating-tools-glass-options-v136.png)
+
+These are captures of the implemented widgets. Scale checks used Qt overrides
+at 100/125/150/175/200%; physical mixed-DPI and real pen acceptance are **NOT RUN**.
+Glass appeared as solid grey on the hosted VM; translucent Glass on a Windows
+client with the new controls still needs visual acceptance.
+
+</details>
+
+### Drawing performance
+
+A controlled 1,920-point stroke on an empty White board reduced p95 paint work
+from **12.50 ms to 0.72 ms**, with floating tools enabled. The matched 18-case
+synthetic workload covered both themes, empty/populated/screenshot boards,
+three stroke lengths and repeated drawing/whole-stroke erasing/undo/redo.
+These are offscreen processing measurements, not pen latency or display FPS.
+Stroke completion can take longer, and boundary clipping remains expensive.
+The friend's several-second freeze has not been conclusively reproduced. See
+[measurement scope, package results and remaining limits](docs/RELEASE_NOTES.md#v136-candidate--unpublished).
+
 ## Tools and shortcuts
 
 Tools work only in the focused canvas. New boards start in Draw mode.
@@ -231,7 +276,7 @@ There are no animated backgrounds or desktop-capture loops.
 ![V1.3.1 Glass over an owned demonstration background](docs/media/glass-v131-candidate.png)
 
 This is a native Windows capture. The caption and backdrop belong to the test
-window; the board has no title bar or permanent toolbar.
+window. This older capture predates the optional floating tools.
 
 </details>
 
