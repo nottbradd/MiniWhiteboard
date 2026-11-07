@@ -198,8 +198,9 @@ def main():
             from PIL import ImageGrab
             ImageGrab.grab(all_screens=True).save(args.output/(label+'-before-shell-launch.png'))
             try:
-                launched=shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,lpFile=str(directory/'Mini Whiteboard.exe'),
-                                            lpDirectory=str(directory),nShow=1)
+                from scripts.client_wizard_check import shell_open
+                launched=shell_open(lambda:shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
+                    lpFile=str(directory/'Mini Whiteboard.exe'),lpDirectory=str(directory),nShow=1),args.output/(label+'-shell-observation'))
                 handle=launched.get('hProcess')
                 if not handle: raise RuntimeError('Shell did not provide an owned application process; inspect security UI')
                 class ShellChild:

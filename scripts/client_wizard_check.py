@@ -5,6 +5,66 @@ import json
 import os
 from pathlib import Path
 import time
+import threading
+
+
+def native_windows():
+    """Capture top-level state without waiting on an accessibility provider."""
+    import ctypes as C
+    from ctypes import wintypes as W
+    u=C.windll.user32
+    callback_type=C.WINFUNCTYPE(W.BOOL,W.HWND,W.LPARAM)
+    u.IsWindowVisible.argtypes=[W.HWND]
+    u.GetWindowTextW.argtypes=[W.HWND,W.LPWSTR,C.c_int]
+    u.GetWindowThreadProcessId.argtypes=[W.HWND,C.POINTER(W.DWORD)]
+    u.GetWindowRect.argtypes=[W.HWND,C.POINTER(W.RECT)]
+    u.EnumWindows.argtypes=[callback_type,W.LPARAM]
+    rows=[]
+    @callback_type
+    def visit(hwnd,_):
+        if u.IsWindowVisible(hwnd):
+            title=C.create_unicode_buffer(256);u.GetWindowTextW(hwnd,title,256)
+            pid=W.DWORD();u.GetWindowThreadProcessId(hwnd,C.byref(pid))
+            rect=W.RECT();u.GetWindowRect(hwnd,C.byref(rect))
+            rows.append(dict(title=title.value,pid=pid.value,handle=int(hwnd),rectangle=[rect.left,rect.top,rect.right,rect.bottom]))
+        return True
+    u.EnumWindows(visit,0)
+    return rows
+
+
+def shell_open(launch,output):
+    """Observe a Shell call that may itself block on an OS confirmation."""
+    from PIL import ImageGrab
+    output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    result={};done=threading.Event()
+    def worker():
+        import pythoncom
+        pythoncom.CoInitialize()
+        try:
+            result['value']=launch()
+        except Exception as error:
+            result['error']=repr(error)
+        finally:
+            done.set();pythoncom.CoUninitialize()
+    threading.Thread(target=worker,daemon=True).start()
+    deadline=time.monotonic()+20
+    previous=None;index=0
+    while True:
+        rows=native_windows();current=json.dumps(rows)
+        if current!=previous:
+            previous=current;index+=1
+            (output/f'{index:02}-windows.json').write_text(json.dumps(dict(utc=datetime.now(timezone.utc).isoformat(),windows=rows,shell_returned=done.is_set()),indent=2),encoding='utf-8')
+            ImageGrab.grab(all_screens=True).save(output/f'{index:02}-shell.png')
+        security=[r['title'] for r in rows if any(t in r['title'].lower() for t in
+                  ('smartscreen','windows protected','open file - security warning','user account control'))]
+        if security:
+            raise RuntimeError('Shell confirmation/block retained without dismissal: '+repr(security))
+        if done.is_set():
+            if 'error' in result: raise RuntimeError('Shell open failed: '+result['error'])
+            return result.get('value')
+        if time.monotonic()>=deadline:
+            raise TimeoutError('Shell call did not return within 20 seconds; native windows and pixels retained')
+        time.sleep(.25)
 
 
 def main():
@@ -29,11 +89,14 @@ def main():
     def clean(text): return text.replace('&','').strip()
     try:
         save('before-shell-open',[])
-        os.startfile(str(args.executable.resolve()))
+        shell_open(lambda:os.startfile(str(args.executable.resolve())),args.output/'shell')
         deadline=time.monotonic()+65
         fingerprint=None
         finish_clicked=False
         while time.monotonic()<deadline:
+            native=native_windows()
+            (args.output/'latest-native-windows.json').write_text(json.dumps(native,indent=2),encoding='utf-8')
+            ImageGrab.grab(all_screens=True).save(args.output/'latest-native.png')
             visible=[w for w in desktop.windows() if w.is_visible()]
             owned=[w for w in visible if 'Mini Whiteboard' in w.window_text() and
                    ('Setup' in w.window_text() or 'Uninstall' in w.window_text())]
