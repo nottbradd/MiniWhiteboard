@@ -223,10 +223,18 @@ def main():
             # command instead; do not replace normal extraction with an API.
             from ctypes import wintypes
             ctypes.windll.user32.ShowWindowAsync.argtypes=[wintypes.HWND,ctypes.c_int]
-            ctypes.windll.user32.ShowWindowAsync(archive_window.handle,3)
             activate_browser(archive_window)
+            # Activation restores the window. Maximize afterwards and verify
+            # the result, rather than assuming the earlier request survived.
+            ctypes.windll.user32.ShowWindowAsync(archive_window.handle,3)
+            ctypes.windll.user32.IsZoomed.argtypes=[wintypes.HWND]
+            wait_for(lambda: ctypes.windll.user32.IsZoomed(archive_window.handle),
+                     3,'Explorer did not maximize')
             time.sleep(1)
             evidence('explorer-maximized')
+            report['explorer_buttons']=[dict(name=c.window_text(),visible=c.is_visible())
+                for c in archive_window.descendants(control_type='Button')]
+            save()
 
             def extract_button():
                 for window in desktop.windows(class_name='CabinetWClass'):
