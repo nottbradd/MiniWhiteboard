@@ -416,7 +416,7 @@ try {
         $report.runtime="Completed scripted $Package checks of the recorded executable; see runtime.json and timing/matrix.json"
         Scan $downloadRoot 'after-runtime'
     }
-    $report.result='SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
+    $report.result=if ($BrowserExplorer) { 'SCANS COMPLETED; browser/Explorer operation evidence recorded; runtime NOT RUN' } else { 'SCANS COMPLETED; runtime and browser-download acceptance NOT RUN' }
     if ($Exercise) {
         $report.result=if ($CandidateBrowserArtifact) { 'CANDIDATE CLIENT CHECKS COMPLETED; see exact checks and ARM64/Test Mode limitations' }
                        elseif ($candidate) { 'CANDIDATE SCRIPTED CHECKS COMPLETED; Windows client and final release acceptance NOT RUN' }

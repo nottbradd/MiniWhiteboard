@@ -170,7 +170,7 @@ def main():
                     if args.uninstall and 'OK' in names and 'successfully removed' in text.lower():
                         names['OK'].click_input();finish_clicked=True;break
                     if not args.uninstall:
-                        action=next((n for n in ('Finish','Install','Next >') if n in names),None)
+                        action=next((n for n in ('Finish','Install','Next >','Next') if n in names),None)
                         if action:
                             if action=='Finish': finish_clicked=True
                             names[action].click_input();break
