@@ -126,11 +126,20 @@ def main():
             ImageGrab.grab(all_screens=True).save(args.output/'latest-native.png')
             visible=[w for w in desktop.windows() if w.is_visible()]
             def belongs(window):
-                import psutil
+                import ctypes as C
+                from ctypes import wintypes as W
+                k=C.windll.kernel32
+                k.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];k.OpenProcess.restype=W.HANDLE
+                k.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)]
+                k.CloseHandle.argtypes=[W.HANDLE]
+                process=k.OpenProcess(0x1000,False,window.process_id())
+                if not process:return False
                 try:
-                    return psutil.Process(window.process_id()).name().lower().startswith(args.executable.stem.lower())
-                except psutil.Error:
-                    return False
+                    name=C.create_unicode_buffer(32768);size=W.DWORD(len(name))
+                    return bool(k.QueryFullProcessImageNameW(process,0,name,C.byref(size)) and
+                                Path(name.value).stem.lower().startswith(args.executable.stem.lower()))
+                finally:
+                    k.CloseHandle(process)
             owned=[w for w in visible if ('Mini Whiteboard' in w.window_text() and
                    ('Setup' in w.window_text() or 'Uninstall' in w.window_text())) or belongs(w)]
             rows=[dict(title=w.window_text(),controls=[c.window_text() for c in w.descendants()]) for w in owned]
