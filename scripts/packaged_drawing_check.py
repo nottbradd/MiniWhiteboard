@@ -114,6 +114,15 @@ def main():
         check(label,False,windows())
     def tap(x,y):
         move(round(x),round(y));mouse(2,0,0,0,0);time.sleep(.04);mouse(4,0,0,0,0)
+    def uia_control(handle,name,action):
+        destination=args.output/('uia-'+str(len(report.setdefault('uia',[])))+'.json')
+        result=subprocess.run([sys.executable,'-m','scripts.client_uia_check','--handle',str(handle),
+            '--pid',str(process.pid),'--name',name,'--action',action,'--output',str(destination)],
+            capture_output=True,text=True,timeout=15,creationflags=subprocess.CREATE_NO_WINDOW)
+        report['uia'].append(dict(file=destination.name,exit_code=result.returncode,stderr=result.stderr))
+        save()
+        if result.returncode:raise RuntimeError('Separate UIA query failed; see '+destination.name)
+        return json.loads(destination.read_text())
     preferences = QSettings('MiniWhiteboard','MiniWhiteboard')
     had=preferences.contains('tools/floating');old=preferences.value('tools/floating')
     try:
@@ -182,8 +191,7 @@ def main():
                     return
                 if args.visual_only:
                     options_hwnd=windows()['Mini Whiteboard Draw options'][0]
-                    options=Desktop(backend='uia').window(handle=options_hwnd)
-                    options.child_window(title='White',control_type='Button').click_input()
+                    uia_control(options_hwnd,'White','click')
                     time.sleep(.35)
                     check('White choice keeps its options visible','Mini Whiteboard Draw options' in windows())
                     n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-white-selected.png'))
@@ -201,8 +209,7 @@ def main():
                     # Read the real frozen widget's accessibility state. A tool
                     # click and a second board must use the same canvas state.
                     def checked_tool(name):
-                        toolbar=Desktop(backend='uia').window(handle=windows()['Mini Whiteboard floating tools'][0])
-                        return toolbar.child_window(title=name,control_type='Button').get_toggle_state()==1
+                        return uia_control(windows()['Mini Whiteboard floating tools'][0],name,'state')['checked']
                     tap(after[0]+91*scale,after[1]+23*scale)
                     wait_for('First board retains Eraser as the selected tool',lambda:checked_tool('Eraser'))
                     move(380,310)
