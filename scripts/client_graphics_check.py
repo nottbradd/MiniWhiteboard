@@ -55,7 +55,7 @@ def main():
     with compatibility_preferences():
         prefs=SnapPreferences();prefs.set_theme('Glass')
         for background in ('light','busy'):
-            child=None;board=None
+            child=None;board=None;manager=None
             try:
                 child=subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
                     '--background-child','--background-kind',background,'--output',str(args.output/background)],
@@ -77,7 +77,34 @@ def main():
                     after=[image.pixelColor(x,y).getRgb() for x,y in points]))
                 report['observations'][-1]['native_windows']=window_state(os.getpid())
                 save()
+                board.close();QTest.qWait(80)
+                # Exercise the existing source fallback explicitly. This is
+                # fault injection, not evidence that this VM selected fallback
+                # automatically (its native host reports success but is grey).
+                from unittest.mock import patch
+                from mini_whiteboard.document import Text
+                from mini_whiteboard.floating_tools import FloatingTools
+                with patch('mini_whiteboard.platform.windows.appearance.capable',return_value=False):
+                    prefs.set_floating_tools(True)
+                    manager=FloatingTools(app,prefs)
+                    board=BoardWindow('Source-only forced fallback diagnosis',prefs)
+                    manager.add_board(board)
+                    board.setGeometry(180,160,600,400)
+                    board.canvas.document.commit((Text((40,250),'Readable fallback · A V E 12345',size=16),),'Diagnostic text')
+                    board.show();board.activateWindow();board.canvas.setFocus();QTest.qWait(400)
+                    manager.open_options('Draw');QTest.qWait(250)
+                    surfaces=[board,manager.palette,manager.options]
+                    if any(w is None or not w.isVisible() or w.native_glass for w in surfaces):
+                        raise AssertionError('Forced fallback board, toolbar and popover did not become visible')
+                    n.capture_rect(screen).save(str(args.output/(background+'-source-forced-fallback.png')))
+                    report.setdefault('forced_fallback',[]).append(dict(background=background,
+                        scope='Source-only capable=False injection; no OS setting or frozen payload changed',
+                        surfaces=[dict(title=w.windowTitle(),native_glass=w.native_glass,
+                                       host=bool(getattr(w,'_backdrop',None))) for w in surfaces],
+                        native_windows=window_state(os.getpid())))
+                    save()
             finally:
+                if manager is not None:manager.close();prefs.set_floating_tools(False)
                 if board is not None: board.close();QTest.qWait(80)
                 if child is not None and child.poll() is None: child.terminate();child.wait(5)
     report['ended_utc']=datetime.now(timezone.utc).isoformat();save()
