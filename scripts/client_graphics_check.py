@@ -21,7 +21,7 @@ def main():
     def save():
         (args.output/'graphics.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     save()
-    from scripts.client_glass_diagnostics import d3d11_devices,instrument_source,window_state
+    from scripts.client_glass_diagnostics import d3d11_devices,instrument_source,window_state,wait_visible_window
     report['d3d11']=d3d11_devices()
     instrument_source(report,save)
     query="@{video=Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion,VideoProcessor,Status,AdapterCompatibility; session=$env:SESSIONNAME; os=Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture} | ConvertTo-Json -Depth 5"
@@ -60,7 +60,7 @@ def main():
                 child=subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
                     '--background-child','--background-kind',background,'--output',str(args.output/background)],
                     creationflags=subprocess.CREATE_NO_WINDOW)
-                QTest.qWait(1200)
+                ready=wait_visible_window(child.pid,app.processEvents)
                 screen=n.monitors()[0].rect
                 before=n.capture_rect(screen);before.save(str(args.output/(background+'-before.png')))
                 board=BoardWindow('Source-only Glass diagnosis',prefs)
@@ -70,7 +70,7 @@ def main():
                 image=n.capture_rect(screen);image.save(str(args.output/(background+'-source-glass.png')))
                 host=getattr(board,'_backdrop',None)
                 points=((280,300),(420,300),(650,450))
-                report['observations'].append(dict(background=background,native_glass=board.native_glass,
+                report['observations'].append(dict(background=background,background_readiness=ready,native_glass=board.native_glass,
                     host=host.handle if host else None,composition_dimensions=host.effect.dimensions if host and host.effect else None,
                     foreground=int(C.windll.user32.GetForegroundWindow()),board=int(board.winId()),
                     points=points,before=[before.pixelColor(x,y).getRgb() for x,y in points],

@@ -124,6 +124,7 @@ def main():
         finish_clicked=False
         cancellation_requested=False
         replacement_failure=False
+        running_refusal=False
         while time.monotonic()<deadline:
             native=native_windows()
             (args.output/'latest-native-windows.json').write_text(json.dumps(native,indent=2),encoding='utf-8')
@@ -157,12 +158,18 @@ def main():
                 fingerprint=current;save('wizard',rows)
                 for window,row in zip(owned,rows):
                     text=' '.join(row['controls'])
-                    if 'Mini Whiteboard is running' in text or 'must be closed' in text.lower():
+                    if any(message in text.lower() for message in
+                           ('mini whiteboard is running','mini whiteboard is currently running','must be closed')):
                         report['result']='RUNNING APPLICATION REFUSAL'
                         save('running-refusal',rows)
-                        for b in window.descendants(control_type='Button'):
-                            if clean(b.window_text())=='OK': b.click_input();break
-                        return 10
+                        buttons={clean(b.window_text()):b for b in window.descendants(control_type='Button')
+                                 if b.is_visible() and b.is_enabled()}
+                        # Inno's mutex prompt offers OK to retry. Cancel exits
+                        # without asking the app to close or touching its boards.
+                        action='Cancel' if 'Cancel' in buttons else 'OK'
+                        if action not in buttons:
+                            raise RuntimeError('Running-app refusal has no recognised exit control')
+                        buttons[action].click_input();running_refusal=True;break
                     radios=[b for b in window.descendants(control_type='RadioButton')
                             if clean(b.window_text()).startswith('I accept') and b.is_visible()]
                     if radios:
@@ -194,6 +201,9 @@ def main():
                             names[action].click_input();break
             if finish_clicked and not owned and (not target.exists() if args.uninstall else target.exists()):
                 report['result']='PASS';save('completed',[]);return 0
+            if running_refusal and not owned:
+                report['result']='RUNNING APPLICATION REFUSAL'
+                save('refusal-closed',[]);return 10
             if cancellation_requested and not owned:
                 if args.expect_replacement_failure and not replacement_failure:
                     raise RuntimeError('Replacement failure was not observed')

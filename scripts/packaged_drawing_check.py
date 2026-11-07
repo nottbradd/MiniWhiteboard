@@ -92,12 +92,12 @@ def main():
         key(vk,0,0,0);held.add(vk)
     def release(vk):
         key(vk,0,2,0);held.discard(vk)
-    def windows():
+    def windows(include_hidden=False):
         result = {}
         @enum_type
         def visit(hwnd,_):
             pid=W.DWORD();pid_for(hwnd,C.byref(pid))
-            if pid.value==process.pid and visible(hwnd):
+            if pid.value==process.pid and (include_hidden or visible(hwnd)):
                 text=C.create_unicode_buffer(256);title(hwnd,text,256)
                 r=W.RECT()
                 if get_rect(hwnd,C.byref(r)):
@@ -122,13 +122,24 @@ def main():
                 background_process=subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
                     '--background-child','--background-kind',args.background,'--output',str(args.output/'background')],
                     creationflags=subprocess.CREATE_NO_WINDOW)
-                time.sleep(1)
+                from scripts.client_glass_diagnostics import wait_visible_window
+                report['background_readiness']=wait_visible_window(background_process.pid,app.processEvents)
                 preferences.setValue('appearance/theme',args.theme)
                 report.update(scope='Exact frozen executable visual/toolbar checks on an owned background',theme=args.theme,background=args.background)
                 n.capture_rect(n.monitors()[0].rect).save(str(args.output/'background-before-app.png'))
             preferences.setValue('tools/floating',args.toolbar);preferences.sync()
             process=subprocess.Popen([str(executable)],creationflags=subprocess.CREATE_NO_WINDOW)
-            time.sleep(1.8)
+            startup=time.monotonic()
+            # A fixed 1.8 s sleep raced the first emulated cold launch. Wait
+            # for its real tray message window and a serviced GUI message;
+            # this changes test readiness, never the shortcut assertion.
+            def ready():
+                tray=windows(include_hidden=True).get('QTrayIconMessageWindow')
+                value=C.c_size_t()
+                return bool(tray and ping(tray[0],0,0,0,2,100,C.byref(value)))
+            wait_for('Frozen tray GUI is ready before input',ready,seconds=8)
+            report['startup_ready_ms']=(time.monotonic()-startup)*1000
+            capture_state('startup-ready')
             check('Frozen process stays alive at startup',process.poll() is None)
             move(180,210)
             for vk in (0xA2,0x5B,0xA0,0x57):press(vk)

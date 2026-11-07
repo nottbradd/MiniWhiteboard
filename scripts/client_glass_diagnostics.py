@@ -46,6 +46,22 @@ def window_state(pid):
     return dict(utc=datetime.now(timezone.utc).isoformat(),foreground=u.GetForegroundWindow(),windows=rows)
 
 
+def wait_visible_window(pid,pump,seconds=8):
+    """Observe a real painted background instead of assuming a cold-start delay."""
+    send=C.WinDLL('user32').SendMessageTimeoutW
+    send.argtypes=[W.HWND,W.UINT,W.WPARAM,W.LPARAM,W.UINT,W.UINT,C.POINTER(C.c_size_t)]
+    send.restype=C.c_size_t
+    started=time.monotonic();state=None
+    while time.monotonic()-started<seconds:
+        pump();state=window_state(pid)
+        for window in state['windows']:
+            result=C.c_size_t()
+            if window['visible'] and send(window['hwnd'],0,0,0,2,100,C.byref(result)):
+                return dict(ready_ms=(time.monotonic()-started)*1000,state=state)
+        time.sleep(.025)
+    raise TimeoutError('Owned background did not become visible and responsive: '+repr(state))
+
+
 def d3d11_devices():
     """Independent capability probe, not a claim about WUC's private device."""
     create=C.WinDLL('d3d11').D3D11CreateDevice

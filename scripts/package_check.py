@@ -436,7 +436,10 @@ def main():
             text_key(ord('A'))
             text_key(ord('A'), ctrl=True)
             centre = (round((before[0]+before[2])/2), round((before[1]+before[3])/2))
-            delta = (round(30*dpi), round(20*dpi))
+            # Keep the entire glyph image inside the measurement crop. Moving
+            # this right-aligned wrapped sentence right would clip its last
+            # 16 pixels and falsely report a transform error.
+            delta = (-round(30*dpi), round(20*dpi))
             set_cursor(*centre)
             check('Client selection drag targets its owned board',
                   ancestor(get_at(W.POINT(*centre)), 2) == owned_board)
