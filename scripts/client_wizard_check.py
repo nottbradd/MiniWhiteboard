@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import time
 import threading
+import hashlib
 
 
 def native_windows():
@@ -32,7 +33,7 @@ def native_windows():
     return rows
 
 
-def shell_open(launch,output):
+def shell_open(launch,output,executable=None,expected_sha=None):
     """Observe a Shell call that may itself block on an OS confirmation."""
     from PIL import ImageGrab
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
@@ -57,6 +58,28 @@ def shell_open(launch,output):
             ImageGrab.grab(all_screens=True).save(output/f'{index:02}-shell.png')
         security=[r['title'] for r in rows if any(t in r['title'].lower() for t in
                   ('smartscreen','windows protected','open file - security warning','user account control'))]
+        if security==['Open File - Security Warning'] and executable is not None and expected_sha:
+            # This is ordinary consent to execute the exact requested unsigned
+            # file, not SmartScreen Run Anyway or a Defender/policy override.
+            # Keep the checkbox and download-origin marker intact.
+            from pywinauto import Desktop
+            path=Path(executable).resolve(strict=True)
+            if hashlib.sha256(path.read_bytes()).hexdigest()!=expected_sha:
+                raise RuntimeError('Unsigned confirmation file identity changed')
+            warning=Desktop(backend='uia').window(title='Open File - Security Warning')
+            labels=[c.window_text() for c in warning.descendants()]
+            body=' '.join(labels)
+            if path.name not in body or 'Unknown Publisher' not in body or 'publisher could not be verified' not in body.lower():
+                raise RuntimeError('Unsigned confirmation does not identify the requested file; no input sent')
+            checkbox=warning.child_window(title='Always ask before opening this file',control_type='CheckBox')
+            if checkbox.get_toggle_state()!=1:
+                raise RuntimeError('Unexpected unsigned-confirmation checkbox state; no input sent')
+            (output/'unsigned-run.json').write_text(json.dumps(dict(utc=datetime.now(timezone.utc).isoformat(),
+                file=str(path),sha256=expected_sha,controls=labels,action='Run',always_ask_preserved=True,
+                smartscreen_or_policy_override=False),indent=2),encoding='utf-8')
+            warning.child_window(title='Run',control_type='Button').click_input()
+            time.sleep(.2)
+            continue
         if security:
             raise RuntimeError('Shell confirmation/block retained without dismissal: '+repr(security))
         if done.is_set():
@@ -74,6 +97,7 @@ def main():
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--uninstall',action='store_true')
+    parser.add_argument('--expected-sha')
     args=parser.parse_args()
     from pywinauto import Desktop
     from PIL import ImageGrab
@@ -89,7 +113,10 @@ def main():
     def clean(text): return text.replace('&','').strip()
     try:
         save('before-shell-open',[])
-        shell_open(lambda:os.startfile(str(args.executable.resolve())),args.output/'shell')
+        shell_open(lambda:os.startfile(str(args.executable.resolve())),args.output/'shell',args.executable,args.expected_sha)
+        report['ordinary_unsigned_confirmation_accepted']=(args.output/'shell/unsigned-run.json').is_file()
+        report['security_warning_dismissed']=report['ordinary_unsigned_confirmation_accepted']
+        report['security_block_bypassed']=False
         deadline=time.monotonic()+65
         fingerprint=None
         finish_clicked=False
@@ -98,8 +125,14 @@ def main():
             (args.output/'latest-native-windows.json').write_text(json.dumps(native,indent=2),encoding='utf-8')
             ImageGrab.grab(all_screens=True).save(args.output/'latest-native.png')
             visible=[w for w in desktop.windows() if w.is_visible()]
-            owned=[w for w in visible if 'Mini Whiteboard' in w.window_text() and
-                   ('Setup' in w.window_text() or 'Uninstall' in w.window_text())]
+            def belongs(window):
+                import psutil
+                try:
+                    return psutil.Process(window.process_id()).name().lower().startswith(args.executable.stem.lower())
+                except psutil.Error:
+                    return False
+            owned=[w for w in visible if ('Mini Whiteboard' in w.window_text() and
+                   ('Setup' in w.window_text() or 'Uninstall' in w.window_text())) or belongs(w)]
             rows=[dict(title=w.window_text(),controls=[c.window_text() for c in w.descendants()]) for w in owned]
             security=[w.window_text() for w in visible if any(s in w.window_text().lower() for s in
                       ('smartscreen','windows protected','open file - security warning','user account control'))]

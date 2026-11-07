@@ -189,8 +189,10 @@ def main():
 
     def setup(label, package=installer):
         if args.client_gui:
+            expected_setup=(installer_hash if package==installer else
+                            '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222')
             return bounded(label,[sys.executable,'-m','scripts.client_wizard_check','--executable',str(package),
-                                  '--output',str(args.output/('wizard-'+label))],80)
+                                  '--expected-sha',expected_setup,'--output',str(args.output/('wizard-'+label))],80)
         return bounded(label, [str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
                                  '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
                        60)
@@ -218,7 +220,7 @@ def main():
             try:
                 from scripts.client_wizard_check import shell_open
                 launched=shell_open(lambda:shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
-                    lpFile=str(directory/'Mini Whiteboard.exe'),lpDirectory=str(directory),nShow=1),args.output/(label+'-shell-observation'))
+                    lpFile=str(directory/'Mini Whiteboard.exe'),lpDirectory=str(directory),nShow=1),args.output/(label+'-shell-observation'),directory/'Mini Whiteboard.exe',exe_hash)
                 handle=launched.get('hProcess')
                 if not handle: raise RuntimeError('Shell did not provide an owned application process; inspect security UI')
                 class ShellChild:
