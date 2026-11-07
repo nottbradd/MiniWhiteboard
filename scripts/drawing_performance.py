@@ -135,7 +135,8 @@ def main():
                     event(QMouseEvent.Type.MouseButtonPress,(40,250))
                     samples, stalls = [], []
                     for i in range(1,count+1):
-                        p = (40+(i*.8)%820, 260+160*math.sin(i*.032))
+                        p = ((-100+(i*.8)%1120,260+240*math.sin(i*.032)) if context=='boundary'
+                             else (40+(i*.8)%820,260+160*math.sin(i*.032)))
                         start = time.perf_counter()
                         event(QMouseEvent.Type.MouseMove,p)
                         samples.append((time.perf_counter()-start)*1000)
@@ -156,7 +157,7 @@ def main():
                             event(QMouseEvent.Type.MouseMove,(60+k*6,480+10*math.sin(k)))
                         event(QMouseEvent.Type.MouseButtonRelease,(138,480))
                         canvas.set_tool('Eraser')
-                        canvas.eraser_mode = 'stroke'
+                        canvas.eraser_mode = 'circular' if j%2 else 'stroke'
                         event(QMouseEvent.Type.MouseButtonPress,(100,480))
                         event(QMouseEvent.Type.MouseButtonRelease,(100,480))
                         # Use the shipped input route shared with the baseline.

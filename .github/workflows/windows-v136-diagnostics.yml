@@ -21,11 +21,11 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Prepare immutable application source checkouts
         run: |
-          git fetch origin c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10 f6e6094909dce7a01f8378eb7894c6a440e61b67
+          git fetch origin c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10 1ff34f4ee353b51c37b892731288d41365d96042
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git worktree add verification/baseline c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git worktree add verification/candidate-source f6e6094909dce7a01f8378eb7894c6a440e61b67
+          git worktree add verification/candidate-source 1ff34f4ee353b51c37b892731288d41365d96042
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           foreach ($checkout in @('baseline','candidate-source')) {
             Copy-Item -LiteralPath scripts/packaged_drawing_check.py,scripts/drawing_performance.py -Destination "verification/$checkout/scripts"
@@ -58,8 +58,8 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           github-token: ${{ github.token }}
-          run-id: 42357614080
-          artifact-ids: '13568680457'
+          run-id: 42358282383
+          artifact-ids: '13568526984'
           path: candidate-package
           merge-multiple: true
       - name: Exact baseline and candidate native drawing with Defender observation
