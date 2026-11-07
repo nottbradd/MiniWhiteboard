@@ -1,0 +1,79 @@
+name: Frozen V1.3.6 Windows client acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/v1.3.6-floating-tools]
+    paths: [.github/workflows/windows-v136-client.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  client:
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [installer, portable]
+    runs-on: windows-11-arm
+    timeout-minutes: 50
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        timeout-minutes: 5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install diagnostic tools
+        timeout-minutes: 5
+        run: python -m pip install -r requirements-dev.txt pywinauto==0.6.9 pillow==13.0.0
+      - name: Prepare frozen application source and current diagnostic helpers
+        run: |
+          git fetch origin b4b9d276efb484512978449d216bfa4a253ef2d9
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add verification/client-source b4b9d276efb484512978449d216bfa4a253ef2d9
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($name in @('client_download_check.py','client_wizard_check.py','defender_investigation.ps1','defender_runtime_check.py','floating_tools_check.py','packaged_drawing_check.py')) {
+            Copy-Item -LiteralPath "scripts/$name" -Destination verification/client-source/scripts
+          }
+      - name: Prepare the disposable client desktop
+        timeout-minutes: 2
+        run: python -m scripts.observed_process --directory verification/client-desktop/operation --label desktop --timeout 45 -- python -m scripts.client_download_check prepare --path verification/client-desktop --destination verification/client-desktop --output verification/client-desktop/ui
+      - name: Harmless preflight with active Defender
+        timeout-minutes: 8
+        run: ./scripts/defender_investigation.ps1 -ClientPreflight -BrowserExplorer -EvidenceName client-preflight -WorkBudgetMinutes 5
+      - name: Preserve readiness before downloading application bytes
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: client-readiness-${{ matrix.package }}
+          path: |
+            verification/client-desktop/
+            verification/client-preflight/
+            !verification/client-preflight/browser-*/edge-profile/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Browser download, Explorer extraction and exact package GUI checks
+        timeout-minutes: 21
+        env:
+          CLIENT_PACKAGE: ${{ matrix.package }}
+        run: |
+          Push-Location verification/client-source
+          try {
+            & ./scripts/defender_investigation.ps1 -Exercise -BrowserExplorer -Package $env:CLIENT_PACKAGE -CandidateBrowserArtifact 13569539601 -CandidateArtifactSha ec84483c67576cbd38fe74512459e78f5536041d94689a423e4c16d35268b1ab -WorkBudgetMinutes 18
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Pop-Location }
+      - name: Preserve warnings, security observations and partial GUI results
+        if: always()
+        timeout-minutes: 3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: client-candidate-${{ matrix.package }}
+          path: |
+            verification/defender-investigation/
+            !verification/defender-investigation/browser-*/edge-profile/
+          if-no-files-found: warn
+          retention-days: 90

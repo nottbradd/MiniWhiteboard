@@ -1,6 +1,7 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
       [switch]$ClientPreflight,
+      [long]$CandidateBrowserArtifact=0, [string]$CandidateArtifactSha,
       [string]$CandidateIdentity, [switch]$DrawingToolbar, [ValidateSet('baseline','after','tools')][string]$SampleSuffix,
       [ValidateRange(0,100)][int]$CaseStart=0, [ValidateRange(0,100)][int]$CaseCount=0,
       [ValidateSet('standard','drawing','probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
@@ -13,6 +14,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
 if ($ReuseSamples -and $BrowserExplorer) { throw 'Browser acceptance cannot reuse a programmatic download.' }
 if ($ClientPreflight -and (-not $BrowserExplorer -or $Exercise)) { throw 'Client preflight uses only a harmless ZIP, without application execution.' }
 if ($CandidateIdentity -and ($BrowserExplorer -or $ClientPreflight)) { throw 'Candidate artifact checks are not browser acceptance.' }
+if ($CandidateBrowserArtifact -and (-not $BrowserExplorer -or $ClientPreflight -or $ReuseSamples -or $CandidateIdentity)) { throw 'Candidate browser checks require a fresh browser download and identity from Explorer extraction.' }
 $candidate=$null
 $expectedExe='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
 if ($CandidateIdentity) {
@@ -142,7 +144,11 @@ function Record-File([string]$Path, [string]$Stage) {
         if ($exists) {
             $file.bytes=(Get-Item -LiteralPath $task.path).Length
             $file.sha256=(Get-FileHash -LiteralPath $task.path -Algorithm SHA256).Hash.ToLowerInvariant()
-            $file.zone_identifier=@(Get-Content -LiteralPath $task.path -Stream Zone.Identifier -ErrorAction SilentlyContinue)
+            $file.zone_identifier=@(Get-Content -LiteralPath $task.path -Stream Zone.Identifier -ErrorAction SilentlyContinue | ForEach-Object {
+                # Preserve origin host/path and ZoneId, without publishing a
+                # still-valid temporary artifact-read token. Do not alter ADS.
+                if ($_ -match '^((?:Host|Referrer)Url=https://[^?]+)\?') { $Matches[1]+'?[temporary query redacted]' } else { $_ }
+            })
         }
         $file
     } @{path=$Path;stage=$Stage}
@@ -287,6 +293,38 @@ try {
         $report.result='CLIENT PREFLIGHT COMPLETED; no application package downloaded or executed'
         $report.fixture_sha256=$expected
     } else {
+    if ($CandidateBrowserArtifact) {
+        $revision=(& git rev-parse HEAD).Trim()
+        $null=Invoke-Program 'candidate-browser-download' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'artifact-download','--path',(Join-Path $downloadRoot 'candidate-artifact.zip'),'--destination',$downloadRoot,
+            '--artifact-id',"$CandidateBrowserArtifact",'--artifact-sha',$CandidateArtifactSha,'--source-revision',$revision,
+            '--output',(Join-Path $evidenceRoot 'browser-candidate')) 150
+        $archives=@(Get-ChildItem -LiteralPath $downloadRoot -Filter '*.zip' -File)
+        if ($archives.Count -ne 1) { throw 'Expected exactly one browser artifact download.' }
+        $container=$archives[0].FullName
+        $file=Record-File $container 'browser-artifact'
+        if ($file.sha256 -ne $CandidateArtifactSha) { throw 'Browser artifact hash mismatch.' }
+        Scan $container 'browser-artifact'
+        $outer=Join-Path $downloadRoot 'candidate'
+        $null=Invoke-Program 'explorer-candidate-container' @((Get-Command python).Source,'-m','scripts.client_download_check',
+            'extract','--path',$container,'--destination',$outer,'--expected-entry','candidate-identity.json',
+            '--output',(Join-Path $evidenceRoot 'explorer-container')) 160
+        $CandidateIdentity=Join-Path $outer 'candidate-identity.json'
+        & python -m scripts.candidate_identity --verify $CandidateIdentity
+        if ($LASTEXITCODE -ne 0) { throw 'Browser-extracted candidate identity failed.' }
+        $candidate=Get-Content -LiteralPath $CandidateIdentity -Raw | ConvertFrom-Json -AsHashtable
+        $expectedExe=$candidate.exe_sha256
+        foreach ($asset in $candidate.assets) {
+            Move-Item -LiteralPath (Join-Path $outer $asset.name) -Destination (Join-Path $downloadRoot $asset.name)
+        }
+        Move-Item -LiteralPath $CandidateIdentity -Destination (Join-Path $downloadRoot 'candidate-identity.json')
+        $CandidateIdentity=Join-Path $downloadRoot 'candidate-identity.json'
+        $report.candidate_identity=$candidate
+        $report.purpose='Frozen candidate Windows 11 ARM64 client checks; x64 emulation/Test Mode limitations apply'
+        $report.download_method='Visible Edge download of the GitHub Actions artifact container; exact installer and portable ZIP obtained by normal Explorer extraction. Not yet published release URL acceptance.'
+        $report.extraction_method='Explorer for artifact container and portable primary ZIP; Expand-Archive for installer reference payload only'
+        Save-Json $report 'report.json'
+    }
     $assets=@(
         @{name='MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe';bytes=27476405;sha256='29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b'},
         @{name='WinMiniWhiteboardV1.3.4-HotkeyPatch.zip';bytes=38075984;sha256='5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89'}
@@ -297,7 +335,9 @@ try {
         else { $asset.source='Unpublished build artifact: '+$asset.name }
         $path=Join-Path $downloadRoot $asset.name
         $primary=($Package -eq 'installer' -and $asset.name.EndsWith('.exe')) -or ($Package -eq 'portable' -and $asset.name.EndsWith('.zip'))
-        if ($ReuseSamples) {
+        if ($CandidateBrowserArtifact) {
+            # Already downloaded by Edge and extracted by Explorer above.
+        } elseif ($ReuseSamples) {
             # Every reused file is checked against the fixed public hash and
             # scanned again below. No download-origin metadata is changed.
         } elseif ($candidate) {
@@ -378,7 +418,8 @@ try {
     }
     $report.result='SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
     if ($Exercise) {
-        $report.result=if ($candidate) { 'CANDIDATE SCRIPTED CHECKS COMPLETED; Windows client and final release acceptance NOT RUN' }
+        $report.result=if ($CandidateBrowserArtifact) { 'CANDIDATE CLIENT CHECKS COMPLETED; see exact checks and ARM64/Test Mode limitations' }
+                       elseif ($candidate) { 'CANDIDATE SCRIPTED CHECKS COMPLETED; Windows client and final release acceptance NOT RUN' }
                        else { 'ORIGINAL PACKAGE INVESTIGATION COMPLETED; browser-download and final release acceptance NOT RUN' }
     }
     }

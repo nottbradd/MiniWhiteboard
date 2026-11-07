@@ -24,6 +24,9 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--toolbar',action='store_true')
     parser.add_argument('--expected-sha',required=True)
+    parser.add_argument('--visual-only',action='store_true')
+    parser.add_argument('--theme',choices=('White','Glass'),default='White')
+    parser.add_argument('--background',choices=('light','busy'),default='light')
     args = parser.parse_args()
     executable = args.executable.resolve(strict=True)
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
@@ -62,6 +65,7 @@ def main():
     ping = n.bind(u,'SendMessageTimeoutW',C.c_size_t,W.HWND,W.UINT,W.WPARAM,W.LPARAM,W.UINT,W.UINT,C.POINTER(C.c_size_t))
     stop = threading.Event()
     process = None
+    background_process = None
     held = set()
     samples = []
     def press(vk):
@@ -94,13 +98,22 @@ def main():
     had=preferences.contains('tools/floating');old=preferences.value('tools/floating')
     try:
         with compatibility_preferences(defaults(hide='shift')):
+            if args.visual_only:
+                background_process=subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
+                    '--background-child','--background-kind',args.background,'--output',str(args.output/'background')],
+                    creationflags=subprocess.CREATE_NO_WINDOW)
+                time.sleep(1)
+                preferences.setValue('appearance/theme',args.theme)
+                report.update(scope='Exact frozen executable visual/toolbar checks on an owned background',theme=args.theme,background=args.background)
             preferences.setValue('tools/floating',args.toolbar);preferences.sync()
             process=subprocess.Popen([str(executable)],creationflags=subprocess.CREATE_NO_WINDOW)
             time.sleep(1.8)
             check('Frozen process stays alive at startup',process.poll() is None)
             move(180,210)
             for vk in (0xA2,0x5B,0xA0,0x57):press(vk)
-            time.sleep(.15);move(1050,760);time.sleep(.1)
+            m=n.monitors()[0].rect
+            end=(min(1050,int(m.x+m.width-55)),min(760,int(m.y+m.height-100))) if args.visual_only else (1050,760)
+            time.sleep(.15);move(*end);time.sleep(.1)
             for vk in (0x57,0xA0,0x5B,0xA2):release(vk)
             wait_for('Native default shortcut creates a board',lambda:'Whiteboard 1' in windows())
             hwnd,rect=windows()['Whiteboard 1']
@@ -117,6 +130,26 @@ def main():
                 mouse(4,0,0,0,0);time.sleep(.1)
                 check('Frozen long-press release preserves options','Mini Whiteboard Draw options' in windows())
                 n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-options.png'))
+                if args.visual_only:
+                    from pywinauto import Desktop
+                    options_hwnd=windows()['Mini Whiteboard Draw options'][0]
+                    options=Desktop(backend='uia').window(handle=options_hwnd)
+                    options.child_window(title='White',control_type='Button').click_input()
+                    time.sleep(.35)
+                    check('White choice keeps its options visible','Mini Whiteboard Draw options' in windows())
+                    n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-white-selected.png'))
+                    tap(rect[0]+100,rect[1]+100)
+                    before=windows()['Mini Whiteboard floating tools'][1]
+                    gx,gy=before[0]+16*scale,before[1]+23*scale
+                    move(round(gx),round(gy));mouse(2,0,0,0,0)
+                    for i in range(1,7):
+                        move(round(gx-40*i/6),round(gy+50*i/6));time.sleep(.03)
+                    mouse(4,0,0,0,0);time.sleep(.2)
+                    after=windows()['Mini Whiteboard floating tools'][1]
+                    check('Frozen toolbar grip changes tool position without moving the board',
+                          after[:2]!=before[:2] and windows()['Whiteboard 1'][1]==rect)
+                    n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-dragged.png'))
+                    return
                 tap(rect[0]+100,rect[1]+100)
                 # Closing a tool window must never produce a second drawing event.
             else:
@@ -152,6 +185,8 @@ def main():
         for vk in tuple(held):release(vk)
         if process is not None and process.poll() is None:
             process.terminate();process.wait(10)
+        if background_process is not None and background_process.poll() is None:
+            background_process.terminate();background_process.wait(5)
         preferences.setValue('tools/floating',old) if had else preferences.remove('tools/floating')
         preferences.sync();save()
 

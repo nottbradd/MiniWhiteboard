@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',action='store_true')
     parser.add_argument('--background-child',action='store_true',help=argparse.SUPPRESS)
+    parser.add_argument('--background-kind',choices=('pastel','light','busy'),default='pastel')
     parser.add_argument('--output',type=Path,default=Path('verification/v136/tools'))
     args = parser.parse_args()
     os.environ['QT_QPA_PLATFORM'] = 'windows' if args.native else 'offscreen'
@@ -60,6 +61,19 @@ def main():
     class Background(QWidget):
         def paintEvent(self,event):
             p = QPainter(self)
+            if args.background_kind=='light':
+                p.fillRect(self.rect(),QColor('#f5f7fb'))
+                p.setPen(QColor('#607080'))
+                p.drawText(30,45,'Owned light background · Mini Whiteboard visual check')
+                return
+            if args.background_kind=='busy':
+                for y in range(0,self.height(),48):
+                    for x in range(0,self.width(),48):
+                        p.fillRect(x,y,48,48,QColor(('#e7effa','#627d99','#dcc4db','#f6db9b')[(x//48+y//48)%4]))
+                p.setPen(QColor('#172b43'))
+                for y in range(30,self.height(),72):
+                    p.drawText(25,y,'Owned patterned background · Contrast and frost check')
+                return
             gradient = QLinearGradient(0,0,self.width(),self.height())
             gradient.setColorAt(0,QColor('#ffdce4'))
             gradient.setColorAt(.5,QColor('#cdddf8'))

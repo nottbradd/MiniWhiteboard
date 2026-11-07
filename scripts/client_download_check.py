@@ -18,12 +18,15 @@ def main():
     if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted':
         raise SystemExit('Requires a disposable GitHub-hosted runner.')
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=('prepare', 'download', 'extract'))
+    parser.add_argument('operation', choices=('prepare', 'download', 'artifact-download', 'extract'))
     parser.add_argument('--path', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--url')
     parser.add_argument('--expected-entry', default='Mini Whiteboard/Mini Whiteboard.exe')
+    parser.add_argument('--artifact-id',type=int)
+    parser.add_argument('--artifact-sha')
+    parser.add_argument('--source-revision')
     args = parser.parse_args()
     from PIL import ImageGrab
     from pywinauto import Desktop, mouse
@@ -160,10 +163,39 @@ def main():
             evidence('client-desktop-ready')
             report['result'] = 'PASS for client desktop preparation only'
             return
-        if args.operation == 'download':
+        if args.operation in ('download','artifact-download'):
+            if args.operation=='artifact-download':
+                # API use obtains metadata and a redirect only. Package bytes
+                # must pass through the visible browser, never an HTTP fallback.
+                from urllib.request import Request,build_opener,HTTPRedirectHandler
+                from urllib.error import HTTPError
+                from urllib.parse import urlsplit
+                class NoRedirect(HTTPRedirectHandler):
+                    def redirect_request(self,*_): return None
+                opener=build_opener(NoRedirect)
+                api=f'https://api.github.com/repos/nottbradd/MiniWhiteboard/actions/artifacts/{args.artifact_id}'
+                headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}
+                with opener.open(Request(api,headers=headers),timeout=20) as response:
+                    metadata=json.load(response)
+                if (metadata['expired'] or metadata['digest']!='sha256:'+args.artifact_sha
+                        or metadata['workflow_run']['head_sha']!=args.source_revision):
+                    raise ValueError('Frozen artifact identity mismatch')
+                report['artifact']={k:metadata[k] for k in ('id','name','digest','size_in_bytes','workflow_run')}
+                try:
+                    opener.open(Request(api+'/zip',headers=headers),timeout=20)
+                    raise RuntimeError('Expected a signed artifact redirect, not a payload response')
+                except HTTPError as error:
+                    if error.code!=302: raise RuntimeError('Artifact redirect request failed: '+str(error.code)) from None
+                    args.url=error.headers['Location']
+                parsed=urlsplit(args.url)
+                if parsed.scheme!='https' or not parsed.hostname.endswith(('.blob.core.windows.net','.actions.githubusercontent.com')):
+                    raise ValueError('Unexpected artifact download host')
+                # Mask the short-lived read URL in runner logs. It is not saved
+                # in the receipt, browser command or diagnostic text.
+                print('::add-mask::'+args.url,flush=True)
             fixture_url = bool(args.url and re.fullmatch(
                 r'https://raw\.githubusercontent\.com/nottbradd/MiniWhiteboard/[0-9a-f]{40}/tests/fixtures/client-preflight\.zip', args.url))
-            if not args.url or not (fixture_url or args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/')):
+            if not args.url or not (args.operation=='artifact-download' or fixture_url or args.url.startswith('https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/')):
                 raise ValueError('Only the recorded public release URL is allowed')
             args.destination.mkdir(exist_ok=True, parents=True)
             if args.path.exists():
@@ -196,10 +228,24 @@ def main():
                 raise RuntimeError('Browser does not own foreground; no keys were sent')
             # The browser handles a URL entered through its real address bar.
             window.type_keys('^l')
-            window.type_keys(args.url, with_spaces=True, pause=.001)
+            # Signed artifact URLs contain characters that pywinauto interprets
+            # as key modifiers. Paste literal text into the owned VM browser.
+            import win32clipboard
+            win32clipboard.OpenClipboard()
+            try:
+                win32clipboard.EmptyClipboard()
+                win32clipboard.SetClipboardText(args.url,win32clipboard.CF_UNICODETEXT)
+            finally:
+                win32clipboard.CloseClipboard()
+            window.type_keys('^v')
             window.type_keys('{ENTER}')
             try:
-                wait_for(lambda: args.path.is_file() and not list(args.destination.glob('*.crdownload')),
+                def downloaded():
+                    if args.operation=='artifact-download':
+                        archives=list(args.destination.glob('*.zip'))
+                        if len(archives)==1: args.path=archives[0]
+                    return args.path.is_file() and not list(args.destination.glob('*.crdownload'))
+                wait_for(downloaded,
                          90, 'Browser download incomplete or blocked; no warning was bypassed')
             finally:
                 activate_browser(window)
@@ -208,6 +254,11 @@ def main():
                 time.sleep(1)
                 evidence('downloads')
             report['bytes'] = args.path.stat().st_size
+            report['downloaded_name'] = args.path.name
+            if args.operation=='artifact-download':
+                import hashlib
+                report['sha256']=hashlib.sha256(args.path.read_bytes()).hexdigest()
+                if report['sha256']!=args.artifact_sha: raise ValueError('Browser artifact bytes differ')
             report['method'] = 'Visible Microsoft Edge; real address-bar navigation'
             # Close only the isolated browser profile opened by this test.
             window.close()

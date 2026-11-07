@@ -45,8 +45,11 @@ def main():
                   'Clean machine with development tools uninstalled']}
     output = args.output / 'runtime.json'
     if candidate:
-        report['purpose'] = 'Unpublished candidate on a hosted Server VM; not Windows client acceptance'
+        report['purpose'] = ('Unpublished candidate client checks; browser provenance in parent report; ARM64/Test Mode limitations'
+                             if args.client_gui else 'Unpublished candidate on a hosted Server VM; not Windows client acceptance')
         report['candidate_identity'] = candidate
+    if args.client_gui:
+        report['not_run'][0]='Published release URL acceptance; this candidate uses the genuine browser/Explorer artifact-container route recorded by the parent'
 
     def save():
         output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -106,6 +109,14 @@ def main():
 
     def native(directory, label):
         completed = []
+        if args.client_gui:
+            for background in ('light','busy'):
+                dest=args.output/(label+'-glass-'+background)
+                code=bounded(label+'-glass-'+background,[sys.executable,'-m','scripts.packaged_drawing_check',
+                    '--executable',str(directory/'Mini Whiteboard.exe'),'--expected-sha',exe_hash,
+                    '--output',str(dest),'--toolbar','--visual-only','--theme','Glass','--background',background],90)
+                completed.append(code==0)
+                check(label+': Glass/toolbar '+background+' visual capture completed',code==0,fatal=False)
         for module, suffix, extra in (
             ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults', '--trace-transition']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
@@ -155,11 +166,17 @@ def main():
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
 
     def setup(label, package=installer):
+        if args.client_gui:
+            return bounded(label,[sys.executable,'-m','scripts.client_wizard_check','--executable',str(package),
+                                  '--output',str(args.output/('wizard-'+label))],80)
         return bounded(label, [str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
                                  '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
                        60)
 
     def uninstall(label):
+        if args.client_gui:
+            return bounded(label,[sys.executable,'-m','scripts.client_wizard_check','--executable',str(target/'unins000.exe'),
+                                  '--uninstall','--output',str(args.output/('wizard-'+label))],80)
         return bounded(label, [str(target / 'unins000.exe'), '/VERYSILENT', '/SUPPRESSMSGBOXES',
                                  '/NORESTART', '/LOG=' + str(args.output / (label + '.log'))],
                        45)
@@ -171,14 +188,41 @@ def main():
         environment = dict(os.environ, PATH=os.environ['WINDIR'] + ';' + os.environ['WINDIR'] + '\\System32')
         for name in ('PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH'):
             environment.pop(name, None)
-        child = subprocess.Popen([str(directory / 'Mini Whiteboard.exe')], env=environment,
-                                 cwd=str(directory), creationflags=subprocess.CREATE_NO_WINDOW)
+        if args.client_gui:
+            from win32com.shell import shell,shellcon
+            import win32api,win32event,win32process
+            from PIL import ImageGrab
+            ImageGrab.grab(all_screens=True).save(args.output/(label+'-before-shell-launch.png'))
+            try:
+                launched=shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,lpFile=str(directory/'Mini Whiteboard.exe'),
+                                            lpDirectory=str(directory),nShow=1)
+                handle=launched.get('hProcess')
+                if not handle: raise RuntimeError('Shell did not provide an owned application process; inspect security UI')
+                class ShellChild:
+                    def poll(self):
+                        result=win32process.GetExitCodeProcess(handle)
+                        return None if result==259 else result
+                    def terminate(self): win32api.TerminateProcess(handle,1)
+                    def wait(self,timeout):
+                        if win32event.WaitForSingleObject(handle,int(timeout*1000))==258:
+                            raise TimeoutError('Owned shell-launched process did not exit')
+                        handle.Close()
+                child=ShellChild()
+            except Exception:
+                ImageGrab.grab(all_screens=True).save(args.output/(label+'-shell-launch-blocked.png'))
+                raise
+        else:
+            child = subprocess.Popen([str(directory / 'Mini Whiteboard.exe')], env=environment,
+                                     cwd=str(directory), creationflags=subprocess.CREATE_NO_WINDOW)
         try:
             time.sleep(3)
-            check(label + ': packaged runtime stays running without Python on PATH', child.poll() is None)
+            if args.client_gui:
+                ImageGrab.grab(all_screens=True).save(args.output/(label+'-shell-launched.png'))
+            check(label + (': normal Shell launch stays running' if args.client_gui else ': packaged runtime stays running without Python on PATH'), child.poll() is None)
             if directory == target:
-                check('Setup refuses a running installed application', setup('running-refusal') != 0)
-                check('Uninstall refuses a running application', uninstall('uninstall-refusal') != 0)
+                refused_setup=setup('running-refusal');refused_uninstall=uninstall('uninstall-refusal')
+                check('Setup refuses a running installed application', refused_setup==10 if args.client_gui else refused_setup!=0)
+                check('Uninstall refuses a running application', refused_uninstall==10 if args.client_gui else refused_uninstall!=0)
                 check('Refusal leaves the running process alive', child.poll() is None)
         finally:
             # Only this test-owned process is stopped; no user desktop is involved.
@@ -201,7 +245,7 @@ def main():
             if args.package == 'portable':
                 report['result'] = 'PASS for the listed portable-package checks only'
                 return
-        check('Exact recorded installer completes a fresh silent installation', setup('fresh-install') == 0)
+        check('Exact recorded installer completes a fresh '+('wizard' if args.client_gui else 'silent')+' installation', setup('fresh-install') == 0)
         installed = True
         payload(target, 'Installed before launch')
         quiet_launch(target, 'Installed')
@@ -237,7 +281,7 @@ def main():
         payload(target, 'Installed after repeat setup')
         native_passed = native(target, 'installed')
         payload(target, 'Installed after native suites')
-        check('Normal silent uninstall completes', uninstall('normal-uninstall') == 0)
+        check('Normal '+('wizard' if args.client_gui else 'silent')+' uninstall completes', uninstall('normal-uninstall') == 0)
         installed = False
         check('Uninstall removes owned app files, entry and startup registrations',
               not (target / 'Mini Whiteboard.exe').exists() and reg(install_key, 'InstallLocation') is None
