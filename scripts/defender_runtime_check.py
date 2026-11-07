@@ -459,7 +459,7 @@ def main():
         if obsolete:
             check('Upgrade removes all unchanged obsolete inventoried files',all(not (target/name).exists() for name in obsolete),obsolete)
         else:
-            report['obsolete_removal']='NOT APPLICABLE to these two actual inventories: both contain the same 199 paths. No removal was exercised.'
+            report['obsolete_removal']=f'NOT APPLICABLE to these two actual inventories: both contain the same {len(expected)} paths. No removal was exercised.'
         check('Upgrade preserves the unrelated file',unrelated.read_text(encoding='utf-8')=='Preserve this unrelated tester file.')
         entries=[]
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Microsoft\Windows\CurrentVersion\Uninstall') as root:

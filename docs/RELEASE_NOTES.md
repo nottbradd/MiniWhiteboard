@@ -159,8 +159,10 @@ the code comparison but does not establish the cause of the grey pixels.
 
 The new normal-wizard upgrade check starts from **V1.3.4 HotkeyPatch**, including
 cancellation, locked-file refusal, rollback, settings/startup preservation and
-same-version reinstall. Its actual predecessor/candidate inventories each have
-the same 199 paths, so this particular upgrade has no obsolete paths to remove.
+same-version reinstall. The verified published predecessor contains 200 runtime
+paths and the candidate 199. The upgrade must remove the obsolete
+`_internal/libcrypto-3-x64.dll` and `_internal/libssl-3-x64.dll` when their original
+hashes match; the candidate instead includes `_internal/libcrypto-3.dll`.
 These added client checks are prepared, **NOT RUN** until desktop readiness passes;
 the prior Server upgrade used the original V1.3.4 installer.
 
