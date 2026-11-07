@@ -208,3 +208,57 @@ class FloatingToolsTests(QtCase):
             self.manager.refresh()
         self.assertFalse(palette.isVisible())
 
+    def test_synthetic_tablet_tap_hold_and_mouse_deduplication(self):
+        from PySide6.QtGui import QPointingDevice,QInputDevice,QTabletEvent,QMouseEvent
+        palette = self.enable()
+        button = palette.buttons['Eraser']
+        calls=[]
+        button.clicked.connect(lambda:calls.append('tap'))
+        device = QPointingDevice('test pen',77,QInputDevice.DeviceType.Stylus,
+            QPointingDevice.PointerType.Pen,QInputDevice.Capability.Position,1,2)
+        pos = QPointF(20,20)
+        global_pos = QPointF(button.mapToGlobal(pos.toPoint()))
+        def tablet(kind):
+            ev=QTabletEvent(kind,device,pos,global_pos,.5,0,0,0,0,0,
+                           Qt.KeyboardModifier.NoModifier,Qt.MouseButton.LeftButton,
+                           Qt.MouseButton.NoButton if kind==QEvent.Type.TabletRelease else Qt.MouseButton.LeftButton)
+            APP.sendEvent(button,ev)
+            self.assertTrue(ev.isAccepted())
+        tablet(QEvent.Type.TabletPress)
+        tablet(QEvent.Type.TabletRelease)
+        self.assertEqual(calls,['tap'])
+        for kind in (QEvent.Type.MouseButtonPress,QEvent.Type.MouseButtonRelease):
+            ev=QMouseEvent(kind,pos,pos,global_pos,Qt.MouseButton.LeftButton,Qt.MouseButton.LeftButton,
+                          Qt.KeyboardModifier.NoModifier,Qt.MouseEventSource.MouseEventSynthesizedByQt)
+            APP.sendEvent(button,ev)
+        self.assertEqual(calls,['tap'])
+        tablet(QEvent.Type.TabletPress)
+        button.timer.start(10)
+        self.assertTrue(wait_until(lambda:self.manager.options is not None,200))
+        tablet(QEvent.Type.TabletRelease)
+        self.assertEqual(calls,['tap'])
+        self.assertIsNotNone(self.manager.options)
+
+    def test_synthetic_touch_tap_and_cancel(self):
+        from PySide6.QtGui import QPointingDevice,QInputDevice,QTouchEvent,QEventPoint
+        palette=self.enable()
+        button=palette.buttons['Shape']
+        calls=[]
+        button.clicked.connect(lambda:calls.append('tap'))
+        device=QPointingDevice('test touch',78,QInputDevice.DeviceType.TouchScreen,
+            QPointingDevice.PointerType.Finger,QInputDevice.Capability.Position,1,0)
+        local=QPointF(20,20)
+        global_pos=QPointF(button.mapToGlobal(local.toPoint()))
+        def touch(kind,state):
+            event=QTouchEvent(kind,device,Qt.KeyboardModifier.NoModifier,
+                             [QEventPoint(0,state,local,global_pos)])
+            button.event(event)
+            self.assertTrue(event.isAccepted())
+        touch(QEvent.Type.TouchBegin,QEventPoint.State.Pressed)
+        touch(QEvent.Type.TouchEnd,QEventPoint.State.Released)
+        self.assertEqual(calls,['tap'])
+        touch(QEvent.Type.TouchBegin,QEventPoint.State.Pressed)
+        touch(QEvent.Type.TouchCancel,QEventPoint.State.Released)
+        self.assertIsNone(button.pointer)
+        self.assertFalse(button.timer.isActive())
+        self.assertEqual(calls,['tap'])

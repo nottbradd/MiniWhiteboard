@@ -1,0 +1,90 @@
+name: V1.3.6 unchanged-package drawing diagnostics
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/v1.3.6-floating-tools]
+    paths: [.github/workflows/windows-v136-diagnostics.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  drawing:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Prepare immutable application source checkouts
+        run: |
+          git fetch origin c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10 f6e6094909dce7a01f8378eb7894c6a440e61b67
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add verification/baseline c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add verification/candidate-source f6e6094909dce7a01f8378eb7894c6a440e61b67
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($checkout in @('baseline','candidate-source')) {
+            Copy-Item -LiteralPath scripts/packaged_drawing_check.py,scripts/drawing_performance.py -Destination "verification/$checkout/scripts"
+          }
+      - name: Source UI captures with separately composed background
+        timeout-minutes: 3
+        run: |
+          foreach ($scale in @('1','1.25','1.5','1.75','2')) {
+            $env:QT_SCALE_FACTOR=$scale
+            python -m scripts.floating_tools_check --native --output "verification/v136/tools-$scale"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Remove-Item Env:QT_SCALE_FACTOR
+      - name: Matched synthetic workloads
+        timeout-minutes: 10
+        run: |
+          python scripts/drawing_performance.py --source verification/baseline --rapid 20 --output verification/v136/baseline.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/drawing_performance.py --rapid 20 --output verification/v136/after.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/drawing_performance.py --rapid 20 --toolbar --output verification/v136/after-toolbar.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42027456459
+          artifact-ids: '13413609233'
+          path: baseline-package
+          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 42357614080
+          artifact-ids: '13568680457'
+          path: candidate-package
+          merge-multiple: true
+      - name: Exact baseline and candidate native drawing with Defender observation
+        timeout-minutes: 18
+        run: |
+          $diagnosticRoot=(Get-Location).Path
+          foreach ($sample in @('baseline','after','tools')) {
+            $source=if ($sample -eq 'baseline') { 'baseline' } else { 'candidate-source' }
+            $package=if ($sample -eq 'baseline') { 'baseline-package' } else { 'candidate-package' }
+            $identity=Join-Path $diagnosticRoot "$package/candidate-identity.json"
+            Push-Location "verification/$source"
+            try {
+              & "$diagnosticRoot/scripts/defender_investigation.ps1" -Exercise -Package portable -Diagnostic drawing -CandidateIdentity $identity -DrawingToolbar:($sample -eq 'tools') -SampleSuffix $sample -EvidenceName "drawing-$sample" -WorkBudgetMinutes 5
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            } finally { Pop-Location }
+          }
+      - name: Preserve all completed and partial evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: v136-matched-drawing-and-ui
+          path: |
+            verification/v136/
+            verification/drawing-baseline/
+            verification/drawing-after/
+            verification/drawing-tools/
+          if-no-files-found: warn
+          retention-days: 90

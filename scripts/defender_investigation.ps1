@@ -1,9 +1,9 @@
 # Investigate fixed public bytes only in disposable hosted Windows VMs.
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
       [switch]$ClientPreflight,
-      [string]$CandidateIdentity,
-      [ValidateSet('standard','probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
-      [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight')][string]$EvidenceName='defender-investigation',
+      [string]$CandidateIdentity, [switch]$DrawingToolbar, [ValidateSet('baseline','after','tools')][string]$SampleSuffix,
+      [ValidateSet('standard','drawing','probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
+      [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight','drawing-baseline','drawing-after','drawing-tools')][string]$EvidenceName='defender-investigation',
       [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
@@ -30,7 +30,7 @@ $workDeadline = $started.AddMinutes($WorkBudgetMinutes)
 $collecting = $false
 $operationNumber = 0
 $report = [ordered]@{
-    started_utc=$started.ToUniversalTime().ToString('o'); source_revision=$env:GITHUB_SHA
+    started_utc=$started.ToUniversalTime().ToString('o'); source_revision=(& git rev-parse HEAD); harness_revision=$env:GITHUB_SHA
     runner_image=$env:ImageVersion; purpose='Original published-file investigation; no release acceptance claim'
     download_method='Invoke-WebRequest, not a browser; no origin marker added or removed'
     extraction_method='Expand-Archive, not Explorer'; runtime='NOT RUN'; package=$Package
@@ -255,7 +255,7 @@ try {
     if (-not $script:scanner) { $script:scanner="$env:ProgramFiles\Windows Defender\MpCmdRun.exe" }
     $cloud=Invoke-Program 'cloud-connection' @($script:scanner,'-ValidateMapsConnection') 60
     $report.cloud_connection_exit_code=$cloud.exit_code
-    $downloadRoot=Join-Path $env:USERPROFILE $(if ($ClientPreflight) { 'Downloads\MiniWhiteboard-preflight' } else { 'Downloads\MiniWhiteboard-investigation' })
+    $downloadRoot=Join-Path $env:USERPROFILE $(if ($ClientPreflight) { 'Downloads\MiniWhiteboard-preflight' } else { ('Downloads\MiniWhiteboard-investigation' + $(if ($SampleSuffix) { '-'+$SampleSuffix } else { '' })) })
     if ($ReuseSamples) {
         if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { throw 'Prepared sample directory is missing' }
     } else { New-Item -ItemType Directory -Path $downloadRoot -ErrorAction Stop | Out-Null }
@@ -355,13 +355,17 @@ try {
         Save-Json $report 'report.json'
         $runtimeCommand=@((Get-Command python).Source,'-m','scripts.defender_runtime_check',
             '--downloads',$downloadRoot,'--output',$evidenceRoot,'--package',$Package)
-        if ($Diagnostic -ne 'standard') {
+        if ($Diagnostic -eq 'drawing') {
+            $runtimeCommand=@((Get-Command python).Source,'-m','scripts.packaged_drawing_check',
+                '--executable',$exe,'--output',(Join-Path $evidenceRoot 'drawing'),'--expected-sha',$expectedExe)
+            if ($DrawingToolbar) { $runtimeCommand+=@('--toolbar') }
+        } elseif ($Diagnostic -ne 'standard') {
             if ($Package -ne 'portable' -or $BrowserExplorer) { throw 'Focused timing diagnostics require the fixed portable baseline.' }
             $runtimeCommand=@((Get-Command python).Source,'-m','scripts.early_release_matrix',
                 '--executable',$exe,'--output',(Join-Path $evidenceRoot 'timing'),'--mode',$Diagnostic)
         }
         if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
-        if ($CandidateIdentity) { $runtimeCommand+=@('--candidate-identity',$CandidateIdentity) }
+        if ($CandidateIdentity -and $Diagnostic -ne 'drawing') { $runtimeCommand+=@('--candidate-identity',$CandidateIdentity) }
         $runtimeLimit=if ($Diagnostic -like '*-full') { 900 } else { 600 }
         $runtime=Invoke-Program "runtime-$Package" $runtimeCommand $runtimeLimit -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status

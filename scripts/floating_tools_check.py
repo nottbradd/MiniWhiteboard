@@ -10,11 +10,13 @@ import os
 from pathlib import Path
 import sys
 import time
+import subprocess
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',action='store_true')
+    parser.add_argument('--background-child',action='store_true',help=argparse.SUPPRESS)
     parser.add_argument('--output',type=Path,default=Path('verification/v136/tools'))
     args = parser.parse_args()
     os.environ['QT_QPA_PLATFORM'] = 'windows' if args.native else 'offscreen'
@@ -69,7 +71,17 @@ def main():
     background = Background(None,Qt.WindowType.FramelessWindowHint)
     work = app.primaryScreen().availableGeometry()
     background.setGeometry(work)
-    background.show()
+    child = None
+    if args.background_child:
+        background.show()
+        sys.excepthook = original_hook
+        raise SystemExit(app.exec())
+    if args.native:
+        child = subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
+            '--background-child','--output',str(args.output/'background')],creationflags=subprocess.CREATE_NO_WINDOW)
+        QTest.qWait(800)
+    else:
+        background.show()
     board = BoardWindow('Mini Whiteboard · V1.3.6 candidate',prefs)
     manager.add_board(board)
     def focus():
@@ -168,6 +180,9 @@ def main():
         manager.close()
         board.close()
         background.close()
+        if child is not None and child.poll() is None:
+            child.terminate()
+            child.wait(timeout=5)
         app.processEvents()
         save()
         if native_patch:

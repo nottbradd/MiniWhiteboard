@@ -57,7 +57,7 @@ def main():
     os.environ['QT_QPA_PLATFORM'] = 'offscreen'
     from PySide6 import __version__ as qt_version
     from PySide6.QtCore import QPointF, Qt
-    from PySide6.QtGui import QImage, QMouseEvent
+    from PySide6.QtGui import QImage, QMouseEvent, QKeyEvent
     from PySide6.QtWidgets import QApplication
     from unittest.mock import patch
     from mini_whiteboard import APP_VERSION, rendering
@@ -159,8 +159,9 @@ def main():
                         canvas.eraser_mode = 'stroke'
                         event(QMouseEvent.Type.MouseButtonPress,(100,480))
                         event(QMouseEvent.Type.MouseButtonRelease,(100,480))
-                        canvas.undo_redo()
-                        canvas.undo_redo(True)
+                        # Use the shipped input route shared with the baseline.
+                        for key in (Qt.Key.Key_Z,Qt.Key.Key_Y):
+                            QApplication.sendEvent(canvas,QKeyEvent(QKeyEvent.Type.KeyPress,key,Qt.KeyboardModifier.ControlModifier))
                         if manager and j%5 == 0:
                             manager.open_options('Draw')
                             manager.close_options(refocus=True)

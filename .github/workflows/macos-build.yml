@@ -3,7 +3,7 @@ name: macOS V1.3.6 candidate
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/v1.3.6-floating-tools]
+    branches: [main]
     paths:
       - 'main.py'
       - 'mini_whiteboard/**'
