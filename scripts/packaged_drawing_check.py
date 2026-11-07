@@ -12,6 +12,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+import sys
 import threading
 import time
 
@@ -149,6 +150,23 @@ def main():
                     check('Frozen toolbar grip changes tool position without moving the board',
                           after[:2]!=before[:2] and windows()['Whiteboard 1'][1]==rect)
                     n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-dragged.png'))
+                    # Read the real frozen widget's accessibility state. A tool
+                    # click and a second board must use the same canvas state.
+                    def checked_tool(name):
+                        toolbar=Desktop(backend='uia').window(handle=windows()['Mini Whiteboard floating tools'][0])
+                        return toolbar.child_window(title=name,control_type='Button').get_toggle_state()==1
+                    tap(after[0]+91*scale,after[1]+23*scale)
+                    wait_for('First board retains Eraser as the selected tool',lambda:checked_tool('Eraser'))
+                    move(380,310)
+                    for vk in (0xA2,0x5B,0xA0,0x57):press(vk)
+                    time.sleep(.15);move(min(880,int(m.x+m.width-90)),min(610,int(m.y+m.height-120)));time.sleep(.1)
+                    for vk in (0x57,0xA0,0x5B,0xA2):release(vk)
+                    wait_for('Second board is created independently',lambda:'Whiteboard 2' in windows())
+                    wait_for('Second board toolbar starts with Draw',lambda:checked_tool('Draw'))
+                    tap(rect[0]+65,rect[1]+16)
+                    wait_for('Switching back restores the first board tool',lambda:foreground()==hwnd and checked_tool('Eraser'))
+                    check('Switching boards preserves the first board toolbar position',windows()['Mini Whiteboard floating tools'][1]==after)
+                    n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-board-switch.png'))
                     return
                 tap(rect[0]+100,rect[1]+100)
                 # Closing a tool window must never produce a second drawing event.
