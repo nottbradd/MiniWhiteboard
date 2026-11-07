@@ -11,12 +11,13 @@ on:
         description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, visuals, editing, gestures, download]
+        options: [all, visuals, editing, gestures, download, environment]
 permissions:
   contents: read
   actions: read
 jobs:
   client:
+    if: inputs.checks != 'environment'
     strategy:
       fail-fast: false
       matrix:
@@ -98,4 +99,55 @@ jobs:
             verification/client-desktop/
             !verification/defender-investigation/browser-*/edge-profile/
           if-no-files-found: warn
+          retention-days: 90
+  graphics-environment:
+    if: inputs.checks == 'environment'
+    runs-on: windows-11-arm
+    timeout-minutes: 5
+    steps:
+      - name: Read graphics and desktop policy without GUI input or candidate execution
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path graphics-environment | Out-Null
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class ClientGraphicsProbe {
+            [StructLayout(LayoutKind.Sequential)] public struct Power {
+              public byte AC, BatteryFlag, BatteryPercent, SystemStatus;
+              public uint BatterySeconds, FullSeconds;
+            }
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int code);
+            [DllImport("kernel32.dll")] public static extern bool GetSystemPowerStatus(out Power status);
+            [DllImport("dwmapi.dll")] public static extern int DwmIsCompositionEnabled(out bool enabled);
+          }
+          '@
+          $power = New-Object ClientGraphicsProbe+Power
+          $powerRead = [ClientGraphicsProbe]::GetSystemPowerStatus([ref]$power)
+          $composition = $false
+          $dwmResult = [ClientGraphicsProbe]::DwmIsCompositionEnabled([ref]$composition)
+          $result = @{
+            scope='Read-only environment diagnosis; no input, application execution, settings changes or acceptance claim'
+            utc=(Get-Date).ToUniversalTime().ToString('o')
+            os=Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture
+            processor=Get-CimInstance Win32_Processor | Select-Object Name,Architecture
+            video=Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion,VideoProcessor,Status,AdapterCompatibility
+            session=$env:SESSIONNAME
+            remote_session_metric=[bool][ClientGraphicsProbe]::GetSystemMetrics(0x1000)
+            transparency=Get-ItemPropertyValue -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name EnableTransparency -ErrorAction SilentlyContinue
+            power_read=$powerRead
+            power=$power
+            dwm_hresult=$dwmResult
+            dwm_composition_enabled=$composition
+            defender=Get-MpComputerStatus | Select-Object AMRunningMode,RealTimeProtectionEnabled,AMProductVersion,AMEngineVersion,AntivirusSignatureVersion
+          }
+          $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath graphics-environment/result.json -Encoding utf8
+      - name: Preserve read-only environment evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: client-graphics-environment
+          path: graphics-environment/
+          if-no-files-found: error
           retention-days: 90
