@@ -32,7 +32,13 @@ def main():
             rect=control.rectangle()
             report['controls'].append(dict(name=control.window_text(),control_type=control.element_info.control_type,
                                            rectangle=[rect.left,rect.top,rect.right,rect.bottom]))
-        button=window.child_window(title=args.name,control_type='Button').wrapper_object()
+        # Qt exposes checkable QToolButtons as CheckBox controls through UIA.
+        # Match the observed accessible name and require exactly one control.
+        matches=[c for c in root.descendants() if c.window_text()==args.name
+                 and c.element_info.control_type in ('CheckBox','Button')]
+        if len(matches)!=1:raise RuntimeError('Named accessible control is not unique: '+args.name)
+        button=matches[0]
+        report['selected_control_type']=button.element_info.control_type
         if args.action=='click':button.click_input()
         else:report['checked']=button.get_toggle_state()==1
         report['result']='PASS'
