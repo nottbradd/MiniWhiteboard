@@ -142,19 +142,20 @@ still required for the remaining acceptance and Glass diagnosis.
 
 The [first focused editing job](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364048831)
 exceeded its 21-minute client-step limit without a final runtime artifact. Its
-readiness checkpoint is retained. Cancellation was requested after that deadline;
-missing runtime and post-execution evidence remain **INCOMPLETE**, not a pass or
+readiness checkpoint is retained. Cancellation was requested after that deadline; GitHub confirmed **cancelled**
+at 10:59:38 UTC. Only its readiness artifact survived, and the completed job log
+returned 404 BlobNotFound. Runtime and post-execution evidence remain
+**INCOMPLETE**, not a pass or
 an established application cause. Static review also found that this attempt had
 not copied the updated clipboard helper into its frozen-source test workspace;
 that helper-copy error was corrected before the next attempt.
 
 The [corrected editing attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365327003)
 stalled during harmless preflight and exceeded its eight-minute step deadline.
-Candidate download and execution did not begin. Cancellation was requested.
-The earlier editing run did not respond to ordinary cancellation, so force
-cancellation was requested; final run status and any available artifacts are
-recorded in the local receipt. Neither incomplete run supplies a completed
-post-execution Defender observation. The unresolved client checks are held for a
+Candidate download and execution did not begin. GitHub confirmed **cancelled**
+at 11:02:29 UTC after ordinary and force-cancellation requests. It uploaded no
+artifact, and its job log also returned 404 BlobNotFound. Neither incomplete run
+supplies a completed post-execution Defender observation. The unresolved client checks are held for a
 stable environment instead of repeatedly launching the full checklist.
 
 Microsoft's separate submission of the review-02 executable
