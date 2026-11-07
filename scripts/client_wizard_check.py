@@ -98,6 +98,8 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--uninstall',action='store_true')
     parser.add_argument('--expected-sha')
+    parser.add_argument('--cancel-before-install',action='store_true')
+    parser.add_argument('--expect-replacement-failure',action='store_true')
     args=parser.parse_args()
     from pywinauto import Desktop
     from PIL import ImageGrab
@@ -120,6 +122,8 @@ def main():
         deadline=time.monotonic()+65
         fingerprint=None
         finish_clicked=False
+        cancellation_requested=False
+        replacement_failure=False
         while time.monotonic()<deadline:
             native=native_windows()
             (args.output/'latest-native-windows.json').write_text(json.dumps(native,indent=2),encoding='utf-8')
@@ -165,6 +169,20 @@ def main():
                         radios[0].click_input()
                     buttons=[b for b in window.descendants(control_type='Button') if b.is_visible() and b.is_enabled()]
                     names={clean(b.window_text()):b for b in buttons}
+                    if args.expect_replacement_failure and any(message in text.lower() for message in
+                            ('cannot replace ','replacement verification failed','an error occurred while trying to replace','error copying')):
+                        replacement_failure=True
+                        report['replacement_failure_text']=text
+                        save('expected-replacement-failure',rows)
+                    if cancellation_requested or replacement_failure:
+                        action=next((n for n in ('Yes','Abort','Cancel','OK') if n in names),None)
+                        if action:
+                            cancellation_requested=True
+                            names[action].click_input();break
+                    if args.cancel_before_install and 'Install' in names and 'Cancel' in names:
+                        cancellation_requested=True
+                        save('cancel-before-copy',rows)
+                        names['Cancel'].click_input();break
                     if args.uninstall and 'Yes' in names and 'remove' in text.lower():
                         names['Yes'].click_input();break
                     if args.uninstall and 'OK' in names and 'successfully removed' in text.lower():
@@ -176,6 +194,11 @@ def main():
                             names[action].click_input();break
             if finish_clicked and not owned and (not target.exists() if args.uninstall else target.exists()):
                 report['result']='PASS';save('completed',[]);return 0
+            if cancellation_requested and not owned:
+                if args.expect_replacement_failure and not replacement_failure:
+                    raise RuntimeError('Replacement failure was not observed')
+                report['result']='EXPECTED REPLACEMENT FAILURE' if replacement_failure else 'CANCELLED BEFORE COPY'
+                save('cancelled',[]);return 20
             time.sleep(.3)
         raise TimeoutError('Normal wizard did not complete within 65 seconds; last visible state retained')
     except Exception as error:

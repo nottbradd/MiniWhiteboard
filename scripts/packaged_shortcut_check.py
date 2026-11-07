@@ -35,11 +35,13 @@ def main():
     parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
     parser.add_argument('--trace-transition', action='store_true', help='Record native input/window timing without changing gesture assertions.')
+    parser.add_argument('--functional-deadline-ms',type=int,choices=(0,2000),default=0,
+                        help='Hosted-client functional readiness budget; retain the original 120/150ms observations and latency.')
     parser.add_argument('--source-diagnostic', action='store_true', help='Hosted-VM source timing comparison; does not test the packaged executable.')
     parser.add_argument('--cancel-prelude', action='store_true', help='Diagnostic only: one zero-area W cancellation before Q; not full sequence acceptance.')
     parser.add_argument('--timing-case', type=Path, help='Hosted early-release diagnostic case; original acceptance assertions stay separate.')
     args = parser.parse_args()
-    if (args.source_diagnostic or args.timing_case) and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
+    if (args.source_diagnostic or args.timing_case or args.functional_deadline_ms) and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
         parser.error('Source timing comparison requires a disposable hosted runner.')
     args.output.mkdir(parents=True, exist_ok=True)
     configuration = {'default': defaults(hide='shift'), 'compatibility': compatibility(defaults(hide='shift')),
@@ -111,9 +113,10 @@ def main():
                 'executable': str(executable), 'input_api': 'keybd_event',
                 'execution_kind': 'source diagnostic, not package acceptance' if args.source_diagnostic else 'unchanged executable',
                 'origin_unix_ns': trace_unix_ns,
-                'input_tag': input_tag, 'assertion_wait_ms': 120, 'events': trace_rows,
+                'input_tag': input_tag, 'legacy_preview_observation_ms':120,
+                'functional_deadline_ms':args.functional_deadline_ms or None,'events': trace_rows,
                 'limits': ['Keyboard hook observations establish OS input observation, not application WM_HOTKEY handling.',
-                           'Diagnostic instrumentation can affect scheduling; all original assertions are retained.'],
+                           'Diagnostic instrumentation can affect scheduling. Original fixed-wait runs remain separate evidence; functional mode records both observations.'],
             }, indent=2), encoding='utf-8')
     temporary = tempfile.TemporaryDirectory(prefix='miniwhiteboard-packaged-keys-')
     state_path = Path(temporary.name)/'target.json'
@@ -427,13 +430,22 @@ def main():
                         observe_transition('before-input')
                         save_trace()
                     start(chord, begin)
+                    input_started=time.monotonic()
                     trace('hold-wait-start')
                     QTest.qWait(120)
+                    legacy_ready=bool(previews()) and not boards() and foreground()==target_hwnd
+                    if args.functional_deadline_ms:
+                        while (not previews() and not boards() and foreground()==target_hwnd
+                               and time.monotonic()-input_started<args.functional_deadline_ms/1000):
+                            QTest.qWait(10)
+                    preview_latency_ms=(time.monotonic()-input_started)*1000
                     if trace_active:
                         observe_transition('assertion-time')
                     check(trigger+' actual native hold starts only a passive preview',
                           bool(previews()) and not boards() and foreground() == target_hwnd,
-                          {'modifiers': modifiers, 'first_release': first, 'begin': begin, 'end': end})
+                          {'modifiers': modifiers, 'first_release': first, 'begin': begin, 'end': end,
+                           'legacy_120ms_ready':legacy_ready,'preview_observed_ms':preview_latency_ms,
+                           'functional_deadline_ms':args.functional_deadline_ms or None})
                     set_cursor(*end)
                     for _ in range(6):
                         key(trigger_key)
@@ -444,8 +456,16 @@ def main():
                     order = (first,)+tuple(vk for vk in reversed(chord) if vk != first)
                     for vk in order:
                         key(vk, True)
+                        release_started=time.monotonic()
                         QTest.qWait(150)
-                        check(trigger+' each release leaves exactly one result', len(boards()) == 1)
+                        legacy_complete=len(boards())==1
+                        if args.functional_deadline_ms:
+                            while not boards() and time.monotonic()-release_started<args.functional_deadline_ms/1000:
+                                QTest.qWait(10)
+                        check(trigger+' each release leaves exactly one result', len(boards()) == 1,
+                              dict(legacy_150ms_complete=legacy_complete,
+                                   result_observed_ms=(time.monotonic()-release_started)*1000,
+                                   functional_deadline_ms=args.functional_deadline_ms or None))
                     hwnd = boards()[0]
                     scale = u.GetDpiForWindow(hwnd)/96
                     shadow = round(SHADOW*scale)

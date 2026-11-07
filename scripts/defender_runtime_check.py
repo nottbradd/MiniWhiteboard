@@ -156,6 +156,8 @@ def main():
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
                        '--output', str(destination), *extra]
+            if args.client_gui and module=='scripts.packaged_shortcut_check':
+                command+=['--functional-deadline-ms','2000']
             exit_code = bounded(label + '-' + suffix, command, 180)
             rows_path = destination / 'checks.json'
             document = json.loads(rows_path.read_text()) if rows_path.is_file() else []
@@ -195,12 +197,12 @@ def main():
 
     target = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Mini Whiteboard'
 
-    def setup(label, package=installer):
+    def setup(label, package=installer, extra=()):
         if args.client_gui:
             expected_setup=(installer_hash if package==installer else
                             '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
             return bounded(label,[sys.executable,'-m','scripts.client_wizard_check','--executable',str(package),
-                                  '--expected-sha',expected_setup,'--output',str(args.output/('wizard-'+label))],80)
+                                  '--expected-sha',expected_setup,'--output',str(args.output/('wizard-'+label)),*extra],80)
         return bounded(label, [str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
                                  '/LOG=' + str(args.output / (label + '.log')), '/DIR=' + str(target)],
                        60)
@@ -216,6 +218,9 @@ def main():
     def quiet_launch(directory, label):
         report['current_operation'] = label + ': quiet launch'
         save()
+        if args.client_gui and directory==target and not focused:
+            configured=QSettings('MiniWhiteboard','MiniWhiteboard')
+            configured.setValue('shortcuts/custom_windows',defaults(hide='shift').to_json());configured.sync()
         # The child has only Windows on PATH, and no Python environment hints.
         environment = dict(os.environ, PATH=os.environ['WINDIR'] + ';' + os.environ['WINDIR'] + '\\System32')
         for name in ('PYTHONHOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH'):
@@ -232,6 +237,12 @@ def main():
                 handle=launched.get('hProcess')
                 if not handle: raise RuntimeError('Shell did not provide an owned application process; inspect security UI')
                 class ShellChild:
+                    def __init__(self):
+                        import ctypes as C
+                        from ctypes import wintypes as W
+                        get_pid=C.windll.kernel32.GetProcessId
+                        get_pid.argtypes=[W.HANDLE];get_pid.restype=W.DWORD
+                        self.pid=get_pid(int(handle))
                     def poll(self):
                         result=win32process.GetExitCodeProcess(handle)
                         return None if result==259 else result
@@ -253,10 +264,38 @@ def main():
                 ImageGrab.grab(all_screens=True).save(args.output/(label+'-shell-launched.png'))
             check(label + (': normal Shell launch stays running' if args.client_gui else ': packaged runtime stays running without Python on PATH'), child.poll() is None)
             if directory == target and not focused:
+                owned_board=None
+                if args.client_gui:
+                    import ctypes as C
+                    from ctypes import wintypes as W
+                    from scripts.client_wizard_check import native_windows
+                    from PIL import ImageGrab
+                    u=C.windll.user32
+                    u.SetCursorPos.argtypes=[C.c_int,C.c_int]
+                    u.keybd_event.argtypes=[W.BYTE,W.BYTE,W.DWORD,C.c_size_t]
+                    u.SetCursorPos(180,220)
+                    chord=(0xA2,0x5B,0xA0,0x57)
+                    try:
+                        for vk in chord:u.keybd_event(vk,0,1 if vk==0x5B else 0,0)
+                        time.sleep(.4);u.SetCursorPos(540,440);time.sleep(.1)
+                    finally:
+                        for vk in reversed(chord):u.keybd_event(vk,0,2|(1 if vk==0x5B else 0),0)
+                    deadline=time.monotonic()+2
+                    while time.monotonic()<deadline:
+                        owned_board=next((w for w in native_windows() if w['pid']==child.pid and w['title']=='Whiteboard 1'),None)
+                        if owned_board:break
+                        time.sleep(.02)
+                    check('Running refusal begins with a real owned board',owned_board is not None,owned_board)
+                    ImageGrab.grab(all_screens=True).save(args.output/'running-refusal-before.png')
                 refused_setup=setup('running-refusal');refused_uninstall=uninstall('uninstall-refusal')
                 check('Setup refuses a running installed application', refused_setup==10 if args.client_gui else refused_setup!=0)
                 check('Uninstall refuses a running application', refused_uninstall==10 if args.client_gui else refused_uninstall!=0)
                 check('Refusal leaves the running process alive', child.poll() is None)
+                if owned_board is not None:
+                    after=next((w for w in native_windows() if w['handle']==owned_board['handle']),None)
+                    check('Setup and uninstall refusal preserve the same visible board',
+                          after is not None and after['pid']==child.pid and after['rectangle']==owned_board['rectangle'],after)
+                    ImageGrab.grab(all_screens=True).save(args.output/'running-refusal-after.png')
         finally:
             # Only this test-owned process is stopped; no user desktop is involved.
             if child.poll() is None:
@@ -325,10 +364,22 @@ def main():
               '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
         check('Published V1.3.4 HotkeyPatch installs before upgrade', setup('predecessor-install', predecessor) == 0)
         installed = True
+        old_manifest=(target/'MiniWhiteboard.payload').read_bytes()
+        old_payload=read_manifest(old_manifest.decode('utf-8'))
+        check('Installed predecessor is the actual published HotkeyPatch executable',
+              digest(target/'Mini Whiteboard.exe')=='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716')
+        old_location=reg(install_key,'InstallLocation')
+        obsolete=sorted(set(old_payload)-set(expected))
+        report['upgrade_inventories']=dict(old_count=len(old_payload),new_count=len(expected),obsolete_paths=obsolete,
+                                           identity=install_key,old_location=old_location)
+        unrelated=target/'tester-personal-notes.txt'
+        check('Unrelated fixture does not replace an existing file',not unrelated.exists())
+        unrelated.write_text('Preserve this unrelated tester file.',encoding='utf-8')
 
         configuration = HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'), defaults().hide)
         settings.setValue('shortcuts/custom_windows', configuration.to_json())
         settings.setValue('appearance/theme', 'Glass')
+        settings.setValue('tools/floating', True)
         settings.sync()
         login = WindowsLogin(target / 'Mini Whiteboard.exe', frozen=True)
         login.set_enabled(True)
@@ -337,12 +388,88 @@ def main():
         with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, APPROVAL_KEY, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.SetValueEx(handle, VALUE_NAME, 0, winreg.REG_BINARY, b'\x03' + b'\x00' * 11)
         approval = reg(APPROVAL_KEY, VALUE_NAME)
+        if args.client_gui:
+            def old_preserved(label):
+                check(label+': every previous runtime byte and inventory survives',
+                    all((target/name).is_file() and digest(target/name)==sha for name,sha in old_payload.items())
+                    and (target/'MiniWhiteboard.payload').read_bytes()==old_manifest)
+                check(label+': previous app registration survives',
+                    reg(install_key,'DisplayVersion')=='1.3.4' and reg(install_key,'InstallLocation')==old_location)
+                check(label+': unrelated file and startup approval survive',
+                    unrelated.read_text(encoding='utf-8')=='Preserve this unrelated tester file.'
+                    and reg(APPROVAL_KEY,VALUE_NAME)==approval)
+            check('Cancelling the normal replacement wizard completes before copying',
+                  setup('cancel-upgrade',extra=('--cancel-before-install',))==20)
+            old_preserved('Cancelled upgrade')
+            import ctypes as C
+            from ctypes import wintypes as W
+            k=C.WinDLL('kernel32',use_last_error=True)
+            open_file=k.CreateFileW
+            open_file.argtypes=[W.LPCWSTR,W.DWORD,W.DWORD,C.c_void_p,W.DWORD,W.DWORD,W.HANDLE]
+            open_file.restype=W.HANDLE
+            k.CloseHandle.argtypes=[W.HANDLE]
+            lock=open_file(str(target/'_internal/PySide6/Qt6Widgets.dll'),0x80000000,1,None,3,0,None)
+            check('Owned file lock established for pre-copy failure test',bool(lock) and lock!=C.c_void_p(-1).value)
+            try:
+                check('Normal wizard refuses a locked replacement file',
+                      setup('locked-upgrade',extra=('--expect-replacement-failure',))==20)
+            finally:k.CloseHandle(lock)
+            old_preserved('Pre-copy failure')
+            if upgrade_only:
+                import threading
+                late=target/'_internal/PySide6/plugins/imageformats/qwebp.dll'
+                before_time=(target/'Mini Whiteboard.exe').stat().st_mtime_ns
+                stop_lock=threading.Event();late_lock=[]
+                def interrupt_copy():
+                    deadline=time.monotonic()+55
+                    while not stop_lock.is_set() and time.monotonic()<deadline:
+                        try:changed=(target/'Mini Whiteboard.exe').stat().st_mtime_ns!=before_time
+                        except FileNotFoundError:changed=False
+                        if changed:
+                            handle=open_file(str(late),0x80000000,1,None,3,0,None)
+                            if handle and handle!=C.c_void_p(-1).value:late_lock.append(handle)
+                            return
+                        time.sleep(.003)
+                watcher=threading.Thread(target=interrupt_copy,daemon=True);watcher.start()
+                try:
+                    code=setup('mid-copy-rollback',extra=('--expect-replacement-failure',))
+                finally:
+                    stop_lock.set();watcher.join(2)
+                    for handle in late_lock:k.CloseHandle(handle)
+                check('Mid-copy fault was injected after executable replacement began',bool(late_lock))
+                check('Normal wizard reports and aborts the mid-copy failure',code==20)
+                old_preserved('Mid-copy rollback')
         check('Upgrade from published V1.3.4 HotkeyPatch to the investigated package completes', setup('upgrade-install') == 0)
         settings.sync()
-        check('Upgrade preserves custom hotkeys, appearance and disabled startup choice',
+        check('Upgrade preserves custom hotkeys, appearance, floating tools and disabled startup choice',
               settings.value('shortcuts/custom_windows') == configuration.to_json()
               and settings.value('appearance/theme') == 'Glass'
+              and settings.value('tools/floating',type=bool)
               and reg(RUN_KEY, VALUE_NAME) == login.command and reg(APPROVAL_KEY, VALUE_NAME) == approval)
+        check('External startup disable remains effective',not login.state().enabled)
+        check('Upgrade reuses the stable installation identity and directory',
+              reg(install_key,'InstallLocation')==old_location and reg(install_key,'DisplayVersion')==(candidate['version'] if candidate else '1.3.4'))
+        check('Upgrade removes all unchanged obsolete inventoried files',all(not (target/name).exists() for name in obsolete),obsolete)
+        check('Upgrade preserves the unrelated file',unrelated.read_text(encoding='utf-8')=='Preserve this unrelated tester file.')
+        entries=[]
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Microsoft\Windows\CurrentVersion\Uninstall') as root:
+            index=0
+            while True:
+                try:name=winreg.EnumKey(root,index)
+                except OSError:break
+                index+=1
+                key=r'Software\Microsoft\Windows\CurrentVersion\Uninstall'+'\\'+name
+                if reg(key,'DisplayName')=='Mini Whiteboard':entries.append(key)
+        check('Exactly one Mini Whiteboard installed-app entry remains',entries==[install_key],entries)
+        if args.client_gui:
+            from PySide6.QtCore import QStandardPaths
+            from win32com.client import Dispatch
+            shell=Dispatch('WScript.Shell')
+            link=Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.ApplicationsLocation))/'Mini Whiteboard/Mini Whiteboard.lnk'
+            check('Start menu shortcut targets the updated installed executable',
+                  link.is_file() and Path(shell.CreateShortcut(str(link)).TargetPath).resolve()==(target/'Mini Whiteboard.exe').resolve())
+            desktop_link=Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation))/'Mini Whiteboard.lnk'
+            check('Desktop shortcut remains absent when not selected',not desktop_link.exists())
         payload(target, 'Installed after upgrade')
         check('Same-version repeat install completes', setup('repeat-install') == 0)
         payload(target, 'Installed after repeat setup')
@@ -354,6 +481,7 @@ def main():
               not (target / 'Mini Whiteboard.exe').exists() and reg(install_key, 'InstallLocation') is None
               and reg(RUN_KEY, VALUE_NAME) is None and reg(APPROVAL_KEY, VALUE_NAME) is None)
         check('Uninstall preserves user preferences', settings.value('shortcuts/custom_windows') == configuration.to_json())
+        check('Uninstall preserves the unrelated file',unrelated.read_text(encoding='utf-8')=='Preserve this unrelated tester file.')
         check('All requested installed native suites passed', native_passed)
         report['result'] = 'PASS for the listed package checks only'
     except Exception as error:

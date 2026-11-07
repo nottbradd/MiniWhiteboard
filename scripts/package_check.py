@@ -21,7 +21,6 @@ from .build_support import verify_release_files, verify_frozen_modules
 
 def main():
     windows.enable_dpi_awareness()
-    app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
     parser.add_argument('--output',type=Path,default=Path('verification/v136-review02/package'))
     parser.add_argument("--executable", type=Path, default=Path("dist/windows-v136-review02/Mini Whiteboard/Mini Whiteboard.exe"))
@@ -31,6 +30,10 @@ def main():
     args = parser.parse_args()
     if args.extended and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
         parser.error('Extended GUI checks require a disposable hosted runner.')
+    if args.extended:
+        sys.coinit_flags=2
+        from pywinauto import Desktop  # Same STA as Qt, before its GUI/clipboard exists.
+    app = QGuiApplication.instance() or QGuiApplication([])
     args.output.mkdir(parents=True,exist_ok=True)
     executable = args.executable.resolve()
     results = []
@@ -39,6 +42,7 @@ def main():
         entry = {"check": label, "status": "PASS" if condition else "FAIL", "detail": detail}
         results.append(entry)
         print(json.dumps(entry), flush=True)
+        (args.output/'checks.json').write_text(json.dumps(results,indent=2),encoding='utf-8')
         if not condition:
             raise AssertionError(label)
 
@@ -398,12 +402,18 @@ def main():
             text_key(ord('C'), ctrl=True)
             app.processEvents()
             check('Client editor receives tool letters and digits exclusively', app.clipboard().text() == 'ave12345')
-            app.clipboard().setText('Mini Whiteboard keeps this sentence inside the textbox. '
-                                    'A V E 12345 remain text while editing this second sentence.')
+            expected_text=('Mini Whiteboard keeps this sentence inside the textbox. '
+                           'A V E 12345 remain text while editing this second sentence.')
+            app.clipboard().setText(expected_text)
             app.processEvents()
             windows.capture_rect(paper).save(str(args.output/'client-before-paste.png'))
             text_key(ord('V'), ctrl=True)
             windows.capture_rect(paper).save(str(args.output/'client-after-paste.png'))
+            text_key(ord('A'),ctrl=True)
+            text_key(ord('C'),ctrl=True)
+            app.processEvents()
+            check('Client editor receives and copies back the complete replacement text',app.clipboard().text()==expected_text,
+                  {'expected_characters':len(expected_text),'actual_characters':len(app.clipboard().text())})
             text_key(0x0D, ctrl=True)
             windows.capture_rect(paper).save(str(args.output/'client-after-text-finish.png'))
             text_key(0x1B)
