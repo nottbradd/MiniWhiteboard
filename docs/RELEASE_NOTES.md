@@ -84,128 +84,138 @@ this is not a SmartScreen/Smart App Control acceptance result. Historical
 
 #### Windows client observations
 
-The client is Windows 11 Enterprise **10.0.26200 ARM64** on a hosted Cobalt 100
-VM, running the x64 app under emulation, with development tools present and a
-Test Mode watermark. Defender was Normal/active, with platform **4.18.26100.4**,
-engine **1.1.26100.4**, intelligence **1.463.172.0**, real-time, behavior,
-IOAV/downloaded-file, archive and cloud protection active, no relevant exclusions,
-and tamper protection enabled. Smart App Control was off. Completed observation
-periods recorded zero detection and protection-disable events; this does not
-establish how a school policy or Smart App Control would handle the app.
+These checks use Windows 11 Enterprise **10.0.26200 ARM64**, hosted Cobalt 100 /
+Hyper-V graphics and x64 emulation, with development tools and a Test Mode
+watermark. **Native Windows 11 x64 client testing is NOT RUN**.
+Defender is Normal/active, platform **4.18.26100.4**, engine
+**1.1.26100.4**, with real-time, behaviour, IOAV/downloaded-file, archive and cloud
+protection, no relevant exclusions and tamper protection on. Completed follow-ups
+use intelligence **1.463.174.0**. Smart App Control is off; school policy and Smart
+App Control On are not tested.
 
-The [browser-completion follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364684159)
-passed Edge's completed **Open file** state, exact artifact/package hashes and
-normal Explorer extraction. The installer, ZIP and Explorer-extracted EXE retained
-`ZoneId=3`. Its observation period was 10:41:32–10:43:26 UTC on 7 November.
-This used the genuine browser download of the unpublished Actions container,
-not a public release URL. Earlier runs verified completed file bytes but did not
-wait for Edge's completion UI; their narrower evidence is preserved.
+The recurring WSL interruption was resolved by normally installing the
+[official WSL 3.0.3 MSI](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42372370336)
+after verifying Microsoft's signature and published hash. No distribution or
+reboot was needed. Harmless Edge/Explorer preflight passed, including 30 foreground
+samples over three seconds. Each acceptance VM repeats setup and preflight.
 
-The first [portable client attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42363183469)
-passed normal Shell launch, the 337-assertion custom-shortcut suite and before/after
-verification of all 199 payload files and dependency notices. The default 120 ms
-preview and isolated 150 ms capture assertions failed; later observations showed
-correct boards, but do not turn those assertions into passes. Another capture
-sequence lost foreground to an unrelated WSL update terminal. The text test passed
-37 checks before its wrapping failure; its clipboard-owning test process was not
-servicing Qt events during the paste. The initial Glass helper also lacked an
-import. These failures remain recorded separately from subsequent diagnostics.
+Completed evidence applies to the exact frozen files above:
 
-The [installer Shell diagnosis](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42363917013)
-identified **Open File – Security Warning / Unknown Publisher** as the original
-Shell stall. A [follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364577934)
-accepted ordinary **Run** for the verified installer while leaving **Always ask**
-checked, then reached the normal welcome page. The helper expected **Next >**;
-the actual accessible label was **Next**, so that attempt timed out without
-installing. No SmartScreen, Defender or organizational-policy block was bypassed.
+- [Browser/Explorer](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364684159):
+  completed Edge Open file state, exact hashes and inherited `ZoneId=3` on installer,
+  ZIP and extracted EXE. This uses the unpublished Actions container, not a public
+  release URL. Observation period: 10:41:32-10:43:26 UTC, 7 November.
+- [Default shortcuts](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42373323838):
+  **873 assertions passed**. All 64 preview and 256 completion observations were
+  ready at the original observation points (125-141 ms and 140-172 ms, including
+  scheduling overhead). The two-second functional allowance was not needed.
+  No detection or protection-disable events during 12:42:56-12:47:26 UTC. These
+  are not physical input-latency measurements.
+- [Saved custom shortcuts and portable Shell launch](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42363183469):
+  **337 custom assertions**, all 199 payload files and notices passed. That run's
+  default-timing and text-wrap failures remain failures.
+- [Normal installation](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42372856672):
+  fresh wizard installation, exact payload and Shell launch passed. Setup and
+  uninstall displayed running-app refusals. Full upgrade/rollback remains open.
+  The earlier Server upgrade used the original V1.3.4 installer, not HotkeyPatch.
 
-[Frozen-client Glass captures](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364046658)
-show the board, toolbar and open Draw options over light and busy backgrounds.
-Both show solid grey material, so **Glass appearance is not accepted**. Tool taps
-and long-press visibility passed seven assertions per background before the next
-UI Automation interaction failed. These images document the actual issue:
+The ordinary **Open File - Security Warning / Unknown Publisher** was observed.
+Run was accepted only for the hash-verified installer, leaving Always ask checked.
+No SmartScreen, Defender or policy block was bypassed. Empty Defender API histories
+and zero event counts apply only to completed observation periods; incomplete jobs
+supply no final security result.
+
+A later [editing VM](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42376795342)
+recorded **Trojan:Win32/Gracing.I** against a temporary `provjobd.exe840930454`
+process/file at **13:31:43.753 UTC on 7 November**. Pre-runtime history was empty;
+final threat history contained the entry despite zero detection events in the
+collected event log. The recorded payload hashes remained unchanged. Attribution
+is **unresolved**: it is not established as a Mini Whiteboard detection, harmless,
+or the cause of stalled runners. That run is not described as a clean security
+observation. Nothing was restored, excluded or allowed through protection.
+
+**Glass diagnosis.** The [controlled comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42372851486)
+produced an identical **361,362-pixel board region** for published V1.3.4 HotkeyPatch
+and V1.3.6 over the same patterned background. Tools off/on retained the grey
+appearance; toolbar and popover were grey too. Seven of eight captures completed;
+the first cold baseline launch raced the helper's fixed startup delay. Both native
+backdrop modules are identical in the frozen EXEs. This rules against a new V1.3.6
+backdrop change, but does not isolate the hosted graphics environment from the
+shared implementation. **Client Glass appearance remains unresolved.** Actual
 [light](media/floating-tools-client-glass-light-v136.png) and
-[busy](media/floating-tools-client-glass-busy-v136.png).
+[busy](media/floating-tools-client-glass-busy-v136.png) captures retain the issue.
 
-A [read-only environment probe](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365761656)
-reported Microsoft Hyper-V Video **10.0.26100.1150**, DWM composition enabled,
-EnableTransparency=1, AC power, no battery-saver flag and a false remote-session
-metric. It ran on a separate VM using the same hosted image, without application
-execution. These observations rule out an assumed transparency-off setting on
-that probe; they do not establish the cause of the captured grey material. No
-speculative application change or rebuild was made. This probe's Defender
-intelligence was **1.463.174.0**, separate from the completed package runs above.
+Source diagnostics selected native Glass with successful native/composition calls
+and visible, uncloaked hosts behind their Qt surfaces. Independent D3D11 hardware
+and WARP probes succeeded; they do not identify WUC's private device. No owned
+backdrop windows remained after exit. Deliberately forcing the source fallback
+produced readable pale board, toolbar and popover surfaces on both backgrounds.
+The unchanged EXE did not select that fallback automatically. No speculative
+application correction or rebuild was made.
 
-The earlier bounded client repair closed only the observed WSL update terminal once.
-It reopened in the [visual](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365329423),
-[gesture](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365332049) and
-[installer](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365334881)
-follow-ups. Each stopped at harmless preflight before candidate download or
-execution; none supplies a new application pass. A stable interactive client is
-still required for the remaining acceptance and Glass diagnosis.
+**Remaining acceptance.** [Editing](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42373892016)
+passed 47 checks: complete text, multiline wrapping, selection movement, undo/redo,
+Hide/Restore and minimising. The next helper check failed on tray-label formatting.
+Explorer exposed a leading space as well as different capitalisation; the observed
+labels are now normalised. Complete tray/settings/exit acceptance remains open.
+[Toolbar acceptance](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42376099333)
+now passes **17 checks on each background**: taps, long press, White selection,
+grip dragging, and active-board switching with tool and position retention.
+The earlier failure queried a retired HWND; waiting for the replacement toolbar
+resolved it without an application change. All 17 package checks and before/after
+hashes passed, with no detection/disable events during 13:20:54-13:23:46 UTC.
+The security-history helper captured the preceding Virus & threat protection page
+before navigation completed; that UI observation remains **INCOMPLETE** pending
+the corrected helper. Toolbar interaction success does not accept the grey Glass
+appearance.
 
-Normal setup diagnostics then established that the hosted image's WSL component
-is missing. Both the [normal update](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42371540708)
-and [normal install without a distribution](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42371920563)
-exited immediately with the same missing-WSL message. Initial desktop and setup
-evidence was uploaded before later phases. Neither run downloaded or executed
-Mini Whiteboard. These are setup failures, not application results.
+The [early-release follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42374563310)
+passed **22/23 pending-creation** and **8/8 pointer-motion** cases. The remaining
+case placed both captures correctly, but its later clipboard check read an image
+without obtaining the editable MIME payload. The follow-up records owner, sequence
+and formats and waits for both required formats within the original one-second
+export bound. Opaque reference pixels settle before input; exact pixel equality
+and the original short release schedules are unchanged. A read-only audit of the
+saved evidence confirmed **28/28 exported PNGs** and their transparent gutters,
+plus **27/27 available original-image payloads**, match exactly. The remaining
+editable MIME observation is still incomplete; no failed case is reclassified.
+Earlier gradient/edge pixel differences, measurement-crop errors, UIA lookups and WSL interruptions
+remain in their original artifacts.
 
-The [official-MSI setup follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42372370336)
-installed WSL 3.0.3 normally after verifying Microsoft's signature and published
-SHA-256. It needed no distribution or reboot. The harmless Edge/Explorer preflight
-then passed, including 30 foreground samples over three seconds with one Explorer
-window throughout. Active Defender used intelligence **1.463.174.0**, with cloud,
-real-time, behaviour and IOAV protection enabled and relevant exclusions absent.
-This establishes readiness for that VM; each application-check VM repeats it.
+The [comparison rerun](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42373887871)
+and [installer rerun](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42373896067)
+exceeded their 21-minute step deadlines and were cancelled. Only readiness
+artifacts survived; completed-job logs returned 404 BlobNotFound. Their runtime
+causes are **unresolved**, not attributed to the application. Later focused
+[gesture](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42376101877),
+[comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42376105011)
+and [upgrade](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42376108108)
+attempts also exceeded that deadline and were cancelled with readiness evidence
+only. No final application or security result is inferred for those attempts.
+The final [installed editing attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42377773489)
+completed protected preflight and source graphics diagnostics, then also exceeded
+the main-step deadline without a runtime artifact. Complete tray/settings, editable
+clipboard export, Protection History UI and HotkeyPatch upgrade acceptance remain
+open. Bounded attempts ended without establishing the cause of these stalls.
+The prepared installer checks cover running-board protection,
+cancellation, locked-file failure, mid-copy rollback, retained preferences/startup,
+reinstall and uninstall. Actual old/new inventories contain 200/199 paths: obsolete
+`libcrypto-3-x64.dll` and `libssl-3-x64.dll` must be removed only when their original
+hashes match; unrelated files must remain.
 
-The pending comparison uses the published HotkeyPatch executable and unchanged
-review-02 executable on one VM, with matching backgrounds, placement and settings,
-and tools off/on. Source-only API/graphics diagnostics are recorded separately.
-The native backdrop/composition modules are unchanged from V1.3.4. This narrows
-the code comparison but does not establish the cause of the grey pixels.
-
-The new normal-wizard upgrade check starts from **V1.3.4 HotkeyPatch**, including
-cancellation, locked-file refusal, rollback, settings/startup preservation and
-same-version reinstall. The verified published predecessor contains 200 runtime
-paths and the candidate 199. The upgrade must remove the obsolete
-`_internal/libcrypto-3-x64.dll` and `_internal/libssl-3-x64.dll` when their original
-hashes match; the candidate instead includes `_internal/libcrypto-3.dll`.
-These added client checks are prepared, **NOT RUN** until desktop readiness passes;
-the prior Server upgrade used the original V1.3.4 installer.
-
-The [first focused editing job](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364048831)
-exceeded its 21-minute client-step limit without a final runtime artifact. Its
-readiness checkpoint is retained. Cancellation was requested after that deadline; GitHub confirmed **cancelled**
-at 10:59:38 UTC. Only its readiness artifact survived, and the completed job log
-returned 404 BlobNotFound. Runtime and post-execution evidence remain
-**INCOMPLETE**, not a pass or
-an established application cause. Static review also found that this attempt had
-not copied the updated clipboard helper into its frozen-source test workspace;
-that helper-copy error was corrected before the next attempt.
-
-The [corrected editing attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365327003)
-stalled during harmless preflight and exceeded its eight-minute step deadline.
-Candidate download and execution did not begin. GitHub confirmed **cancelled**
-at 11:02:29 UTC after ordinary and force-cancellation requests. It uploaded no
-artifact, and its job log also returned 404 BlobNotFound. Neither incomplete run
-supplies a completed post-execution Defender observation. The unresolved client checks are held for a
-stable environment instead of repeatedly launching the full checklist.
-
-Microsoft's separate submission of the review-02 executable
-(`1804af5a-568e-4420-bcaa-ea1161006797`) had a **Completed** case header but
-file-level final determination **Pending** when checked at 23:14 AEDT on
-7 November. A rescan of the same submitted sample was requested and acknowledged
-at 23:14:12 AEDT; no new file was uploaded. Cloud and
-client fields said **No malware detected**. The analyst response reported no
-positive scan or telemetry indicators and said the submission would be closed
-without further action; actual detection diagnostics would be needed to continue
-an incorrect-detection investigation. The earlier 10:14 **Submitted / Pending** and 10:31 **In progress / Pending**
-observations are retained. The exact uploaded EXE hash is recorded above; the result
-page does not display it. The completed
-V1.3.4 **Not malware** determination applies only to that earlier submitted
-hash. V1.3.6 remains unpublished pending its own applicable final review and
-remaining client acceptance.
+**Microsoft review.** Submission
+[`1804af5a-568e-4420-bcaa-ea1161006797`](https://www.microsoft.com/en-us/wdsi/submission/1804af5a-568e-4420-bcaa-ea1161006797)
+shows **Completed** for the case and **Pending** as the file's final determination,
+checked at approximately **00:47 AEDT on 8 November 2026**. Cloud and client
+current-detection fields say **No malware detected**, definition **1.463.174.0**.
+Protection icons/tooltips contradict those fields; neither threat nor clearance
+is inferred. The analyst reported no positive scan or telemetry indicators and
+closed the case without further action. Affected-system diagnostics would be
+needed to investigate an actual detection; none were collected or uploaded. The
+same sample was rescanned once at 23:14 AEDT on 7 November. The uploaded EXE hash
+is above; the portal does not display it. V1.3.4's earlier **Not malware** decision
+covers only its submitted hash. **V1.3.6 remains unpublished** pending its own
+final determination and remaining acceptance.
 
 Drawing measurements below remain attributed to review-01 and its baseline.
 The drawing implementation is unchanged in review-02; these are not new-package

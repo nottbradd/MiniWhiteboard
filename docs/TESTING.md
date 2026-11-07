@@ -127,6 +127,11 @@ Explorer extraction and a three-second stable-foreground observation. A stale
 WSL prompt may be closed once; recurrence or another obstruction stops the check.
 No security setting or download-origin marker is weakened to make a check pass.
 
+Source graphics diagnostics run for full, comparison and visual checks. Focused
+editing, gesture and installer checks reuse applicable graphics evidence and keep
+the protected browser/Explorer preflight. A source diagnostic failure is not an
+execution result for the frozen package.
+
 The `comparison` subset captures published V1.3.4 HotkeyPatch, V1.3.6 tools off,
 V1.3.6 tools on, and White controls over the same two owned backgrounds. Record
 all backdrop HWNDs, stacking, styles, visibility and lifetime. Source-only API
@@ -134,6 +139,27 @@ results and independent D3D11 capability probes are separate from frozen-binary
 evidence; a successful capability probe does not identify WUC's internal device.
 The `upgrade` subset exercises the normal wizard against the exact HotkeyPatch
 predecessor, including cancellation, pre-copy failure and mid-copy rollback.
+Wait for the owned tray window to respond before injecting a first shortcut;
+record startup time separately. Background captures require their expected painted
+pixels as well as a responsive owned window. Keep translated text entirely inside
+the pixel measurement region. Capture-reference patterns must cover both tested
+regions and settle before the timed input sequence begins; retain exact pixel
+equality and the original release schedules.
+`client_uia_check` queries frozen Qt controls in a separate process without a Qt
+GUI apartment, and retains the actual accessibility tree and errors. Match the
+observed accessible role (checkable Qt tool buttons are CheckBox controls). When
+switching boards, wait for the replacement toolbar before querying its state.
+Clipboard export readiness requires both the image and editable MIME formats
+within the existing export deadline; record format, owner and sequence changes.
+These waits are outside the measured creation gesture. An Inno
+running-app prompt's Cancel button exits the attempted setup without closing the
+application. Source fallback injection is labelled separately from an environment
+automatically selecting fallback and from acceptance of the unchanged executable.
+
+The final client step opens Windows Security and records its Protection history
+page read-only. Retain the page capture, Defender events and API history together;
+no threat action, protection setting or history is changed. A missing UI result
+is incomplete evidence even when the API history is empty.
 
 `packaged_shortcut_check --trace-transition` records only its tagged test input,
 foreground changes and the owned application's window/thread state. It retains

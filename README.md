@@ -199,7 +199,9 @@ at 100/125/150/175/200%; physical mixed-DPI and real pen acceptance are **NOT RU
 Glass appeared as solid grey on both the Server VM and the Windows 11 ARM
 client VM. The actual frozen-client captures below show the unresolved appearance;
 Glass visual acceptance has not passed. These are diagnostic captures, not the
-intended translucent result.
+intended translucent result. A controlled comparison also reproduces the same
+grey board in published V1.3.4 HotkeyPatch on that client. White remains the
+verified opaque appearance; native Windows x64 hardware comparison is not yet run.
 
 ![Frozen client Glass over a light background — unresolved grey appearance](docs/media/floating-tools-client-glass-light-v136.png)
 
