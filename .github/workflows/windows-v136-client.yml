@@ -11,7 +11,7 @@ on:
         description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, visuals, editing]
+        options: [all, visuals, editing, gestures]
 permissions:
   contents: read
   actions: read
@@ -28,6 +28,7 @@ jobs:
       PYTHONUNBUFFERED: '1'
       MINIWHITEBOARD_CLIENT_VISUALS_ONLY: ${{ inputs.checks == 'visuals' && '1' || '0' }}
       MINIWHITEBOARD_CLIENT_EDITING_ONLY: ${{ inputs.checks == 'editing' && '1' || '0' }}
+      MINIWHITEBOARD_CLIENT_GESTURES_ONLY: ${{ inputs.checks == 'gestures' && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

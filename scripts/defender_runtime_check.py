@@ -33,7 +33,8 @@ def main():
     args = parser.parse_args()
     visuals_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_VISUALS_ONLY') == '1'
     editing_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_EDITING_ONLY') == '1'
-    focused = visuals_only or editing_only
+    gestures_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_GESTURES_ONLY') == '1'
+    focused = visuals_only or editing_only or gestures_only
     candidate = None
     if args.candidate_identity:
         from scripts.candidate_identity import read
@@ -54,6 +55,7 @@ def main():
     if args.client_gui:
         report['not_run'][0]='Published release URL acceptance; this candidate uses the genuine browser/Explorer artifact-container route recorded by the parent'
         report['client_scope']=('Focused frozen Glass/toolbar checks only' if visuals_only else
+                                'Existing early-release and pointer-motion matrices only' if gestures_only else
                                 'Focused editing/tray/control checks only' if editing_only else 'Full client package acceptance')
 
     def save():
@@ -114,6 +116,17 @@ def main():
 
     def native(directory, label):
         completed = []
+        if gestures_only:
+            if not args.candidate_identity:
+                raise RuntimeError('Client gesture matrices require an exact candidate identity')
+            for mode,deadline in (('pending',300),('motion',240)):
+                dest=args.output/(label+'-'+mode)
+                code=bounded(label+'-'+mode,[sys.executable,'-m','scripts.early_release_matrix',
+                    '--executable',str(directory/'Mini Whiteboard.exe'),'--candidate-identity',str(args.candidate_identity),
+                    '--output',str(dest),'--mode',mode],deadline)
+                completed.append(code==0)
+                check(label+': unchanged '+mode+' functional matrix completed',code==0,fatal=False)
+            return all(completed)
         if args.client_gui and not editing_only:
             for background in ('light','busy'):
                 dest=args.output/(label+'-glass-'+background)
@@ -263,10 +276,10 @@ def main():
         if focused:
             native_passed=native(target,'installed')
             payload(target,'Installed after focused visual checks')
-            check('Focused visual-check installation uninstalls normally',uninstall('visual-uninstall')==0)
+            check('Focused-check installation uninstalls normally',uninstall('focused-uninstall')==0)
             installed=False
-            check('All requested installed visual checks passed',native_passed)
-            report['result']='PASS for focused installed visual checks only; full acceptance remains separate'
+            check('All requested installed focused checks passed',native_passed)
+            report['result']='PASS for the selected installed subset only; full acceptance remains separate'
             return
         check('Fresh installation uninstalls normally', uninstall('fresh-uninstall') == 0)
         installed = False
