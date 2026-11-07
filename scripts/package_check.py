@@ -486,7 +486,7 @@ def main():
                 icons = [b for b in tray.descendants(control_type='Button') if b.window_text().startswith('Mini Whiteboard')]
                 if not icons:
                     overflow = [b for b in tray.descendants(control_type='Button')
-                                if b.window_text() in ('Show hidden icons', 'Hidden icon menu')]
+                                if b.window_text().strip().casefold() in ('show hidden icons', 'hidden icon menu')]
                     if not overflow:
                         raise RuntimeError('Tray overflow control not exposed; saved GUI evidence is required')
                     overflow[0].click_input()
