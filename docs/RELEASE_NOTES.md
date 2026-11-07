@@ -59,8 +59,9 @@ acceptance remains separate.
 The final **default full-prefix matrix is INCOMPLETE**. Its pre-execution
 checkpoint passed, but the runtime job exceeded its configured 20-minute step
 limit without uploading a runtime report. Cancellation was requested at
-09:34 UTC on 7 November. This does not establish an application failure or a
-successful run; the cause remains unresolved. The earlier `f6e6094` candidate
+09:34 UTC on 7 November; GitHub marked it cancelled at 09:39 UTC. The job log
+was unavailable and no runtime artifact was uploaded. This does not establish an
+application failure or a successful run; the cause remains unresolved. The earlier `f6e6094` candidate
 completed all 15 cases with zero recorded Defender detections, but that is
 retained as earlier-package evidence, not substituted for the final EXE.
 
