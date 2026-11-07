@@ -1,0 +1,39 @@
+name: Frozen V1.3.6 tools visual checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Verify application source is the frozen review-02 source
+        run: |
+          git fetch origin b4b9d276efb484512978449d216bfa4a253ef2d9
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code b4b9d276efb484512978449d216bfa4a253ef2d9 HEAD -- main.py mini_whiteboard assets/app.manifest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check actual presented selection at supported Qt scales
+        timeout-minutes: 3
+        run: |
+          foreach ($scale in @('1','1.25','1.5','1.75','2')) {
+            $env:QT_SCALE_FACTOR=$scale
+            python -m scripts.floating_tools_check --native --output "verification/v136-review02/tools-$scale"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Preserve passing and failed captures
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: v136-review02-presented-tools
+          path: verification/v136-review02/
+          if-no-files-found: error
+          retention-days: 90

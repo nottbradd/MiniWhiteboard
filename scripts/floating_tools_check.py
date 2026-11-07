@@ -93,10 +93,32 @@ def main():
             app.setActiveWindow(board)  # Offscreen's platform activation is incomplete.
             board.canvas.setFocus()
             app.processEvents()
-    def capture(name):
+    def capture(name, expected_widget=None):
         QTest.qWait(200)
         if args.native:
-            app.primaryScreen().grabWindow(0).save(str(args.output/(name+'.png')))
+            screen = app.primaryScreen()
+            frame = screen.grabWindow(0)
+            if expected_widget is not None:
+                # A widget grab can be current while the hosted desktop still
+                # presents the preceding frame. Check actual screen pixels,
+                # retaining a stale frame instead of calling it a visual pass.
+                point = expected_widget.mapToGlobal(QPoint(9,9))-screen.geometry().topLeft()
+                dpr = frame.devicePixelRatio()
+                expected = expected_widget.grab().toImage().pixelColor(round(9*dpr),round(9*dpr))
+                started = time.monotonic()
+                def matches():
+                    actual = frame.toImage().pixelColor(round(point.x()*dpr),round(point.y()*dpr))
+                    return max(abs(a-b) for a,b in zip(actual.getRgb()[:3],expected.getRgb()[:3])) < 12
+                if not matches():
+                    frame.save(str(args.output/(name+'-initial-stale.png')))
+                while not matches() and time.monotonic()-started < 2:
+                    QTest.qWait(50)
+                    frame = screen.grabWindow(0)
+                frame.save(str(args.output/(name+'.png')))
+                check(name+' screen shows the current swatch state',matches(),
+                      {'additional_wait_ms':round((time.monotonic()-started)*1000),'sample':expected.name()})
+            else:
+                frame.save(str(args.output/(name+'.png')))
         else:
             # Actual QWidget grabs, composed at their actual logical positions.
             image = QImage(work.size()*app.primaryScreen().devicePixelRatio(),QImage.Format.Format_ARGB32_Premultiplied)
@@ -162,7 +184,7 @@ def main():
         check('White selection updates shared colour and checked state',QColor(c.active_color)==QColor('white') and white.isChecked())
         selected = white.grab().toImage()
         check('White selected background differs visibly',selected.pixelColor(round(9*dpr),round(9*dpr)) != unselected.pixelColor(round(9*dpr),round(9*dpr)))
-        capture('white-options-selected')
+        capture('white-options-selected',white)
         prefs.set_theme('Glass')
         QTest.qWait(100)
         capture('glass-options-selected')
