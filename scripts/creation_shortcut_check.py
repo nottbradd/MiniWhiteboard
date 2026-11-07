@@ -30,15 +30,27 @@ def focus_target(path, pattern=False):
     app = QApplication([])
     window = QMainWindow()
     window.setWindowTitle('Mini Whiteboard disposable shortcut target')
-    edit = QTextEdit('Owned test content. Global creation must leave this text and its menus alone.')
-    if pattern:
-        edit.setStyleSheet('QTextEdit { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #d34156,stop:0.4 #43b8a2,stop:1 #3763cd); }')
+    class PatternEdit(QTextEdit):
+        def paintEvent(self,event):
+            super().paintEvent(event)
+            # Exact-pixel capture needs a static opaque fixture: gradients can
+            # be quantised by composition, and native shadows vary with focus.
+            # Keep the normal editable text/menu above both sampled rectangles.
+            from PySide6.QtGui import QColor,QPainter
+            painter=QPainter(self.viewport())
+            painter.setClipRect(0,80,self.viewport().width(),self.viewport().height()-80)
+            colours=('#d34156','#43b8a2','#3763cd','#f6db9b')
+            for y in range(80,self.viewport().height(),16):
+                for x in range(0,self.viewport().width(),16):
+                    painter.fillRect(x,y,16,16,QColor(colours[(x//16+3*(y//16))%4]))
+    edit_type=PatternEdit if pattern else QTextEdit
+    edit = edit_type('Owned test content. Global creation must leave this text and its menus alone.')
     window.setCentralWidget(edit)
     menu = window.menuBar().addMenu('File')
     menu.addAction('Test command')
     shown = []
     menu.aboutToShow.connect(lambda: shown.append(True))
-    window.setGeometry(90, 90, 780, 520)
+    window.setGeometry(50,60,950,600) if pattern else window.setGeometry(90,90,780,520)
     window.show()
     edit.setFocus()
     def report():

@@ -51,7 +51,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git worktree add verification/client-source b4b9d276efb484512978449d216bfa4a253ef2d9
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          foreach ($name in @('client_download_check.py','client_environment_check.py','client_glass_diagnostics.py','client_graphics_check.py','client_wizard_check.py','client_uia_check.py','defender_investigation.ps1','defender_runtime_check.py','floating_tools_check.py','package_check.py','packaged_drawing_check.py','packaged_shortcut_check.py')) {
+          foreach ($name in @('client_download_check.py','client_environment_check.py','client_glass_diagnostics.py','client_graphics_check.py','client_wizard_check.py','client_uia_check.py','creation_shortcut_check.py','defender_investigation.ps1','defender_runtime_check.py','early_release_probe.py','floating_tools_check.py','package_check.py','packaged_drawing_check.py','packaged_shortcut_check.py')) {
             Copy-Item -LiteralPath "scripts/$name" -Destination verification/client-source/scripts
           }
       - name: Record the initial client before setup

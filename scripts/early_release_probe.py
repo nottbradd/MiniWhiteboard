@@ -339,8 +339,19 @@ def exercise(c, case):
             return 1
         save(); report['resources']=[resources('fresh')]
         c['focus']()
-        expected_patterns['primary']=n.capture_rect(Rect(180,220,360,220))
-        expected_patterns['next']=n.capture_rect(Rect(600,220,360,220))
+        reference_areas={'primary':Rect(180,220,360,220),'next':Rect(600,220,360,220)}
+        previous=None;stable=0;deadline=time.monotonic()+2
+        while time.monotonic()<deadline:
+            current={label:n.capture_rect(rect) for label,rect in reference_areas.items()}
+            stable=stable+1 if previous is not None and all(current[k]==previous[k] for k in current) else 0
+            previous=current
+            if stable>=2:break
+            QTest.qWait(40)
+        report['reference_stability']={'consecutive_identical_intervals':stable,
+            'fixture':'Opaque 16px pattern wholly inside owned client area; exact matching retained',
+            'scope':'Before prelude only; no extra wait or capture inside either timed gesture'}
+        if stable<2:raise RuntimeError('Owned screenshot reference did not settle before the prelude')
+        expected_patterns.update(current)
         report['reference_capture_before_prelude_ms']=now()
         prelude()
         if case.get('zero_after_prelude'): terminal_zero()
