@@ -21,6 +21,9 @@ def main():
     def save():
         (args.output/'graphics.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     save()
+    from scripts.client_glass_diagnostics import d3d11_devices,instrument_source,window_state
+    report['d3d11']=d3d11_devices()
+    instrument_source(report,save)
     query="@{video=Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion,VideoProcessor,Status,AdapterCompatibility; session=$env:SESSIONNAME; os=Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture} | ConvertTo-Json -Depth 5"
     result=subprocess.run(['pwsh','-NoProfile','-NonInteractive','-Command',query],capture_output=True,text=True,timeout=15)
     report['system']=json.loads(result.stdout) if result.returncode==0 else dict(error=result.stderr)
@@ -72,6 +75,7 @@ def main():
                     foreground=int(C.windll.user32.GetForegroundWindow()),board=int(board.winId()),
                     points=points,before=[before.pixelColor(x,y).getRgb() for x,y in points],
                     after=[image.pixelColor(x,y).getRgb() for x,y in points]))
+                report['observations'][-1]['native_windows']=window_state(os.getpid())
                 save()
             finally:
                 if board is not None: board.close();QTest.qWait(80)

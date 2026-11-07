@@ -9,7 +9,7 @@ import time
 
 
 def setup_wsl(output):
-    """Use Microsoft's normal update once; never disable features or protection."""
+    """One normal install/update command; never disable features or protection."""
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':
         raise RuntimeError('Disposable hosted client only')
     from scripts.observed_process import run
@@ -33,9 +33,17 @@ def setup_wsl(output):
     try:
         save();observe('before')
         before=operation('version-before',[executable,'--version'],10)
-        updated=operation('normal-update',[executable,'--update','--web-download'],180)
+        raw=(output/'version-before/stderr.txt').read_bytes()
+        message=raw.decode('utf-16-le' if b'\x00' in raw else 'utf-8',errors='replace')
+        if before['status']!='PASS' and 'Windows Subsystem for Linux is not installed' in message:
+            report['setup_choice']='Missing WSL: normal install without a distribution'
+            command=[executable,'--install','--no-distribution','--web-download']
+        else:
+            report['setup_choice']='Existing WSL: normal update'
+            command=[executable,'--update','--web-download']
+        updated=operation('normal-setup',command,180)
         if updated['status']!='PASS':
-            raise RuntimeError('Normal WSL update failed or timed out; no further setup or reboot attempted')
+            raise RuntimeError('Normal WSL setup failed or timed out; no further setup or reboot attempted')
         after=operation('version-after',[executable,'--version'],15)
         if after['status']!='PASS':
             raise RuntimeError('WSL version still unavailable after the bounded update')

@@ -37,6 +37,8 @@ def main():
     visuals_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_VISUALS_ONLY') == '1'
     editing_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_EDITING_ONLY') == '1'
     gestures_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_GESTURES_ONLY') == '1'
+    comparison_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_COMPARISON_ONLY') == '1'
+    upgrade_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_UPGRADE_ONLY') == '1'
     focused = visuals_only or editing_only or gestures_only
     candidate = None
     if args.candidate_identity:
@@ -119,6 +121,9 @@ def main():
 
     def native(directory, label):
         completed = []
+        if upgrade_only:
+            report['native_suites_not_run']='Focused installer replacement checks; native input suites remain separate'
+            save();return True
         if gestures_only:
             if not args.candidate_identity:
                 raise RuntimeError('Client gesture matrices require an exact candidate identity')
@@ -193,7 +198,7 @@ def main():
     def setup(label, package=installer):
         if args.client_gui:
             expected_setup=(installer_hash if package==installer else
-                            '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222')
+                            '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
             return bounded(label,[sys.executable,'-m','scripts.client_wizard_check','--executable',str(package),
                                   '--expected-sha',expected_setup,'--output',str(args.output/('wizard-'+label))],80)
         return bounded(label, [str(package), '/VERYSILENT', '/SUPPRESSMSGBOXES', '/SP-', '/NORESTART',
@@ -264,6 +269,32 @@ def main():
     try:
         if args.package != 'installer':
             payload(portable, 'Portable before launch', exact=True)
+            if comparison_only:
+                report['purpose']='Controlled same-VM frozen V1.3.4 HotkeyPatch versus V1.3.6 Glass/White comparison, not full acceptance'
+                baseline=args.downloads/'comparison-baseline/Mini Whiteboard'
+                expected_baseline='a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716'
+                check('Published HotkeyPatch baseline identity matches',digest(baseline/'Mini Whiteboard.exe')==expected_baseline)
+                check('Published HotkeyPatch baseline inventory matches',True,verify_manifest(baseline))
+                completed=[]
+                for background in ('light','busy'):
+                    for version,directory,sha,toolbar,theme in (
+                        ('v134',baseline,expected_baseline,False,'Glass'),
+                        ('v136-off',portable,exe_hash,False,'Glass'),
+                        ('v136-on',portable,exe_hash,True,'Glass'),
+                        ('v136-white',portable,exe_hash,True,'White')):
+                        label='comparison-'+background+'-'+version
+                        command=[sys.executable,'-m','scripts.packaged_drawing_check',
+                            '--executable',str(directory/'Mini Whiteboard.exe'),'--expected-sha',sha,
+                            '--output',str(args.output/label),'--visual-only','--comparison',
+                            '--theme',theme,'--background',background]
+                        if toolbar:command.append('--toolbar')
+                        code=bounded(label,command,60);completed.append(code==0)
+                        check(label+' capture completed',code==0,fatal=False)
+                payload(portable,'Portable after comparison',exact=True)
+                check('Baseline executable unchanged after comparison',digest(baseline/'Mini Whiteboard.exe')==expected_baseline)
+                check('All controlled comparison captures completed',all(completed))
+                report['result']='COMPARISON CAPTURED; inspect pixels and diagnostics before attributing a cause'
+                return
             quiet_launch(portable, 'Portable')
             native_passed = native(portable, 'portable')
             payload(portable, 'Portable after execution', exact=True)
@@ -289,10 +320,10 @@ def main():
         check('Fresh installation uninstalls normally', uninstall('fresh-uninstall') == 0)
         installed = False
 
-        predecessor = args.downloads / 'MiniWhiteboard-1.3.4-Setup.exe'
-        check('Predecessor hash matches the preserved original V1.3.4 installer', digest(predecessor) ==
-              '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222')
-        check('Original V1.3.4 installs before upgrade', setup('predecessor-install', predecessor) == 0)
+        predecessor = args.downloads / 'MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe'
+        check('Predecessor hash matches the published V1.3.4 HotkeyPatch installer', digest(predecessor) ==
+              '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b')
+        check('Published V1.3.4 HotkeyPatch installs before upgrade', setup('predecessor-install', predecessor) == 0)
         installed = True
 
         configuration = HotkeyConfig(Chord({'ctrl', 'alt'}, 'F8'), Chord({'ctrl', 'meta'}, 'F9'), defaults().hide)
@@ -306,7 +337,7 @@ def main():
         with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, APPROVAL_KEY, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.SetValueEx(handle, VALUE_NAME, 0, winreg.REG_BINARY, b'\x03' + b'\x00' * 11)
         approval = reg(APPROVAL_KEY, VALUE_NAME)
-        check('Upgrade from original V1.3.4 to the investigated package completes', setup('upgrade-install') == 0)
+        check('Upgrade from published V1.3.4 HotkeyPatch to the investigated package completes', setup('upgrade-install') == 0)
         settings.sync()
         check('Upgrade preserves custom hotkeys, appearance and disabled startup choice',
               settings.value('shortcuts/custom_windows') == configuration.to_json()

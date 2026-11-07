@@ -381,11 +381,26 @@ try {
     Save-Json @($inventory.files) 'extracted-files.json'
     if ($Exercise) {
         if ($Package -ne 'portable') {
-            $previousPath=Join-Path $downloadRoot 'MiniWhiteboard-1.3.4-Setup.exe'
-            Download 'https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-Setup.exe' $previousPath
+            $previousPath=Join-Path $downloadRoot 'MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe'
+            if (-not (Test-Path -LiteralPath $previousPath)) {
+                Download 'https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe' $previousPath
+            }
             $previous=Record-File $previousPath 'predecessor-download'
-            if ($previous.sha256 -ne '0139ba25a5b9cd119c52d42e30ca3052ebb49877d2eee14d45432eacc4506222') { throw 'Predecessor identity mismatch.' }
+            if ($previous.sha256 -ne '29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b') { throw 'Predecessor identity mismatch.' }
             Scan $previousPath 'predecessor'
+        }
+        if ($env:MINIWHITEBOARD_CLIENT_COMPARISON_ONLY -eq '1') {
+            if (-not $candidate -or $Package -ne 'portable') { throw 'Controlled comparison requires the frozen portable candidate.' }
+            $baselineZip=Join-Path $downloadRoot 'WinMiniWhiteboardV1.3.4-HotkeyPatch.zip'
+            Download 'https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/WinMiniWhiteboardV1.3.4-HotkeyPatch.zip' $baselineZip
+            $baseline=Record-File $baselineZip 'comparison-baseline-download'
+            if ($baseline.sha256 -ne '5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89') { throw 'Comparison baseline archive identity mismatch.' }
+            Scan $baselineZip 'comparison-baseline-archive'
+            $baselineRoot=Join-Path $downloadRoot 'comparison-baseline'
+            $null=Probe 'comparison-baseline-extract' { Expand-Archive -LiteralPath $task.archive -DestinationPath $task.destination; @{result='Reference-only programmatic extraction, not browser acceptance'} } @{archive=$baselineZip;destination=$baselineRoot} 60
+            Scan $baselineRoot 'comparison-baseline-extracted'
+            $baselineExe=Record-File (Join-Path $baselineRoot 'Mini Whiteboard\Mini Whiteboard.exe') 'comparison-baseline-executable'
+            if ($baselineExe.sha256 -ne 'a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716') { throw 'Comparison baseline executable identity mismatch.' }
         }
         # A scan can return zero after remediation. Check history before execution.
         $priorThreats=Probe 'threats-before-runtime' { @{detections=@(Get-MpThreatDetection | Select-Object ThreatID,Resources,ActionSuccess)} }

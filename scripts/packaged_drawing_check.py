@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 
 
 def main():
@@ -26,9 +27,12 @@ def main():
     parser.add_argument('--toolbar',action='store_true')
     parser.add_argument('--expected-sha',required=True)
     parser.add_argument('--visual-only',action='store_true')
+    parser.add_argument('--comparison',action='store_true',help='Capture identical empty artwork and native host state, without toolbar editing.')
     parser.add_argument('--theme',choices=('White','Glass'),default='White')
     parser.add_argument('--background',choices=('light','busy'),default='light')
     args = parser.parse_args()
+    if args.comparison and not args.visual_only:
+        parser.error('--comparison requires --visual-only')
     if args.visual_only:
         # Qt's GUI thread uses STA. Initialize the UIA client in that apartment
         # before Qt, instead of importing pywinauto during a live popup.
@@ -50,7 +54,7 @@ def main():
     n.enable_dpi_awareness()
     app = QGuiApplication([])
     args.output.mkdir(parents=True,exist_ok=True)
-    report = dict(exe_sha256=digest,toolbar=args.toolbar,scope='Unchanged frozen app; injected native mouse and GUI-thread WM_NULL probes, not physical pen/display latency',
+    report = dict(exe_sha256=digest,toolbar=args.toolbar,started_utc=datetime.now(timezone.utc).isoformat(),scope='Unchanged frozen app; injected native mouse and GUI-thread WM_NULL probes, not physical pen/display latency',
                   nominal_input_hz=240,checks=[],workloads=[],real_pen='NOT RUN')
     def save():
         (args.output/'checks.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
@@ -76,6 +80,14 @@ def main():
     background_process = None
     held = set()
     samples = []
+    def capture_state(label):
+        from scripts.client_glass_diagnostics import window_state
+        shot=n.capture_rect(n.monitors()[0].rect)
+        shot.save(str(args.output/(label+'.png')))
+        points=((280,300),(420,300),(650,450))
+        report.setdefault('observations',[]).append(dict(label=label,**window_state(process.pid),
+            points=points,pixels=[shot.pixelColor(x,y).getRgb() for x,y in points]))
+        save()
     def press(vk):
         key(vk,0,0,0);held.add(vk)
     def release(vk):
@@ -113,6 +125,7 @@ def main():
                 time.sleep(1)
                 preferences.setValue('appearance/theme',args.theme)
                 report.update(scope='Exact frozen executable visual/toolbar checks on an owned background',theme=args.theme,background=args.background)
+                n.capture_rect(n.monitors()[0].rect).save(str(args.output/'background-before-app.png'))
             preferences.setValue('tools/floating',args.toolbar);preferences.sync()
             process=subprocess.Popen([str(executable)],creationflags=subprocess.CREATE_NO_WINDOW)
             time.sleep(1.8)
@@ -125,6 +138,11 @@ def main():
             for vk in (0x57,0xA0,0x5B,0xA2):release(vk)
             wait_for('Native default shortcut creates a board',lambda:'Whiteboard 1' in windows())
             hwnd,rect=windows()['Whiteboard 1']
+            if args.comparison:
+                report['placement']=rect
+                capture_state('board-initial')
+                time.sleep(.8)
+                capture_state('board-settled')
             if args.toolbar:
                 wait_for('Frozen optional toolbar is visible',lambda:'Mini Whiteboard floating tools' in windows())
                 check('Toolbar show does not take foreground',foreground()==hwnd)
@@ -138,6 +156,11 @@ def main():
                 mouse(4,0,0,0,0);time.sleep(.1)
                 check('Frozen long-press release preserves options','Mini Whiteboard Draw options' in windows())
                 n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-options.png'))
+                if args.comparison:
+                    capture_state('board-toolbar-popover')
+                    time.sleep(.8)
+                    capture_state('board-toolbar-popover-settled')
+                    return
                 if args.visual_only:
                     options_hwnd=windows()['Mini Whiteboard Draw options'][0]
                     options=Desktop(backend='uia').window(handle=options_hwnd)
@@ -178,6 +201,8 @@ def main():
                 # Closing a tool window must never produce a second drawing event.
             else:
                 check('Default-off has no toolbar','Mini Whiteboard floating tools' not in windows())
+                if args.comparison:
+                    return
             tap(rect[0]+120,rect[1]+120)
             press(0x44);release(0x44)
             def monitor():
@@ -215,9 +240,13 @@ def main():
         for vk in tuple(held):release(vk)
         if process is not None and process.poll() is None:
             process.terminate();process.wait(10)
+        if args.comparison and process is not None:
+            from scripts.client_glass_diagnostics import window_state
+            report['after_owned_process_exit']=window_state(process.pid)
         if background_process is not None and background_process.poll() is None:
             background_process.terminate();background_process.wait(5)
         preferences.setValue('tools/floating',old) if had else preferences.remove('tools/floating')
+        report['ended_utc']=datetime.now(timezone.utc).isoformat()
         preferences.sync();save()
 
 
