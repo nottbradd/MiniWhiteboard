@@ -31,6 +31,9 @@ def main():
     parser.add_argument('--client-gui', action='store_true')
     parser.add_argument('--candidate-identity', type=Path)
     args = parser.parse_args()
+    if args.client_gui:
+        from scripts.client_environment_check import dismiss_wsl_prompt
+        dismiss_wsl_prompt()
     visuals_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_VISUALS_ONLY') == '1'
     editing_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_EDITING_ONLY') == '1'
     gestures_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_GESTURES_ONLY') == '1'

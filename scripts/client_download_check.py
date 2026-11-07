@@ -116,6 +116,8 @@ def main():
     browser = None
     try:
         save()
+        from scripts.client_environment_check import dismiss_wsl_prompt
+        dismiss_wsl_prompt()
         if args.operation == 'prepare':
             evidence('client-initial-desktop')
             # The hosted Windows 11 image can show a non-binding first-run
@@ -330,6 +332,16 @@ def main():
                     for c in w.descendants(control_type='MenuItem')
                     if c.is_visible() and c.window_text().lower().startswith('extract all')),None),
                     5,'Visible Extract all overflow item unavailable')
+            # The hosted image can open an unrelated WSL update terminal over
+            # Explorer after readiness. One recorded close is allowed; never
+            # click through that terminal or any other intervening window.
+            dismiss_wsl_prompt()
+            point=button.rectangle().mid_point()
+            user=ctypes.windll.user32
+            user.WindowFromPoint.argtypes=[wintypes.POINT];user.WindowFromPoint.restype=wintypes.HWND
+            user.GetAncestor.argtypes=[wintypes.HWND,wintypes.UINT];user.GetAncestor.restype=wintypes.HWND
+            if user.GetAncestor(user.WindowFromPoint(wintypes.POINT(point.x,point.y)),2)!=archive_window.handle:
+                raise RuntimeError('Explorer Extract all is occluded; no click sent')
             button.click_input()
             evidence('explorer-extract-invoked')
             wizard = desktop.window(title_re='Extract.*')

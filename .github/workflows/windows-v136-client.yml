@@ -47,7 +47,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git worktree add verification/client-source b4b9d276efb484512978449d216bfa4a253ef2d9
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          foreach ($name in @('client_download_check.py','client_wizard_check.py','defender_investigation.ps1','defender_runtime_check.py','floating_tools_check.py','package_check.py','packaged_drawing_check.py')) {
+          foreach ($name in @('client_download_check.py','client_environment_check.py','client_graphics_check.py','client_wizard_check.py','defender_investigation.ps1','defender_runtime_check.py','floating_tools_check.py','package_check.py','packaged_drawing_check.py')) {
             Copy-Item -LiteralPath "scripts/$name" -Destination verification/client-source/scripts
           }
       - name: Prepare the disposable client desktop
@@ -56,6 +56,14 @@ jobs:
       - name: Harmless preflight with active Defender
         timeout-minutes: 8
         run: ./scripts/defender_investigation.ps1 -ClientPreflight -BrowserExplorer -EvidenceName client-preflight -WorkBudgetMinutes 5
+      - name: Record graphics policy and source-only compositor diagnostics
+        timeout-minutes: 2
+        run: |
+          Push-Location verification/client-source
+          try {
+            python -m scripts.observed_process --directory ../client-desktop/graphics-operation --label graphics --timeout 55 -- python -m scripts.client_graphics_check --output ../client-desktop/graphics
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Pop-Location }
       - name: Preserve readiness before downloading application bytes
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -87,6 +95,7 @@ jobs:
           name: client-candidate-${{ matrix.package }}
           path: |
             verification/defender-investigation/
+            verification/client-desktop/
             !verification/defender-investigation/browser-*/edge-profile/
           if-no-files-found: warn
           retention-days: 90

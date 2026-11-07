@@ -29,6 +29,13 @@ def main():
     parser.add_argument('--theme',choices=('White','Glass'),default='White')
     parser.add_argument('--background',choices=('light','busy'),default='light')
     args = parser.parse_args()
+    if args.visual_only:
+        # Qt's GUI thread uses STA. Initialize the UIA client in that apartment
+        # before Qt, instead of importing pywinauto during a live popup.
+        sys.coinit_flags=2
+        from pywinauto import Desktop
+        from scripts.client_environment_check import dismiss_wsl_prompt
+        dismiss_wsl_prompt()
     executable = args.executable.resolve(strict=True)
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     if digest!=args.expected_sha:
@@ -132,7 +139,6 @@ def main():
                 check('Frozen long-press release preserves options','Mini Whiteboard Draw options' in windows())
                 n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-options.png'))
                 if args.visual_only:
-                    from pywinauto import Desktop
                     options_hwnd=windows()['Mini Whiteboard Draw options'][0]
                     options=Desktop(backend='uia').window(handle=options_hwnd)
                     options.child_window(title='White',control_type='Button').click_input()
@@ -197,6 +203,12 @@ def main():
             report['samples_ms']=samples
             check('Frozen app remains responsive after sustained injected drawing',process.poll() is None and ping(hwnd,0,0,0,2,2000,C.byref(C.c_size_t()))!=0)
             n.capture_rect(n.monitors()[0].rect).save(str(args.output/'frozen-drawing.png'))
+    except Exception as error:
+        from scripts.client_wizard_check import native_windows
+        report['failure']=dict(error=repr(error),foreground=foreground(),windows=native_windows())
+        save()
+        n.capture_rect(n.monitors()[0].rect).save(str(args.output/'failure.png'))
+        raise
     finally:
         stop.set()
         mouse(4,0,0,0,0)
