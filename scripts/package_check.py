@@ -23,8 +23,8 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v136-review01/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v136-review01/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v136-review02/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v136-review02/Mini Whiteboard/Mini Whiteboard.exe"))
     parser.add_argument('--extended', action='store_true', help='Additional client-VM GUI routes; requires pywinauto.')
     parser.add_argument('--expected-version', default=APP_VERSION,
                         help='Recorded package version when checking an older published baseline.')

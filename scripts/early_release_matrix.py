@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from datetime import datetime, timezone
 
 from scripts.observed_process import run
 
@@ -61,6 +62,13 @@ def cases_for(mode):
     return cases
 
 
+def case_group(mode, start=0, count=None):
+    cases = list(enumerate(cases_for(mode)))
+    if start < 0 or start >= len(cases) or (count is not None and (count < 1 or start+count > len(cases))):
+        raise ValueError('Case group must stay within the original matrix')
+    return cases[start:] if count is None else cases[start:start+count]
+
+
 def main():
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':
         raise SystemExit('Requires a disposable GitHub-hosted runner.')
@@ -68,6 +76,8 @@ def main():
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--candidate-identity',type=Path)
+    parser.add_argument('--case-start',type=int,default=0)
+    parser.add_argument('--case-count',type=int)
     parser.add_argument('--mode',choices=('probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full'),required=True)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
@@ -79,7 +89,24 @@ def main():
     if actual!=expected: raise RuntimeError('Executable differs from the fixed investigation identity')
     results=[]
     path=args.output/'matrix.json'
-    for index,case in enumerate(cases_for(args.mode)):
+    selected=case_group(args.mode,args.case_start,args.case_count)
+    state=dict(mode=args.mode,executable_sha256=actual,source_only=all(c.get('source') for _,c in selected),
+               unpublished_candidate=bool(args.candidate_identity),expected_indices=[i for i,_ in selected],
+               total_matrix_cases=len(cases_for(args.mode)),cases=results)
+    def checkpoint(phase, **detail):
+        state.update(phase=phase,utc=datetime.now(timezone.utc).isoformat(),**detail)
+        temporary=path.with_suffix('.tmp')
+        with temporary.open('w',encoding='utf-8') as stream:
+            stream.write(json.dumps(state,indent=2)+'\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+        with (args.output/'progress.jsonl').open('a',encoding='utf-8') as stream:
+            stream.write(json.dumps(dict(phase=phase,utc=state['utc'],**detail))+'\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+    checkpoint('before-execution')
+    for index,case in selected:
         case_path=args.output/f'case-{index:02}.json'
         case_path.write_text(json.dumps(case),encoding='utf-8')
         destination=args.output/f'case-{index:02}'
@@ -88,17 +115,18 @@ def main():
                  '--output',str(destination),'--profile',profile,'--trace-transition','--timing-case',str(case_path)]
         if profile=='default': command.append('--available-defaults')
         if case.get('source'): command.append('--source-diagnostic')
+        checkpoint('before-case',current_index=index,current_case=case,command=command)
         operation=run(command,args.output/'operations'/f'case-{index:02}',f'early-{index:02}',120)
         result_path=destination/'early-release.json'
         result=json.loads(result_path.read_text()) if result_path.is_file() else {'result':'INCOMPLETE: no case result'}
-        results.append({'case':case,'operation':operation,'result':result.get('result'),
+        results.append({'index':index,'case':case,'operation':operation,'result':result.get('result'),
                         'primary':result.get('primary'),'next':result.get('next'),'error':result.get('error')})
-        path.write_text(json.dumps({'mode':args.mode,'executable_sha256':actual,'source_only':all(r['case'].get('source') for r in results),
-                                    'unpublished_candidate':bool(args.candidate_identity),
-                                    'cases':results},indent=2)+'\n',encoding='utf-8')
+        checkpoint('after-case',current_index=index,operation_status=operation['status'])
         if operation['status'] in ('TIMED OUT','ERROR'):
             break  # No blind retries or further input after a lost process boundary.
-    return 0 if len(results)==len(cases_for(args.mode)) and all(r['result']=='PASS' for r in results) else 1
+    passed=len(results)==len(selected) and all(r['result']=='PASS' for r in results)
+    checkpoint('finished',result='PASS' if passed else 'INCOMPLETE OR FAILED')
+    return 0 if passed else 1
 
 
 if __name__=='__main__':

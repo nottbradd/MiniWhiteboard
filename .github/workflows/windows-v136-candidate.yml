@@ -32,23 +32,23 @@ jobs:
           python -m pip check
       - name: Build through the normal Windows scripts
         run: |
-          New-Item -ItemType Directory -Force verification/v136-review01 | Out-Null
-          & ./build.ps1 -Python (Get-Command python).Source -DistPath dist/windows-v136-review01 *> verification/v136-review01/candidate-build.txt
-          if ($LASTEXITCODE -ne 0) { Get-Content verification/v136-review01/candidate-build.txt -Tail 50; exit $LASTEXITCODE }
-          python -m scripts.package_release --distribution 'dist/windows-v136-review01/Mini Whiteboard' --archive build/candidates/v1.3.6/review-01/WinMiniWhiteboardV1.3.6.zip
+          New-Item -ItemType Directory -Force verification/v136-review02 | Out-Null
+          & ./build.ps1 -Python (Get-Command python).Source -DistPath dist/windows-v136-review02 *> verification/v136-review02/candidate-build.txt
+          if ($LASTEXITCODE -ne 0) { Get-Content verification/v136-review02/candidate-build.txt -Tail 50; exit $LASTEXITCODE }
+          python -m scripts.package_release --distribution 'dist/windows-v136-review02/Mini Whiteboard' --archive build/candidates/v1.3.6/review-02/WinMiniWhiteboardV1.3.6.zip
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.bootstrap_inno
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m scripts.build_installer --compiler verification/tools/innosetup-6.7.3/compiler/ISCC.exe --distribution 'dist/windows-v136-review01/Mini Whiteboard' --output build/candidates/v1.3.6/review-01
+          python -m scripts.build_installer --compiler verification/tools/innosetup-6.7.3/compiler/ISCC.exe --distribution 'dist/windows-v136-review02/Mini Whiteboard' --output build/candidates/v1.3.6/review-02
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m scripts.candidate_identity --directory build/candidates/v1.3.6/review-01 --distribution 'dist/windows-v136-review01/Mini Whiteboard'
+          python -m scripts.candidate_identity --directory build/candidates/v1.3.6/review-02 --distribution 'dist/windows-v136-review02/Mini Whiteboard'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Preserve the exact unpublished files before acceptance
         id: candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: unpublished-v136-${{ github.sha }}
-          path: build/candidates/v1.3.6/review-01/
+          path: build/candidates/v1.3.6/review-02/
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: candidate-build-verification
-          path: verification/v136-review01/
+          path: verification/v136-review02/
           if-no-files-found: warn
           retention-days: 90
 
@@ -82,24 +82,11 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           Remove-Item Env:QT_SCALE_FACTOR
-      - name: Same-machine baseline and candidate drawing measurements
-        timeout-minutes: 10
-        run: |
-          git fetch origin c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git worktree add verification/baseline c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/drawing_performance.py --source verification/baseline --rapid 20 --output verification/v136/baseline.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/drawing_performance.py --rapid 20 --output verification/v136/after.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/drawing_performance.py --rapid 20 --toolbar --output verification/v136/after-toolbar.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Preserve captures and partial measurements
+      - name: Preserve actual application captures
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: v136-tools-and-performance
+          name: v136-review02-tools
           path: verification/v136/
           if-no-files-found: warn
           retention-days: 90
@@ -109,7 +96,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        diagnostic: [standard, pending, motion, early-default-full, early-custom-full]
+        include:
+          - { id: standard, diagnostic: standard, start: 0, count: 0 }
+          - { id: pending, diagnostic: pending, start: 0, count: 0 }
+          - { id: motion, diagnostic: motion, start: 0, count: 0 }
+          - { id: default-full-00-02, diagnostic: early-default-full, start: 0, count: 3 }
+          - { id: default-full-03-05, diagnostic: early-default-full, start: 3, count: 3 }
+          - { id: default-full-06-08, diagnostic: early-default-full, start: 6, count: 3 }
+          - { id: default-full-09-11, diagnostic: early-default-full, start: 9, count: 3 }
+          - { id: default-full-12-14, diagnostic: early-default-full, start: 12, count: 3 }
+          - { id: custom-full-00-03, diagnostic: early-custom-full, start: 0, count: 4 }
+          - { id: custom-full-04-07, diagnostic: early-custom-full, start: 4, count: 4 }
+          - { id: custom-full-08-12, diagnostic: early-custom-full, start: 8, count: 5 }
     runs-on: windows-2025
     timeout-minutes: 35
     steps:
@@ -138,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         timeout-minutes: 2
         with:
-          name: candidate-pre-execution-${{ matrix.diagnostic }}
+          name: candidate-pre-execution-${{ matrix.id }}
           path: verification/defender-investigation/
           if-no-files-found: error
           retention-days: 90
@@ -146,16 +144,18 @@ jobs:
         timeout-minutes: 20
         env:
           DIAGNOSTIC: ${{ matrix.diagnostic }}
+          CASE_START: ${{ matrix.start }}
+          CASE_COUNT: ${{ matrix.count }}
         run: |
           $package=if ($env:DIAGNOSTIC -eq 'standard') { 'all' } else { 'portable' }
-          & ./scripts/defender_investigation.ps1 -Exercise -ReuseSamples -Package $package -Diagnostic $env:DIAGNOSTIC -CandidateIdentity candidate/candidate-identity.json -EvidenceName defender-runtime -WorkBudgetMinutes 17
+          & ./scripts/defender_investigation.ps1 -Exercise -ReuseSamples -Package $package -Diagnostic $env:DIAGNOSTIC -CaseStart $env:CASE_START -CaseCount $env:CASE_COUNT -CandidateIdentity candidate/candidate-identity.json -EvidenceName defender-runtime -WorkBudgetMinutes 17
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Preserve partial and completed results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         timeout-minutes: 3
         with:
-          name: candidate-result-${{ matrix.diagnostic }}
+          name: candidate-result-${{ matrix.id }}
           path: |
             verification/defender-investigation/
             verification/defender-runtime/

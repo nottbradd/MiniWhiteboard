@@ -92,8 +92,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 .\.venv\Scripts\python.exe -m scripts.package_release
 ```
 
-Output: `dist/windows-v136-review01/Mini Whiteboard/` and
-`build/candidates/v1.3.6/review-01/WinMiniWhiteboardV1.3.6.zip`. Keep the entire runtime folder. `scripts.payload_manifest` inventories it; the
+Output: `dist/windows-v136-review02/Mini Whiteboard/` and
+`build/candidates/v1.3.6/review-02/WinMiniWhiteboardV1.3.6.zip`. Keep the entire runtime folder. `scripts.payload_manifest` inventories it; the
 installer stages/verifies replacement, backs up overwritten files and cleans only
 trusted obsolete paths with matching hashes. The embedded V1.3.3 inventory comes
 from its preserved published ZIP. Keep the installer AppId and Mac bundle ID stable.
@@ -122,8 +122,8 @@ bash build_macos.sh
 .venv-macos/bin/python -m scripts.macos_package_release
 ```
 
-Output: `dist/macos-v136-review01/Mini Whiteboard.app` and
-`build/candidates/v1.3.6/review-01/MacMiniWhiteboardV1.3.6-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
+Output: `dist/macos-v136-review02/Mini Whiteboard.app` and
+`build/candidates/v1.3.6/review-02/MacMiniWhiteboardV1.3.6-Preview.zip`. The Mac download remains a preview. Transfer the ZIP without changing its bytes.
 
 The Mac build targets 14.0 and attempts Universal2. An arm64 retry is allowed
 only after a genuine dependency architecture mismatch on Apple Silicon. Validation

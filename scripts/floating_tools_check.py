@@ -21,9 +21,9 @@ def main():
     args = parser.parse_args()
     os.environ['QT_QPA_PLATFORM'] = 'windows' if args.native else 'offscreen'
     from PySide6.QtCore import QPoint, QPointF, QRect, Qt
-    from PySide6.QtGui import QColor, QImage, QPainter, QLinearGradient, QFontDatabase
+    from PySide6.QtGui import QColor, QImage, QPainter, QLinearGradient, QFontDatabase, QFont
     from PySide6.QtTest import QTest
-    from PySide6.QtWidgets import QApplication, QWidget
+    from PySide6.QtWidgets import QApplication, QWidget, QToolButton, QLabel
     from unittest.mock import patch
     from mini_whiteboard import APP_VERSION, windows, clipboard
     from mini_whiteboard.board import BoardWindow
@@ -142,6 +142,32 @@ def main():
         prefs.set_theme('White')
         QTest.qWait(150)
         capture('white-options')
+        title = next(w for w in manager.options.findChildren(QLabel) if w.text()=='Draw')
+        check('Compact options title uses semibold weight',title.font().weight()==QFont.Weight.DemiBold and title.font().pointSizeF()==11.5)
+        def white_button():
+            return next(b for b in manager.options.findChildren(QToolButton) if b.accessibleName()=='White')
+        white = white_button()
+        check('Unselected White has named 42px target',not white.isChecked() and white.width()==42 and white.height()==42 and white.toolTip()=='White')
+        unselected = white.grab().toImage()
+        dpr = unselected.devicePixelRatio()
+        centre = unselected.pixelColor(round(21*dpr),round(21*dpr))
+        outline = unselected.pixelColor(round(27*dpr),round(21*dpr))
+        check('White fill and visible outline survive rendering',centre.lightness()>245 and outline.lightness()<200,
+              {'fill':centre.name(),'outline':outline.name()})
+        QTest.mouseClick(white,Qt.MouseButton.LeftButton)
+        focus()
+        manager.open_options('Draw')
+        QTest.qWait(80)
+        white = white_button()
+        check('White selection updates shared colour and checked state',QColor(c.active_color)==QColor('white') and white.isChecked())
+        selected = white.grab().toImage()
+        check('White selected background differs visibly',selected.pixelColor(round(9*dpr),round(9*dpr)) != unselected.pixelColor(round(9*dpr),round(9*dpr)))
+        capture('white-options-selected')
+        prefs.set_theme('Glass')
+        QTest.qWait(100)
+        capture('glass-options-selected')
+        prefs.set_theme('White')
+        c.apply_color('#000000')
         manager.close_options(refocus=True)
         board.move(board.x(),work.top()-round(board.paper_rect().top()))
         focus()

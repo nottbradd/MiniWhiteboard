@@ -20,6 +20,7 @@ def interface_font(role='action'):
     """Interface weights never enter the shared document/editor font path."""
     from .shortcuts import ui_font_family
     size, weight = {'heading': (13.5, QFont.Weight.Bold),
+                    'compact_heading': (11.5, QFont.Weight.DemiBold),
                     'action': (11.5, QFont.Weight.Medium),
                     'support': (10.5, QFont.Weight.Normal)}[role]
     font = QFont(ui_font_family())

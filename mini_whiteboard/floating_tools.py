@@ -1,7 +1,7 @@
 """One optional, event-driven tool surface for the active board interaction group."""
 import weakref
-from PySide6.QtCore import QEvent, QObject, QPoint, QPointF, QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor
+from PySide6.QtCore import QEvent, QObject, QPoint, QPointF, QRect, QRectF, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QPainter, QPen
 from PySide6.QtWidgets import (QApplication, QColorDialog, QFrame, QGridLayout,
                               QLabel, QScrollArea, QToolButton, QVBoxLayout, QWidget)
 from .appearance import interface_font
@@ -108,6 +108,21 @@ class ToolPalette(ToolSurface):
             button.cancel_pointer()
 
 
+class ColourSwatch(QToolButton):
+    """Keep the colour independent of the button's checked/hover/focus frame."""
+    def __init__(self, color):
+        super().__init__()
+        self.color = QColor(color)
+
+    def paintEvent(self,event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setBrush(self.color)
+        painter.setPen(QPen(QColor('#7e8794'),1))
+        painter.drawEllipse(QRectF(self.width()/2-6,self.height()/2-6,12,12))
+
+
 class Options(ToolSurface):
     def __init__(self,manager,board,tool,work):
         super().__init__(manager,board)
@@ -119,7 +134,7 @@ class Options(ToolSurface):
         outer.setContentsMargins(8,8,8,8)
         outer.setSpacing(4)
         title = QLabel(tool)
-        title.setFont(interface_font('action'))
+        title.setFont(interface_font('compact_heading'))
         title.setStyleSheet('color:#202124;background:transparent;')
         outer.addWidget(title)
         scroll = QScrollArea()
@@ -177,8 +192,8 @@ class Options(ToolSurface):
         self.row += 1
 
     def button(self,text,fn,checked=False,enabled=True,color=None):
-        b = QToolButton()
-        b.setText('●' if color else text)
+        b = ColourSwatch(color) if color else QToolButton()
+        b.setText('' if color else text)
         b.setAccessibleName(text)
         b.setToolTip(text)
         b.setMinimumHeight(TARGET)
@@ -189,8 +204,7 @@ class Options(ToolSurface):
         b.setStyleSheet('QToolButton { color:#202124; background:transparent; border:1px solid transparent; border-radius:10px; padding:2px; }'
                         'QToolButton:checked { background:#b8eef3; border-color:#77d7e6; }'
                         'QToolButton:hover, QToolButton:focus { background:rgba(120,160,200,35); border-color:#8aa2b8; }'
-                        'QToolButton:disabled { color:#9b9da1; }'+
-                        (f'QToolButton {{ color:{color}; font-size:24px; }}' if color else ''))
+                        'QToolButton:disabled { color:#9b9da1; }')
         b.clicked.connect(lambda: self.manager.option_action(fn))
         return b
 

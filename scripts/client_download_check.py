@@ -215,6 +215,18 @@ def main():
             if args.destination.exists():
                 raise FileExistsError('Explorer extraction requires a fresh destination')
             subprocess.Popen([str(Path(os.environ['WINDIR'])/'explorer.exe'), str(args.path.resolve())])
+            archive_window = wait_for(lambda: next((w for w in desktop.windows(class_name='CabinetWClass')
+                if w.is_visible() and args.path.stem.lower() in w.window_text().lower()),None),
+                20,'Archive Explorer window unavailable')
+            # The earlier run invoked an offscreen overflow command and never
+            # opened a wizard. Maximize the owned Explorer and use its visible
+            # command instead; do not replace normal extraction with an API.
+            from ctypes import wintypes
+            ctypes.windll.user32.ShowWindowAsync.argtypes=[wintypes.HWND,ctypes.c_int]
+            ctypes.windll.user32.ShowWindowAsync(archive_window.handle,3)
+            activate_browser(archive_window)
+            time.sleep(1)
+            evidence('explorer-maximized')
 
             def extract_button():
                 for window in desktop.windows(class_name='CabinetWClass'):
@@ -231,9 +243,23 @@ def main():
                                       'enabled':button.is_enabled(),
                                       'rectangle':[rectangle.left,rectangle.top,rectangle.right,rectangle.bottom]}
             evidence('explorer-archive')
-            # Windows 11 puts this command in the overflow on narrower windows.
-            # Invoke the advertised UIA command rather than clicking an offscreen rectangle.
-            button.invoke()
+            outer=archive_window.rectangle()
+            if not (button.is_visible() and outer.left <= rectangle.left < rectangle.right <= outer.right
+                    and outer.top <= rectangle.top < rectangle.bottom <= outer.bottom):
+                # One bounded normal overflow-menu attempt, with evidence before
+                # input. An invisible command is not a successful invocation.
+                more=next((c for c in archive_window.descendants(control_type='Button')
+                           if c.is_visible() and c.window_text().lower() in ('see more','more')),None)
+                if more is None:
+                    raise RuntimeError('Extract all is outside the visible Explorer; no reachable overflow command')
+                more.click_input()
+                evidence('explorer-overflow')
+                button=wait_for(lambda: next((c for w in desktop.windows() if w.is_visible()
+                    for c in w.descendants(control_type='MenuItem')
+                    if c.is_visible() and c.window_text().lower().startswith('extract all')),None),
+                    5,'Visible Extract all overflow item unavailable')
+            button.click_input()
+            evidence('explorer-extract-invoked')
             wizard = desktop.window(title_re='Extract.*')
             wizard.wait('visible', timeout=15)
             edit = wizard.child_window(control_type='Edit', found_index=0)

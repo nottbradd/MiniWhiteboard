@@ -2,6 +2,7 @@
 param([switch]$Exercise, [ValidateSet('all','installer','portable')][string]$Package = 'all', [switch]$BrowserExplorer,
       [switch]$ClientPreflight,
       [string]$CandidateIdentity, [switch]$DrawingToolbar, [ValidateSet('baseline','after','tools')][string]$SampleSuffix,
+      [ValidateRange(0,100)][int]$CaseStart=0, [ValidateRange(0,100)][int]$CaseCount=0,
       [ValidateSet('standard','drawing','probe-smoke','reduce','source','notify','stale','pending','source-pending','motion','early-default-fresh','early-default-full','early-custom-fresh','early-custom-full')][string]$Diagnostic='standard',
       [switch]$ReuseSamples, [ValidateSet('defender-investigation','defender-runtime','client-preflight','drawing-baseline','drawing-after','drawing-tools')][string]$EvidenceName='defender-investigation',
       [ValidateRange(1,18)][int]$WorkBudgetMinutes=18)
@@ -366,6 +367,7 @@ try {
         }
         if ($BrowserExplorer) { $runtimeCommand+=@('--client-gui') }
         if ($CandidateIdentity -and $Diagnostic -ne 'drawing') { $runtimeCommand+=@('--candidate-identity',$CandidateIdentity) }
+        if ($CaseCount -gt 0) { $runtimeCommand+=@('--case-start',"$CaseStart",'--case-count',"$CaseCount") }
         $runtimeLimit=if ($Diagnostic -like '*-full') { 900 } else { 600 }
         $runtime=Invoke-Program "runtime-$Package" $runtimeCommand $runtimeLimit -AllowFailure
         $report.runtime_exit_code=$runtime.exit_code; $report.runtime_status=$runtime.status

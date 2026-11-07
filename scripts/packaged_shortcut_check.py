@@ -29,8 +29,8 @@ from mini_whiteboard.hotkey_config import defaults, compatibility, Chord, Hotkey
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--executable', type=Path,
-                        default=Path('dist/windows-v136-review01/Mini Whiteboard/Mini Whiteboard.exe'))
-    parser.add_argument('--output', type=Path, default=Path('verification/v136-review01/packaged-shortcuts'))
+                        default=Path('dist/windows-v136-review02/Mini Whiteboard/Mini Whiteboard.exe'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v136-review02/packaged-shortcuts'))
     parser.add_argument('--profile', choices=('compatibility', 'custom', 'default'), default='compatibility')
     parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')
@@ -82,15 +82,28 @@ def main():
     trace_unix_ns = time.time_ns()
     trace_label = 'startup'
     trace_active = False
+    persisted_trace = 0
+    last_trace_flush = time.monotonic()
     sample_timer = QTimer()
     sample_timer.setInterval(10)
     input_tag = 0x4D574442 if args.trace_transition else 0
     wait_observer = None
 
     def trace(kind, **detail):
+        nonlocal persisted_trace, last_trace_flush
         if args.trace_transition:
             trace_rows.append({'kind': kind, 'elapsed_ms': (time.perf_counter_ns()-trace_origin)/1e6,
                                'gesture': trace_label, **detail})
+            # Keep hook callbacks free of disk I/O. Durable snapshots every 200ms
+            # and each assertion retain the input sequence and last window state
+            # even when an outer watchdog has to stop a stalled case.
+            if kind == 'assertion' or (kind == 'snapshot' and time.monotonic()-last_trace_flush >= .2):
+                with (args.output/'transition-progress.jsonl').open('a',encoding='utf-8') as output:
+                    for row in trace_rows[persisted_trace:]:
+                        output.write(json.dumps(dict(origin_unix_ns=trace_unix_ns,**row))+'\n')
+                    output.flush()
+                persisted_trace=len(trace_rows)
+                last_trace_flush=time.monotonic()
 
     def save_trace():
         if args.trace_transition:
@@ -186,6 +199,7 @@ def main():
     def configure_trace(label):
         nonlocal trace_active, trace_label
         trace_active, trace_label = True, label
+        observe_transition('phase-start')
 
     sample_timer.timeout.connect(lambda: observe_transition('timer') if trace_active else None)
 
