@@ -109,7 +109,8 @@ def main():
         for module, suffix, extra in (
             ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults', '--trace-transition']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
-            ('scripts.package_check', 'editing', ['--extended'] if args.client_gui else []),
+            ('scripts.package_check', 'editing', ['--expected-version', candidate['version'] if candidate else '1.3.4']
+             + (['--extended'] if args.client_gui else [])),
         ):
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),

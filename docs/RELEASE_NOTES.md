@@ -1,106 +1,172 @@
 # Release notes
 
-## Windows security investigation — 5 November 2026
+## V1.3.6 candidate — unpublished
 
-**Unresolved; V1.3.5 is not released.** A user reported a Severe Defender quarantine
-of `Mini Whiteboard.exe` from the V1.3.4 HotkeyPatch portable download, and Setup
-blocking during Preparing to Install. The original threat name, detection time
-and affected download hash are unavailable. The reported school-device policy
-has not been confirmed as the cause. No evidence-supported application fix or
-false-positive determination has been established.
+- Optional **Settings → Show floating tools**, off by default. One compact
+  palette follows the active board, with 42 px targets, tap/hold options, colour,
+  undo/redo and a drag grip. It chooses above, below or inside placement.
+- Freehand previews retain one gesture-local incremental path instead of caching
+  each growing immutable stroke. Final artwork, smoothing, masks and history
+  retain the document representation. A same-environment comparison is in progress.
+- Based on the tested but unpublished V1.3.5 `c83104b` candidate as explicitly
+  approved. Neither release is published. Candidate package verification and
+  native UI captures are in progress; no clearance or release acceptance is implied.
+- Windows sign-in remains **NOT RUN (not tested)** under the existing waiver.
+  Real pen, physical mixed-DPI and Windows client browser/Explorer acceptance
+  remain **NOT RUN**. Mac remains **Universal2 Preview**, macOS 14+, ad-hoc signed
+  and not notarized. Interactive Mac, macOS 14 and Intel execution are **NOT RUN**.
 
-Fresh official installer and ZIP downloads match GitHub's asset hashes and the
-[published checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboardV1.3.4-HotkeyPatch-SHA256SUMS.txt).
-The EXE is `a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716`.
-Its frozen application modules match the recorded patch source. The intended
-runtime files and 18 dependency notices are present. All 58 DLL/PYD files match
-the original V1.3.4 package and have valid signatures; the application EXE and
-installer remain **unsigned**. The published Python 3.12.14 runtime differs from
-the earlier CI build's Python 3.12.10 runtime. That CI result does not accept the
-published EXE and does not identify a detection cause.
 
-Microsoft received the unchanged public EXE under submission
-[`ce562150-3eef-4354-9bd0-07e374d0747a`](https://www.microsoft.com/en-us/wdsi/submission/ce562150-3eef-4354-9bd0-07e374d0747a).
-Status: **In progress**; final determination: **Pending**. The current Cloud and
-Client detection fields show **No malware detected**, with no analyst explanation.
-This automated scan result is not a final determination or a confirmed false positive.
+## Windows investigation and unpublished V1.3.5 candidate — 5 November 2026
 
-The investigation uses separate disposable Windows VMs. Completed package runs
-used Server 2025 (build 26100), Defender platform 4.18.26100.4, engine 1.1.26100.4
-and intelligence 1.463.134.0 or 1.463.135.0. Antivirus, real-time, behaviour, IOAV,
-archive and cloud protection were active; the runner's broad exclusions were
-removed before downloads.
+**V1.3.5 is not released.** The reported V1.3.4 HotkeyPatch quarantine and Setup
+block have not been reproduced. The friend's original threat name, detection
+time and download hash are unavailable; school policy has not been established
+as the cause. A separate creation-gesture defect was reproduced and addressed
+in an unpublished candidate. This is not an identified antivirus fix.
 
-- **Installer:** the [completed original run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41987507856)
-  and [instrumented rerun](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42011689832)
-  passed fresh install, original V1.3.4 → HotkeyPatch upgrade, settings/startup-choice
-  preservation, running-app refusal, uninstall and 1,246 native checks. The rerun
-  also passed all 41 lifecycle/integrity checks, with no recorded detections or
-  disabled-protection events during 10:34:17–10:40:38 UTC. Two other installer
-  attempts exceeded their 30-minute job limit and supplied neither installer
-  artifacts nor retrievable job logs. Their stalled operation remains unknown;
-  those attempts are **INCOMPLETE**. Operation deadlines, progress logs and a
-  separately uploaded pre-execution checkpoint now preserve more diagnostic evidence.
-  A later VM skipped application execution after a detection and then stalled in
-  post-job cleanup, after uploading its evidence. The last retrieved log line is
-  `Cleaning up orphan processes`, after Git credential cleanup commands completed.
-  This establishes a separate CI cleanup stall, not the cause of the older timeouts.
-- **Portable:** the [diagnostic run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/41988838464)
-  passed scans, launch, all 1,246 native checks and file-integrity checks, with no
-  detections during 07:40:41–07:43:36 UTC. Other attempts failed native timing
-  assertions, most often the first Q preview after 438 passes. New traces record
-  accepted injected keys, stable external focus and a later visible preview.
-  In [two](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42005755059)
-  [follow-through runs](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42006254739),
-  previews observed after approximately 172 ms and 466 ms still completed on
-  release with one correctly positioned, focused board. The original 120 ms
-  assertions remain **FAIL**. The delay is narrowed down, but its application,
-  harness or environment cause is unresolved. Separate source callback timing
-  and Windows wait-chain observations did not establish the cause.
-  A [fresh-instance comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42010289247)
-  passed 438 capture checks with the first preview visible at approximately 33 ms;
-  the full W → Q sequence in the same VM failed at 120 ms and showed its preview
-  at approximately 315 ms. This suggests a dependency on the preceding sequence; the
-  isolated pass does not replace the failed full run.
-  A later full portable run also passed all 1,246 native checks with no detections
-  during 10:34:18–10:39:49 UTC; the intermittent failures remain unresolved.
-  The [final comparison](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42013013521)
-  reproduced the full-sequence delay at approximately 324 ms, while fresh capture
-  passed 438 checks and capture after one zero-size cancellation passed 442 checks
-  (first previews approximately 34 ms and 13 ms). A lone cancellation does not
-  reproduce the delay. The longer workload or accumulated state needs further
-  profiling before changing the application or assertion.
-- **Source regressions:** 322 passed, with two Mac-only skips (324 total), including
-  three new subprocess timeout/evidence-retention tests. Application code and
-  the published binaries are unchanged.
+Microsoft's existing [submission](https://www.microsoft.com/en-us/wdsi/submission/ce562150-3eef-4354-9bd0-07e374d0747a)
+for the unchanged official EXE showed **Final determination: Not malware** when
+checked at approximately **12:30 UTC on 5 November**. Its submission header still
+said **In progress**, with no analyst comments. Cloud and Client detection fields
+said **No malware detected**; the conflicting protection icons are recorded in
+the receipt. The earlier Pending observation is retained. This determination
+covers the submitted V1.3.4 hash, not the friend's unidentified file or V1.3.5.
+No duplicate submission or rescan was made.
 
-Several VMs recorded `Trojan:Win32/Gracing.I` against temporary `provjobd` processes
-observed before application execution, including a client attempt that never
-reached sample download. This is not an established detection of Mini Whiteboard
-or a reproduction of the reported quarantine. Neither the path nor the timing
-establishes that the detected process is harmless. Affected runs remain flagged;
-no threat was allowed or restored.
+### Published files and retained evidence
 
-Completed downloads used Invoke-WebRequest and extraction used Expand-Archive;
-origin markers were absent, and none were added or removed. Windows 11 ARM client
-attempts with x64 emulation reached the release page after resolving a first-run
-privacy-screen harness issue, then stopped on a browser foreground check. A later
-run exceeded its 24-minute test-step budget and was cancelled; both job-log
-downloads returned `BlobNotFound`, and no artifact was uploaded. Browser-download,
-Explorer-extraction and subsequent GUI acceptance remain **INCOMPLETE / UNVERIFIED**.
-The hosted image also shows a Test Mode watermark and is not clean retail-client
-acceptance. School-managed policy, interactive
-SmartScreen/Smart App Control and a clean PC without development tools remain
-**NOT RUN**. The remaining exact-package GUI checks
-for wrapping, selection/movement, Hide/Restore, minimize, tray menus and hotkey
-settings have no completed acceptance evidence in this investigation. Actual Windows sign-in
-remains **NOT RUN (not tested)** under the existing waiver. Mac remains unchanged
-**Universal2 Preview**, macOS 14+, with its existing interactive-testing limits.
-No replacement binary has been built; historical releases and assets are preserved.
-If Microsoft clears the unchanged file and no application defect is established,
-completed verification of V1.3.4 may be sufficient. A V1.3.5 build, if justified,
-requires separate acceptance of its exact installer and portable ZIP.
-See [security troubleshooting and acceptance requirements](TESTING.md#security-reports-and-release-acceptance).
+The official files still match the [published checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboardV1.3.4-HotkeyPatch-SHA256SUMS.txt).
+
+| V1.3.4 HotkeyPatch file | SHA-256 |
+|---|---|
+| Installer | `29770151f8df811e1f8890a93aaa201f2e666e05bb1310dcf086bbd7b73a460b` |
+| Portable ZIP | `5fa64240a14d49c5ec2cb1d2fd5ad2f370365474a3c5a165c9806516ac37dc89` |
+| Mini Whiteboard.exe | `a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716` |
+
+Its application modules match the recorded patch source. The 18 dependency
+notices are present; all 58 DLL/PYD files match the original V1.3.4 payload and
+have valid signatures. The application and installer remain **unsigned**.
+Published Python 3.12.14 differs from the earlier CI runtime, Python 3.12.10;
+that difference is not an established detection cause.
+
+Completed [installer and portable Server runs](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42011689832)
+retain their valid results: 41 installer lifecycle/integrity checks and 1,246
+native checks per package, with no recorded detections. They used programmatic
+downloads and extraction, not browser/Explorer handling. Fresh install, upgrade,
+settings/startup preservation, running-app refusal and uninstall were scripted
+silent operations, not acceptance of a normal installation wizard.
+
+Older installer timeouts with unavailable artifacts/logs remain **INCOMPLETE**;
+their blocked operation is unknown. A separate run stalled in post-job cleanup
+after uploading evidence; that does not explain the older timeouts. Some VMs
+recorded `Trojan:Win32/Gracing.I` against `provjobd` before application execution.
+Those detections remain flagged, neither attributed to Mini Whiteboard nor
+classified as harmless. No detected threat was allowed or restored.
+
+### Preview timing and early release
+
+The original 120 ms preview failures remain **FAIL**. No product requirement
+establishing 120 ms as a performance limit was found. Focused tests retain latency
+measurements and use a separate two-second functional deadline, four times the
+previously observed approximate half-second delay. Short holds are scheduled
+independently of preview visibility; actual visibility at release is recorded.
+
+- [Controlled reduction](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42021749864)
+  measured two fresh Q previews at 49.2/28.0 ms and previews after 1/4/16 completed
+  boards at 7.3–9.0 ms. Full-prefix samples were 311.3/7.2 ms.
+- [Source profiling](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42021754811)
+  located 481.8 ms inside `QSystemTrayIcon.showMessage` during the final zero-size
+  W cancellation. Q input arrived while that synchronous GUI-thread call was
+  still running; its preview appeared about 210.4 ms after injection. Source
+  instrumentation has overhead and does not accept the frozen executable.
+- [Frozen comparisons](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42023326695)
+  reproduced 276.6 ms after just one zero-size W cancellation; the other lone
+  cancellation sample was 7.3 ms. Removing the final zero-size cancellation from
+  the full prefix gave 6.8/6.3 ms. This supports the notification path as a cause;
+  it does not prove every historical delay had that cause or establish a leak.
+- The unchanged EXE [passed 23 short-timing cases](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42025055803)
+  covering W/Q, default/saved custom chords, each required key, left/right
+  variants, early Escape, repeats and the following gesture. Additional fresh
+  and full-prefix reports retain unresolved acceptance cases. The original
+  default full-prefix matrix stalled without runtime evidence and remains
+  **INCOMPLETE**, rather than being replaced by a later pass.
+- A [pointer-motion case](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42023330689)
+  reproduced a real defect: Q was released after 22.0 ms, before its 41.1 ms
+  preview, then the pointer moved without another key/click. The expected
+  360×220 capture became 520×280. The release handler read the later cursor
+  position after GUI work. The resulting oversized board also obscured part of
+  the next capture's reference area; that pixel failure is not a separate
+  established capture defect.
+
+The earlier clipboard assertion omitted the intentional two-pixel transparent
+export gutter. Retained-image comparison explains those failures without
+rewriting their reports: 14/15 default and 12/13 custom fresh pairs satisfy the
+functional/export checks; each remaining pair has an unresolved next gesture
+after zero-size cancellation. Native enumeration also exposed a normally closing
+preview race in the harness; it now records that disappearance, while retaining
+errors for a still-visible owned window.
+
+### Unpublished candidate
+
+The Windows candidate retains the native press location and the first observed
+release location through preview preparation. A gesture-scoped worker samples
+only configured creation keys/modifiers and Escape, with no keyboard hook or
+idle polling. Sampling is not a hard real-time guarantee. Already-released,
+unaccepted queued presses are rejected. Zero-area Windows cancellation is
+silent, avoiding its synchronous tray balloon; nonzero undersize warnings remain.
+Mac's input adapter and cancellation messages are unchanged.
+
+Source checks passed 338 tests with two Mac-only skips (340 total). Source native
+comparison passed fresh/full pointer-motion cases with exact geometry and pixels;
+22/23 short-timing cases passed, with the remaining case stopped by the identified
+closing-window observation race. These source results do not accept a binary.
+
+The [candidate workflow](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42027456459)
+built the installer and ZIP through the normal build scripts from
+`c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10`. Both packages use the same intended
+payload, whose 199 inventory entries and 18 dependency notices were verified.
+They are unsigned and unpublished. Completed candidate jobs passed the 23-case
+short-release matrix, 8 pointer-motion cases, 13 custom full-workload cases and
+57 installer/lifecycle checks, plus 1,246 native checks for each package. The
+default full-workload job was cancelled and remains **INCOMPLETE**. Hosted
+Server results do not satisfy the outstanding Windows client acceptance.
+
+| Candidate file | SHA-256 |
+|---|---|
+| MiniWhiteboard-1.3.5-Setup.exe | `feb86888cba25baae856b4a21ad1442870bae7ef92a3da80bc2fce6f87510038` |
+| WinMiniWhiteboardV1.3.5.zip | `35ba3b024073dfdb706c9c9cd13ab227a8aea25371a3d2c6352e4e6dfc20a7ab` |
+| Mini Whiteboard.exe | `79f85c9a9361a74ed769daf6467075d9057dd3b4fa9e6965f6463adc53733691` |
+
+### Windows client acceptance and publication hold
+
+The [harmless-file preflight](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42020633779)
+on Windows 11 ARM, under x64 emulation, passed desktop readiness and an actual
+Edge download. The 190-byte fixture retained `ZoneId=3` and its browser HostUrl.
+Explorer did not open the extraction wizard. One bounded extraction repair then
+stalled, leaving only its separately uploaded desktop checkpoint; its final
+runtime logs were unavailable. No long application checklist followed. This
+Test Mode image does not establish clean retail Windows x64 behaviour.
+
+| Required client route | Result |
+|---|---|
+| Installer: browser download, normal wizard, launch/upgrade/refusal/uninstall | **NOT RUN** after failed preflight |
+| Portable: browser download, Explorer extraction and full GUI checklist | **NOT RUN** after failed preflight |
+
+Completed focused Server runs use build 26100, Defender platform 4.18.26100.4,
+engine 1.1.26100.4 and intelligence 1.463.135.0, with required real-time,
+behaviour, IOAV, archive and cloud protection active and broad runner exclusions
+removed. This is not SmartScreen or Smart App Control acceptance. School policy,
+clean native x64 client use, physical mixed-DPI checks and remaining client GUI
+routes remain unverified. Actual Windows sign-in remains **NOT RUN (not tested)**
+under the existing waiver. Mac remains the unchanged **Universal2 Preview** for
+macOS 14+, ad-hoc signed and not notarized, with its existing testing limitations.
+
+Publication remains on hold for the incomplete default full-workload check, Windows client
+acceptance and completion of the applicable Microsoft review. The V1.3.4
+file-level determination does not clear the changed candidate hash. Existing
+releases, assets, tags and repository visibility are preserved. See
+[testing and security guidance](TESTING.md#security-reports-and-release-acceptance).
 
 ## V1.3.4
 

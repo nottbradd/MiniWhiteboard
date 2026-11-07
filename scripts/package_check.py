@@ -23,9 +23,11 @@ def main():
     windows.enable_dpi_awareness()
     app = QGuiApplication.instance() or QGuiApplication([])
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path('verification/v134-review01/package'))
-    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v134-review01/Mini Whiteboard/Mini Whiteboard.exe"))
+    parser.add_argument('--output',type=Path,default=Path('verification/v136-review01/package'))
+    parser.add_argument("--executable", type=Path, default=Path("dist/windows-v136-review01/Mini Whiteboard/Mini Whiteboard.exe"))
     parser.add_argument('--extended', action='store_true', help='Additional client-VM GUI routes; requires pywinauto.')
+    parser.add_argument('--expected-version', default=APP_VERSION,
+                        help='Recorded package version when checking an older published baseline.')
     args = parser.parse_args()
     if args.extended and (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
         parser.error('Extended GUI checks require a disposable hosted runner.')
@@ -50,12 +52,12 @@ def main():
         for entry in group:
             for table in getattr(entry, 'StringTable', ()):
                 version_strings.update(table.entries)
-    parts = tuple(int(part) for part in APP_VERSION.split('.'))
+    parts = tuple(int(part) for part in args.expected_version.split('.'))
     numeric = (parts + (0, 0, 0, 0))[:4]
     fixed = pe.VS_FIXEDFILEINFO[0]
-    check(f'Executable string and numeric metadata are Version {APP_VERSION}',
-          version_strings.get(b'ProductVersion') == APP_VERSION.encode()
-          and version_strings.get(b'FileVersion') == APP_VERSION.encode()
+    check(f'Executable string and numeric metadata are Version {args.expected_version}',
+          version_strings.get(b'ProductVersion') == args.expected_version.encode()
+          and version_strings.get(b'FileVersion') == args.expected_version.encode()
           and fixed.FileVersionMS == fixed.ProductVersionMS == (numeric[0] << 16 | numeric[1])
           and fixed.FileVersionLS == fixed.ProductVersionLS == (numeric[2] << 16 | numeric[3]),
           {key.decode(): value.decode() for key,value in version_strings.items()})

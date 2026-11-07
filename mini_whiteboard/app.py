@@ -28,6 +28,8 @@ class WhiteboardApplication:
         self.exiting = False
         self.hotkey_dialog = None
         self.preferences = preferences if preferences is not None else SnapPreferences(persist=self.platform.runtime.persist_preferences)
+        from .floating_tools import FloatingTools
+        self.floating_tools = FloatingTools(app,self.preferences)
         self.platform.shortcuts = ShortcutPolicy(self.platform.shortcuts.mac, self.preferences.shortcut_preset,
                                                  self.preferences.windows_hide,
                                                  self.preferences.hotkey_configuration(self.platform.shortcuts.mac))
@@ -57,6 +59,7 @@ class WhiteboardApplication:
         self.capture.captured.connect(self.create_screenshot_board)
         self.capture.message.connect(self.notify)
         self.capture.permission_required.connect(self.capture_permission_error)
+        self.capture.chrome_suspended.connect(self.floating_tools.set_capture_suspended)
         self.rebuild_menu()
         self.tray.show()
         try:
@@ -76,9 +79,12 @@ class WhiteboardApplication:
         self.placement.cancel()
         self.capture.cancel()
 
+        self.floating_tools.schedule()
+
     def watch_screen(self, screen):
         self.displays_changed()
         screen.geometryChanged.connect(self.displays_changed)
+        screen.availableGeometryChanged.connect(self.displays_changed)
         screen.logicalDotsPerInchChanged.connect(self.displays_changed)
 
     def hotkey_error(self, detail):
@@ -174,6 +180,7 @@ class WhiteboardApplication:
         board.minimized.connect(self.remember_minimized)
         board.restored.connect(self.forget_hidden_board)
         self.boards.append(board)
+        self.floating_tools.add_board(board)
         return board
 
     def create_screenshot_board(self, rect, image):
@@ -285,6 +292,7 @@ class WhiteboardApplication:
         if self.exiting:
             return
         self.exiting = True
+        self.floating_tools.close()
         if self.hotkey_dialog is not None and not self.hotkey_dialog.closed:
             self.hotkey_dialog.reject()
         self.hidden_batch.clear()

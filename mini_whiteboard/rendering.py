@@ -173,7 +173,9 @@ def _local_ink(obj):
         if isinstance(obj, Shape) and obj.kind == "Arrow":
             ink = ink.united(arrowhead(obj))
     if obj.clip is not None:
-        ink = ink.intersected(clip_path(obj.clip))
+        boundary = clip_path(obj.clip)
+        if not boundary.contains(ink.boundingRect()):
+            ink = ink.intersected(boundary)
     return ink
 
 

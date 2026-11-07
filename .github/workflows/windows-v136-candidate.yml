@@ -1,0 +1,163 @@
+name: Unpublished Windows V1.3.6 candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/v1.3.6-floating-tools]
+    paths: [.github/workflows/windows-v136-candidate.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    outputs:
+      artifact: ${{ steps.candidate.outputs.artifact-id }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install normal build dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip check
+      - name: Build through the normal Windows scripts
+        run: |
+          New-Item -ItemType Directory -Force verification/v136-review01 | Out-Null
+          & ./build.ps1 -Python (Get-Command python).Source -DistPath dist/windows-v136-review01 *> verification/v136-review01/candidate-build.txt
+          if ($LASTEXITCODE -ne 0) { Get-Content verification/v136-review01/candidate-build.txt -Tail 50; exit $LASTEXITCODE }
+          python -m scripts.package_release --distribution 'dist/windows-v136-review01/Mini Whiteboard' --archive build/candidates/v1.3.6/review-01/WinMiniWhiteboardV1.3.6.zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.bootstrap_inno
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.build_installer --compiler verification/tools/innosetup-6.7.3/compiler/ISCC.exe --distribution 'dist/windows-v136-review01/Mini Whiteboard' --output build/candidates/v1.3.6/review-01
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.candidate_identity --directory build/candidates/v1.3.6/review-01 --distribution 'dist/windows-v136-review01/Mini Whiteboard'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve the exact unpublished files before acceptance
+        id: candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: unpublished-v136-${{ github.sha }}
+          path: build/candidates/v1.3.6/review-01/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Preserve build checks
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-build-verification
+          path: verification/v136-review01/
+          if-no-files-found: warn
+          retention-days: 90
+
+  tools:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install diagnostics
+        run: python -m pip install -r requirements-dev.txt
+      - name: Native implemented UI captures and pen-target checks
+        timeout-minutes: 5
+        run: |
+          foreach ($scale in @('1','1.25','1.5','1.75','2')) {
+            $env:QT_SCALE_FACTOR=$scale
+            python -m scripts.floating_tools_check --native --output "verification/v136/tools-$scale"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Remove-Item Env:QT_SCALE_FACTOR
+      - name: Same-machine baseline and candidate drawing measurements
+        timeout-minutes: 10
+        run: |
+          git fetch origin c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git worktree add verification/baseline c83104b8267bae1ad0ebb1fcc20c1e7dabecaf10
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/drawing_performance.py --source verification/baseline --rapid 20 --output verification/v136/baseline.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/drawing_performance.py --rapid 20 --output verification/v136/after.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/drawing_performance.py --rapid 20 --toolbar --output verification/v136/after-toolbar.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve captures and partial measurements
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: v136-tools-and-performance
+          path: verification/v136/
+          if-no-files-found: warn
+          retention-days: 90
+
+  verify:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        diagnostic: [standard, pending, motion, early-default-full, early-custom-full]
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install diagnostic tools
+        run: |
+          python -m pip install -r requirements-dev.txt pywinauto==0.6.9
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact }}
+          path: candidate
+          merge-multiple: true
+      - name: Establish protection and scan the exact candidate before execution
+        timeout-minutes: 8
+        run: |
+          & ./scripts/defender_investigation.ps1 -Package portable -CandidateIdentity candidate/candidate-identity.json -WorkBudgetMinutes 5
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload the pre-execution checkpoint
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        timeout-minutes: 2
+        with:
+          name: candidate-pre-execution-${{ matrix.diagnostic }}
+          path: verification/defender-investigation/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Exercise the frozen candidate with protection enabled
+        timeout-minutes: 20
+        env:
+          DIAGNOSTIC: ${{ matrix.diagnostic }}
+        run: |
+          $package=if ($env:DIAGNOSTIC -eq 'standard') { 'all' } else { 'portable' }
+          & ./scripts/defender_investigation.ps1 -Exercise -ReuseSamples -Package $package -Diagnostic $env:DIAGNOSTIC -CandidateIdentity candidate/candidate-identity.json -EvidenceName defender-runtime -WorkBudgetMinutes 17
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve partial and completed results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        timeout-minutes: 3
+        with:
+          name: candidate-result-${{ matrix.diagnostic }}
+          path: |
+            verification/defender-investigation/
+            verification/defender-runtime/
+          if-no-files-found: warn
+          retention-days: 90

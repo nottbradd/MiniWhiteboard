@@ -1,5 +1,33 @@
 # Testing and troubleshooting
 
+## V1.3.6 floating tools and drawing
+
+Run `python -m unittest tests.test_floating_tools tests.test_live_stroke` for
+settings, placement, pointer state, lifecycle, text completion and exact live/
+committed geometry and raster regressions. `scripts.floating_tools_check`
+captures implemented widgets; `--native` runs only on the isolated Windows builder.
+Qt scale overrides check layout and logical target sizes, not physical displays.
+
+Real-pen checklist: enable Show floating tools, tap each tool, hold for options,
+drag the grip, change boards, finish text then draw, and repeat at
+100/125/150/175/200%. Check barrel-button/right-click, touch, movement cancellation
+and duplicate input. Check above/below/inside placement at taskbars and negative
+origins, Hide/Restore, external focus, screenshots and closure. **NOT RUN** without
+suitable hardware.
+
+`scripts/drawing_performance.py --source CHECKOUT --rapid 20 --output REPORT.json`
+uses the same synthetic workload against either checkout. Run sequentially in
+fresh processes; add `--toolbar` for V1.3.6. Reports contain samples, mean, p50,
+p95, maxima, CPU time, working set, paint and release cost. Input is an unpaced
+backlog with a paint opportunity every four samples (240/60 Hz equivalent), not
+hardware latency or FPS. Profiling adds overhead: compare unprofiled runs.
+
+Use 16.7 ms as a diagnostic 60 Hz processing budget and 100 ms as a noticeable
+stall threshold, not a functional assertion or guarantee. Record longer stalls;
+never reduce input or skip endpoints to obtain a pass. Native frozen observations
+and Windows package/Defender acceptance remain separate. V1.3.4 Microsoft analysis
+does not cover a new executable. Record installer, ZIP and EXE hashes per run.
+
 Use the packaged release for acceptance checks. Record the app version/source
 revision, OS, architecture, display scales and whether input was native or
 Qt-delivered. Mark each unperformed check **NOT RUN**. Current results belong in

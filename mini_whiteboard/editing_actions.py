@@ -190,6 +190,7 @@ class EditingActions:
             return
         color = chosen.name()
         self.active_color = color
+        self.tools_changed.emit()
         self.recent_colors = [color, *(c for c in self.recent_colors if c != color)][:7]
         ids = self.selected_ids if identifiers is None else identifiers
         self.commit_edit(tuple(replace(o, color=color) if o.id in ids and not o.locked and not isinstance(o, ImageObject)

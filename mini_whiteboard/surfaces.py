@@ -73,8 +73,8 @@ class Surface:
         if isinstance(self, QMenu) and self.platform.shortcuts.mac:
             return
         if self.platform.name == 'macos':
-            self.desktop.configure_overlay(self, interactive=not bool(
-                self.windowFlags() & Qt.WindowType.WindowDoesNotAcceptFocus))
+            self.desktop.configure_overlay(self, interactive=getattr(self,'interactive_surface',not bool(
+                self.windowFlags() & Qt.WindowType.WindowDoesNotAcceptFocus)))
         self.refresh_appearance()
         if self.appearance_theme == 'Glass':
             self.emphasis.start()

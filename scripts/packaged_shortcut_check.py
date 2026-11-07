@@ -29,8 +29,8 @@ from mini_whiteboard.hotkey_config import defaults, compatibility, Chord, Hotkey
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--executable', type=Path,
-                        default=Path('dist/windows-v134-review01/Mini Whiteboard/Mini Whiteboard.exe'))
-    parser.add_argument('--output', type=Path, default=Path('verification/v134-review01/packaged-shortcuts'))
+                        default=Path('dist/windows-v136-review01/Mini Whiteboard/Mini Whiteboard.exe'))
+    parser.add_argument('--output', type=Path, default=Path('verification/v136-review01/packaged-shortcuts'))
     parser.add_argument('--profile', choices=('compatibility', 'custom', 'default'), default='compatibility')
     parser.add_argument('--capture-only', action='store_true', help='Exercise the available default Q separately when W conflicts.')
     parser.add_argument('--available-defaults', action='store_true', help='Probe and exercise every available default; report conflicts explicitly.')

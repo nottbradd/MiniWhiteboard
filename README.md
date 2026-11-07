@@ -4,18 +4,22 @@
 [![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml)
 
 Place a small desktop whiteboard by holding a shortcut, moving the pointer and
-releasing. Draw, type, paste images and annotate screenshots without a permanent
-toolbar. Launch opens only a Windows tray icon or a macOS menu-bar item.
+releasing. Draw, type, paste images and annotate screenshots with keyboard shortcuts or optional floating tools. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.4 hotkey patch is available.** Windows defaults are now **Ctrl+Win+Shift+W/Q**.
-The version remains 1.3.4. Windows is the stable release; Mac remains a **Universal2 Preview**.
+**V1.3.6 is an unpublished candidate.** It adds optional compact floating tools
+and reduces repeated geometry work during freehand drawing. V1.3.5 is also
+unpublished; this candidate uses its tested `c83104b` source with the user's
+approval. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
 
-**Windows security report under investigation (5 November 2026):** a Defender
-quarantine and installation block were reported for the V1.3.4 HotkeyPatch
-downloads. The original threat name and affected file hash are not yet available;
-the cause is unresolved. A replacement has not been released. See the
-[investigation results](docs/RELEASE_NOTES.md#windows-security-investigation--5-november-2026)
-and [security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
+Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
+(screenshot). Mac remains **Universal2 Preview**.
+
+The reported Windows quarantine remains unexplained. Microsoft's submitted
+V1.3.4 executable showed **Final determination: Not malware** on 5 November,
+while the submission header still said **In progress**. That observation does
+not cover new candidate files or the friend's unidentified copy. See the
+[investigation and candidate results](docs/RELEASE_NOTES.md) and
+[security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
@@ -133,6 +137,23 @@ actions while the configuration is edited. This example shows custom bindings.
 Screenshot content reaches the rounded board boundary. Small translucent controls
 and temporary feedback sit over the image; copied image content excludes them.
 The top edge still moves the window and its edges/corners resize it.
+
+## Optional floating tools (V1.3.6 candidate)
+
+Enable **tray/menu bar → Settings → Show floating tools**. This preference is
+remembered and starts off. One compact palette follows the active board; other
+applications keep their focus. Each board keeps its own tool, colour and sizes.
+
+Tap Draw, Eraser, Select, Shape or Text. Hold a tool, or right-click it, for its
+options. Colour and Undo/Redo are directly available. Drag the dotted grip to
+move the palette. It starts above the board, moves below when the top is full,
+and sits inside when neither outside position fits. Narrow screens wrap its
+42-pixel targets; making the board bigger does not enlarge the controls.
+
+The palette and options stay out of document exports and screenshot backgrounds.
+Selecting a tool finishes the current textbox; ordinary tool keys still type
+normally inside the text editor. Real stylus and physical mixed-DPI acceptance
+remain **NOT RUN**.
 
 ## Tools and shortcuts
 

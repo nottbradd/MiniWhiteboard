@@ -54,7 +54,9 @@ HELP_SECTIONS = (
      'Change global shortcuts or resolve conflicts in tray → Settings → Hotkeys.<br>'
      'Drag the empty top edge to move; edges/corners resize.<br>'
      '− hides to tray · × deletes this board · tray menu exits.<br>'
-     'Tray → Appearance: White (default) / Glass.'),
+     'Tray → Appearance: White (default) / Glass.<br>'
+     'Settings → Show floating tools: optional, off by default.<br>'
+     'Tap a tool; hold or right-click for options. Drag the grip to move.'),
     ('Draw & colour',
      '<b>D</b> Draw · 1–5: 2 / 4 / 6 / 9 / 14 px.<br>'
      '<b>S</b> Shapes · 1 Rectangle · 2 Rounded rectangle · 3 Ellipse · '

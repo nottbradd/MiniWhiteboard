@@ -12,6 +12,7 @@ class ScreenshotController(QObject):
     message = Signal(str)
     permission_required = Signal(str)
     delivery = Signal(object)
+    chrome_suspended = Signal(bool)
 
     def __init__(self, hotkeys, placement, parent=None):
         super().__init__(parent)
@@ -48,6 +49,7 @@ class ScreenshotController(QObject):
     def start(self):
         if not self.session.claim("capture"):
             return
+        self.chrome_suspended.emit(True)
         try:
             self.anchor = getattr(self.hotkeys, 'gesture_start_point', self.desktop.cursor_position)()
             self.hotkeys.enable_escape()
@@ -158,6 +160,7 @@ class ScreenshotController(QObject):
             self.service.cancel()
         except Exception as error:
             self.message.emit(f"Screenshot cleanup: {error}")
+        self.chrome_suspended.emit(False)
 
     def close_overlays(self):
         for overlay in self.overlays:

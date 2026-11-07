@@ -371,7 +371,10 @@ try {
         Scan $downloadRoot 'after-runtime'
     }
     $report.result='SCANS COMPLETED; runtime and browser-download acceptance NOT RUN'
-    if ($Exercise) { $report.result='ORIGINAL PACKAGE INVESTIGATION COMPLETED; browser-download and final release acceptance NOT RUN' }
+    if ($Exercise) {
+        $report.result=if ($candidate) { 'CANDIDATE SCRIPTED CHECKS COMPLETED; Windows client and final release acceptance NOT RUN' }
+                       else { 'ORIGINAL PACKAGE INVESTIGATION COMPLETED; browser-download and final release acceptance NOT RUN' }
+    }
     }
 } catch {
     $report.error=$_.Exception.Message
@@ -423,4 +426,4 @@ try {
     Save-Json $report 'report.json'
     Write-Output $report.result
 }
-if ($report.result -notlike 'SCANS COMPLETED*' -and $report.result -notlike 'ORIGINAL PACKAGE INVESTIGATION COMPLETED*' -and $report.result -notlike 'CLIENT PREFLIGHT COMPLETED*') { exit 1 }
+if ($report.result -notlike 'SCANS COMPLETED*' -and $report.result -notlike 'ORIGINAL PACKAGE INVESTIGATION COMPLETED*' -and $report.result -notlike 'CANDIDATE SCRIPTED CHECKS COMPLETED*' -and $report.result -notlike 'CLIENT PREFLIGHT COMPLETED*') { exit 1 }

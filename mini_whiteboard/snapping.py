@@ -12,6 +12,7 @@ from .document import ImageObject
 class SnapPreferences(QObject):
     changed = Signal()
     appearance_changed = Signal()
+    floating_tools_changed = Signal()
 
     def __init__(self, persist=False, settings=None):
         super().__init__()
@@ -24,6 +25,7 @@ class SnapPreferences(QObject):
         self.windows_hide = hide if hide in ('default', 'shift') else 'default'
         theme = self.settings.value('appearance/theme', 'White') if self.settings else 'White'
         self.theme = theme if theme in ('White', 'Glass') else 'White'
+        self.floating_tools = self.settings.value('tools/floating', False, type=bool) if self.settings else False
         self.custom_hotkeys = {}
         from .hotkey_config import HotkeyConfig
         for platform in ('windows', 'mac'):
@@ -33,6 +35,16 @@ class SnapPreferences(QObject):
                     self.custom_hotkeys[platform] = HotkeyConfig.from_json(raw)
                 except ValueError:
                     pass  # Invalid/external data must not prevent access to Settings.
+
+    def set_floating_tools(self, enabled):
+        enabled = bool(enabled)
+        if enabled == self.floating_tools:
+            return
+        self.floating_tools = enabled
+        if self.settings is not None:
+            self.settings.setValue('tools/floating',enabled)
+            self.settings.sync()
+        self.floating_tools_changed.emit()
 
     def hotkey_configuration(self, mac=False):
         from .hotkey_config import defaults

@@ -3,7 +3,7 @@ from dataclasses import replace
 import math
 import time
 
-from PySide6.QtCore import QEvent, QRectF, Qt
+from PySide6.QtCore import QEvent, QRectF, Qt, Signal
 from PySide6.QtGui import QCursor, QPainter, QRegion
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -21,6 +21,8 @@ from .snapping import SnapPreferences, SnapTargets
 
 
 class Canvas(EditingActions, QWidget):
+    tools_changed = Signal()
+
     def __init__(self, parent=None, preferences=None):
         super().__init__(parent)
         self.document = Document()
@@ -51,6 +53,7 @@ class Canvas(EditingActions, QWidget):
         self.preview = self.original = None
         self.start = self.last_sample = None
         self.points = []
+        self.live_stroke = None
         self.resize_handle = None
         self.dragged = False
         self.marquee_add = False
@@ -210,6 +213,7 @@ class Canvas(EditingActions, QWidget):
         self.selected_ids = {i for i in identifiers if (r := self.scene.record(i)) is None or not r.obj.locked}
         self.frame = rendering.selection_frame(self.selected_objects)
         self.sync_tool_overlay()
+        self.tools_changed.emit()
 
     def sync_selection(self, rebuild=True):
         self.sync_scene()
@@ -218,6 +222,7 @@ class Canvas(EditingActions, QWidget):
         if rebuild:
             self.frame = rendering.selection_frame(self.selected_objects)
         self.sync_tool_overlay()
+        self.tools_changed.emit()
 
     def show_feedback(self, text):
         self.feedback.show_message(text)
@@ -257,6 +262,7 @@ class Canvas(EditingActions, QWidget):
                         "Shape": Qt.CursorShape.CrossCursor, "Select": Qt.CursorShape.ArrowCursor}.get(self.tool, Qt.CursorShape.ArrowCursor))
 
     def set_tool(self, tool):
+        self.finish_editing()
         self.cancel_interaction()
         self.tool = tool
         if tool == "Eraser":
@@ -272,6 +278,7 @@ class Canvas(EditingActions, QWidget):
                       "Shape": SHAPES[self.shape_key]}.get(tool)
             self.show_feedback(tool + (" · " + suffix if suffix else ""))
         self.sync_tool_overlay()
+        self.tools_changed.emit()
 
     def set_number(self, number):
         self.cancel_interaction()
@@ -300,6 +307,14 @@ class Canvas(EditingActions, QWidget):
                 self.eraser_key = number
             self.show_eraser_feedback()
         self.sync_tool_overlay()
+        self.tools_changed.emit()
+
+    def undo_redo(self, redo=False):
+        self.finish_editing()
+        self.cancel_interaction()
+        (self.document.redo if redo else self.document.undo)()
+        self.sync_selection()
+        self.update()
 
     def keyPressEvent(self, event):
         # No ordinary tool QAction/QShortcut exists on any ancestor. The editor
@@ -323,13 +338,7 @@ class Canvas(EditingActions, QWidget):
             else:
                 self.set_selection(set())
         elif ctrl and key in (Qt.Key.Key_Z, Qt.Key.Key_Y):
-            self.cancel_interaction()
-            if key == Qt.Key.Key_Y or shift:
-                self.document.redo()
-            else:
-                self.document.undo()
-            self.sync_selection()
-            self.update()
+            self.undo_redo(key == Qt.Key.Key_Y or shift)
         elif ctrl and not mods & (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier) and key in (
                 Qt.Key.Key_C, Qt.Key.Key_X, Qt.Key.Key_V, Qt.Key.Key_D, Qt.Key.Key_A):
             {Qt.Key.Key_C:self.copy_selection, Qt.Key.Key_X:self.cut_selection,
@@ -470,7 +479,9 @@ class Canvas(EditingActions, QWidget):
                     cache.paint(painter, event.region())
                 else:
                     paint(obj, record.bounds, record.paint)
-        if self.preview is not None:
+        if self.live_stroke is not None:
+            paint(self.preview, self.live_stroke.bounds, self.live_stroke.paint_data())
+        elif self.preview is not None:
             paint(self.preview, rendering.bounds(self.preview))
 
     @staticmethod
@@ -541,6 +552,7 @@ class Canvas(EditingActions, QWidget):
             self.set_selection(set())
             self.points = [self.start]
             self.preview = Stroke(tuple(self.points), PEN_SIZES[self.pen_key], clip=self.clip_spec, color=self.active_color)
+            self.begin_live_stroke()
         elif self.tool == "Shape":
             self.start_gesture("shape")
             self.set_selection(set())
@@ -549,8 +561,13 @@ class Canvas(EditingActions, QWidget):
             self.start_gesture("erase")
             self.erase_segment(self.start, self.start)
         if self.preview is not None:
-            self.invalidate(rendering.bounds(self.preview))
+            self.invalidate(self.live_stroke.bounds if self.live_stroke else rendering.bounds(self.preview))
         self.sync_tool_overlay()
+
+    def begin_live_stroke(self):
+        from .live_stroke import LiveStroke
+        self.live_stroke = LiveStroke(self.preview)
+        self.points = self.live_stroke.points
 
     def erase_segment(self, a, b):
         sweep = rendering.swept_brush(a, b, self.eraser_diameter)
@@ -584,6 +601,7 @@ class Canvas(EditingActions, QWidget):
                 self.gesture = "draw"
                 self.points = [self.start]
                 self.preview = Stroke(tuple(self.points), PEN_SIZES[self.pen_key], clip=self.clip_spec, color=self.active_color)
+                self.begin_live_stroke()
             else:
                 self.gesture = "shape"
                 self.preview = Shape(SHAPES[self.shape_key], self.start, position, clip=self.clip_spec, color=self.active_color)
@@ -597,8 +615,7 @@ class Canvas(EditingActions, QWidget):
                 radius = self.preview.width/2
                 dirty |= self.dirty_region(QRectF(min(xs)-radius,min(ys)-radius,
                                                   max(xs)-min(xs)+2*radius,max(ys)-min(ys)+2*radius))
-                self.points.append(position)
-                self.preview = replace(self.preview, points=tuple(self.points))
+                self.live_stroke.append(position)
         elif self.gesture == "shape":
             self.preview = replace(self.preview, b=constrained_end(self.start, position, self.preview.kind, shift))
         elif self.gesture in ("move", "resize", "rotate") and self.dragged:
@@ -659,6 +676,7 @@ class Canvas(EditingActions, QWidget):
                             bool(event.modifiers() & Qt.KeyboardModifier.AltModifier))
         kind = self.gesture
         if kind == "draw":
+            self.preview = self.live_stroke.freeze()
             self.document.add(self.preview, "Draw stroke")
         elif kind == "shape" and math.dist(self.preview.a, self.preview.b) > 2:
             self.document.add(self.preview, "Create shape")
@@ -708,7 +726,7 @@ class Canvas(EditingActions, QWidget):
         self.guide_lines = ()
         dirty = QRegion()
         if self.preview is not None:
-            dirty |= self.dirty_region(rendering.bounds(self.preview))
+            dirty |= self.dirty_region(self.live_stroke.bounds if self.live_stroke else rendering.bounds(self.preview))
         if restore and self.gesture:
             self.selected_ids = set(self.selection_before)
             self.frame = self.gesture_frame
@@ -721,6 +739,7 @@ class Canvas(EditingActions, QWidget):
         self.gesture_sources = ()
         self.preview = self.original = None
         self.points = []
+        self.live_stroke = None
         self.resize_handle = None
         self.dragged = False
         self.invalidate(dirty)
