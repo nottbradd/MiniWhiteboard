@@ -143,6 +143,14 @@ def main():
                 capture_state('board-initial')
                 time.sleep(.8)
                 capture_state('board-settled')
+                check('Comparison text targets the owned board',foreground()==hwnd)
+                press(0x54);release(0x54);time.sleep(.08)
+                tap(rect[0]+120,rect[1]+110);time.sleep(.2)
+                for character in 'GLASS TEST':
+                    press(ord(character));release(ord(character));time.sleep(.04)
+                press(0x11);press(0x0D);release(0x0D);release(0x11)
+                time.sleep(.2);press(0x1B);release(0x1B);time.sleep(.2)
+                capture_state('board-text-readability')
             if args.toolbar:
                 wait_for('Frozen optional toolbar is visible',lambda:'Mini Whiteboard floating tools' in windows())
                 check('Toolbar show does not take foreground',foreground()==hwnd)
