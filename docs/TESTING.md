@@ -7,6 +7,10 @@ settings, placement, pointer state, lifecycle, text completion and exact live/
 committed geometry and raster regressions. `scripts.floating_tools_check`
 captures implemented widgets; `--native` runs only on the isolated Windows builder.
 Qt scale overrides check layout and logical target sizes, not physical displays.
+Check White with and without its selected background on both themes. Native
+captures must show the current presented state; a successful widget grab alone
+does not prove that the desktop has presented that frame. Retain stale frames
+and capture-readiness timing alongside corrected captures.
 
 Real-pen checklist: enable Show floating tools, tap each tool, hold for options,
 drag the grip, change boards, finish text then draw, and repeat at
@@ -37,6 +41,12 @@ stall threshold, not a functional assertion or guarantee. Record longer stalls;
 never reduce input or skip endpoints to obtain a pass. Native frozen observations
 and Windows package/Defender acceptance remain separate. V1.3.4 Microsoft analysis
 does not cover a new executable. Record installer, ZIP and EXE hashes per run.
+The frozen review-02 source is `b4b9d27`. Review-01 remains unchanged. Split
+`scripts.early_release_matrix --mode early-default-full` using `--case-start`
+and `--case-count` when needed; the 15 original cases each retain their full
+preceding workload. Checkpoint the selected indices before execution and keep
+per-case progress, input traces and window state even when the watchdog stops
+a child. Retry only an unresolved group, never substitute an earlier EXE pass.
 
 Use the packaged release for acceptance checks. Record the app version/source
 revision, OS, architecture, display scales and whether input was native or
@@ -90,9 +100,28 @@ Extract all dialog for the portable ZIP. It records screenshots, UI state and
 origin-marker presence without removing markers or bypassing warnings. Reference
 payloads obtained programmatically are labelled separately. Desktop readiness,
 download, extraction and execution are distinct stages: reaching one does not
-accept the others. Recent client attempts remain incomplete after desktop/focus
-issues and a run that returned no evidence artifact. This environment also cannot
-establish native x64, school-policy or clean-PC behaviour.
+accept the others. Retained attempts include desktop/focus failures and a run
+that returned no evidence artifact. This environment also cannot establish native
+x64, school-policy or clean-PC behaviour.
+
+The [V1.3.6 client workflow](../.github/workflows/windows-v136-client.yml) first
+downloads and extracts a harmless text fixture, then uploads that evidence before
+requesting application bytes. It downloads the frozen Actions artifact through
+visible Edge and extracts the exact installer and ZIP through Explorer. This
+unpublished-candidate route is distinct from a published release URL. Hashes and
+inherited download-origin markers identify each file; no marker is added or removed.
+Browser completion requires the normal **Open file** action, not only bytes on
+disk. Normal Shell launches and visible setup/uninstall wizards retain warning
+captures. The ordinary **Open File – Security Warning** may be accepted with
+**Run** only after identifying the exact requested file/hash, leaving **Always
+ask before opening this file** checked. This is recorded separately from
+SmartScreen, Defender or policy blocks, which are not bypassed. Glass captures use the exact frozen EXE over
+owned light and busy backgrounds. Record hosted ARM64 emulation and Test Mode
+limitations separately from native x64 retail-client acceptance. The one allowed
+WSL prompt repair closes only the identified unrelated update terminal in the
+disposable VM, without installation input or OS-setting changes. Recurrence or
+another obstruction stops the affected operation. Graphics diagnostics record
+policy and source rendering separately from frozen-binary acceptance.
 
 `packaged_shortcut_check --trace-transition` records only its tagged test input,
 foreground changes and the owned application's window/thread state. It retains

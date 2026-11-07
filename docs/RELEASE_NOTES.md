@@ -15,10 +15,171 @@
 - Includes the tested but unpublished V1.3.5 `c83104b` creation-gesture fix.
   Neither release is published. The public download links remain V1.3.4 HotkeyPatch.
 
-### Packages and verification
+### Review-02 candidate — 7 November 2026
 
-Candidate packages were built from `1ff34f4ee353b51c37b892731288d41365d96042`.
-Later changes are documentation and test tooling only. The Windows installer is
+Colour swatches now have a subtle outline, including unselected White. Tool-options
+titles use compact semibold text. Fill colours, 42 px targets, accessible names,
+hover/focus/selected states and the 375 × 46 logical toolbar remain intact.
+
+The frozen package source is `b4b9d276efb484512978449d216bfa4a253ef2d9`.
+Later commits change diagnostics and documentation only. Review-01 files and
+results remain preserved below and in their original artifacts.
+
+| Review-02 package | SHA-256 |
+|---|---|
+| MiniWhiteboard-1.3.6-Setup.exe — recommended Windows download | `0a504f7f76a878c4de548365abdfdbcdd4e07a8045d79c355393490affd0fef9` |
+| WinMiniWhiteboardV1.3.6.zip | `f7340c841f7913b90c649693891cf76712ed6e2405e9b75cca28e51e2b4e11ef` |
+| MacMiniWhiteboardV1.3.6-Preview.zip — Universal2 Preview | `b3a72be38dd78ec8ef39e454f65bf65492f182729965baca3f13196381e55f8e` |
+
+Windows EXE: `39ff0141dc7ddd27c8f6da668bf5ceea1dedc4474f7e24ab3affb93ef5d33f16`.
+[Windows packages and protected checks](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361831062)
+and [Mac build](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361845681)
+retain these exact bytes. The installer and portable ZIP use the same payload.
+Windows is unsigned; Mac is ad-hoc signed, not notarized, and targets macOS 14+.
+
+Windows: **355 tests passed, two Mac-only skips (357 total)**. Mac: **356 passed,
+one Windows-only skip (357 total)**. All 48 frozen Windows application modules
+match the source. CRC, payload inventory and notices passed: 18 Windows notices,
+16 Mac notices. Builders used Python 3.12.10/Windows Server 2025 and Python
+3.13.17/macOS 15.8.2 arm64, with PySide6 6.11.2 and PyInstaller 6.22.3. Mac
+Universal2, signature, ditto extraction and eight-second startup checks passed.
+
+The [screen-verified visual run](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42362147306)
+passed **105 assertions** across 100/125/150/175/200% Qt scale overrides. Actual
+captures show outlined unselected White, selected White, semibold headings,
+placement and long press. An earlier 100% capture retained the previous selection
+although widget checks passed; that image remains evidence. The focused follow-up
+checks presented screen pixels before accepting a capture. No application change
+was needed. These are hosted Server captures, not physical pen or client Glass
+acceptance; the grey Server appearance remains labelled accordingly.
+
+All **15 default full-workload cases passed** in five independently recorded
+groups. Each case retains its original complete preceding workload. **13 custom
+full-workload**, **23 pending-creation** and **eight release/pointer-motion** cases
+also passed. Coverage includes trigger/modifier release, cancellation, held repeats,
+post-release motion and the following gesture. Checkpoints and flushed journals
+retain case indices, input order, process/window observations and timestamps.
+The review-01 timeout remains incomplete; no old-executable pass substitutes for
+these review-02 results.
+
+The review-02 Server installer/portable run also passed **57 lifecycle checks**,
+**1,246 native assertions per copy**, and **880 additional portable capture
+assertions**. Installation, upgrade, refusal while running, uninstall, settings,
+startup registration and controlled launches passed. This used silent setup and
+direct process launches; browser/Shell/normal-wizard acceptance is recorded
+separately. Its protected observation period was 10:01:04–10:09:26 UTC on
+7 November 2026.
+
+The completed matrix runs used Defender **Normal/active** mode, platform
+**4.18.26100.4**, engine **1.1.26100.4**, intelligence **1.463.172.0**, real-time,
+behaviour, IOAV/downloaded-file, archive and cloud protection. Runner exclusions
+were removed before testing. Pre/post scans and history recorded **zero detection
+and zero protection-disable events**. Smart App Control was off in the runner;
+this is not a SmartScreen/Smart App Control acceptance result. Historical
+`provjobd` detections remain separately attributed and unresolved.
+
+#### Windows client observations
+
+The client is Windows 11 Enterprise **10.0.26200 ARM64** on a hosted Cobalt 100
+VM, running the x64 app under emulation, with development tools present and a
+Test Mode watermark. Defender was Normal/active, with platform **4.18.26100.4**,
+engine **1.1.26100.4**, intelligence **1.463.172.0**, real-time, behavior,
+IOAV/downloaded-file, archive and cloud protection active, no relevant exclusions,
+and tamper protection enabled. Smart App Control was off. Completed observation
+periods recorded zero detection and protection-disable events; this does not
+establish how a school policy or Smart App Control would handle the app.
+
+The [browser-completion follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364684159)
+passed Edge's completed **Open file** state, exact artifact/package hashes and
+normal Explorer extraction. The installer, ZIP and Explorer-extracted EXE retained
+`ZoneId=3`. Its observation period was 10:41:32–10:43:26 UTC on 7 November.
+This used the genuine browser download of the unpublished Actions container,
+not a public release URL. Earlier runs verified completed file bytes but did not
+wait for Edge's completion UI; their narrower evidence is preserved.
+
+The first [portable client attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42363183469)
+passed normal Shell launch, the 337-assertion custom-shortcut suite and before/after
+verification of all 199 payload files and dependency notices. The default 120 ms
+preview and isolated 150 ms capture assertions failed; later observations showed
+correct boards, but do not turn those assertions into passes. Another capture
+sequence lost foreground to an unrelated WSL update terminal. The text test passed
+37 checks before its wrapping failure; its clipboard-owning test process was not
+servicing Qt events during the paste. The initial Glass helper also lacked an
+import. These failures remain recorded separately from subsequent diagnostics.
+
+The [installer Shell diagnosis](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42363917013)
+identified **Open File – Security Warning / Unknown Publisher** as the original
+Shell stall. A [follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364577934)
+accepted ordinary **Run** for the verified installer while leaving **Always ask**
+checked, then reached the normal welcome page. The helper expected **Next >**;
+the actual accessible label was **Next**, so that attempt timed out without
+installing. No SmartScreen, Defender or organizational-policy block was bypassed.
+
+[Frozen-client Glass captures](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364046658)
+show the board, toolbar and open Draw options over light and busy backgrounds.
+Both show solid grey material, so **Glass appearance is not accepted**. Tool taps
+and long-press visibility passed seven assertions per background before the next
+UI Automation interaction failed. These images document the actual issue:
+[light](media/floating-tools-client-glass-light-v136.png) and
+[busy](media/floating-tools-client-glass-busy-v136.png).
+
+A [read-only environment probe](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365761656)
+reported Microsoft Hyper-V Video **10.0.26100.1150**, DWM composition enabled,
+EnableTransparency=1, AC power, no battery-saver flag and a false remote-session
+metric. It ran on a separate VM using the same hosted image, without application
+execution. These observations rule out an assumed transparency-off setting on
+that probe; they do not establish the cause of the captured grey material. No
+speculative application change or rebuild was made. This probe's Defender
+intelligence was **1.463.174.0**, separate from the completed package runs above.
+
+The bounded client repair closes only the observed WSL update terminal once.
+It reopened in the [visual](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365329423),
+[gesture](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365332049) and
+[installer](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365334881)
+follow-ups. Each stopped at harmless preflight before candidate download or
+execution; none supplies a new application pass. A stable interactive client is
+still required for the remaining acceptance and Glass diagnosis.
+
+The [first focused editing job](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364048831)
+exceeded its 21-minute client-step limit without a final runtime artifact. Its
+readiness checkpoint is retained. Cancellation was requested after that deadline;
+missing runtime and post-execution evidence remain **INCOMPLETE**, not a pass or
+an established application cause. Static review also found that this attempt had
+not copied the updated clipboard helper into its frozen-source test workspace;
+that helper-copy error was corrected before the next attempt.
+
+The [corrected editing attempt](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365327003)
+stalled during harmless preflight and exceeded its eight-minute step deadline.
+Candidate download and execution did not begin. Cancellation was requested.
+The earlier editing run did not respond to ordinary cancellation, so force
+cancellation was requested; final run status and any available artifacts are
+recorded in the local receipt. Neither incomplete run supplies a completed
+post-execution Defender observation. The unresolved client checks are held for a
+stable environment instead of repeatedly launching the full checklist.
+
+Microsoft's separate submission of the review-02 executable
+(`1804af5a-568e-4420-bcaa-ea1161006797`) had a **Completed** case header but
+file-level final determination **Pending** when checked at 10:47 UTC on
+7 November. Cloud and
+client fields said **No malware detected**. The analyst response reported no
+positive scan or telemetry indicators and said the submission would be closed
+without further action; actual detection diagnostics would be needed to continue
+an incorrect-detection investigation. The earlier 10:14 **Submitted / Pending** and 10:31 **In progress / Pending**
+observations are retained. The exact uploaded EXE hash is recorded above; the result
+page does not display it. The completed
+V1.3.4 **Not malware** determination applies only to that earlier submitted
+hash. V1.3.6 remains unpublished pending its own applicable final review and
+remaining client acceptance.
+
+Drawing measurements below remain attributed to review-01 and its baseline.
+The drawing implementation is unchanged in review-02; these are not new-package
+performance measurements. Stroke-completion and boundary-clipping costs remain
+part of the reported results.
+
+### Review-01 packages and verification (retained evidence)
+
+Review-01 packages were built from `1ff34f4ee353b51c37b892731288d41365d96042`.
+Their verification remains attributed to those bytes. The Windows installer is
 recommended; the portable ZIP and **Mac Universal2 Preview** remain available.
 Windows is unsigned. Mac targets macOS 14+, is ad-hoc signed and is not notarized.
 
@@ -47,7 +208,7 @@ dragging, long press, White/Glass and small boards. Tablet/barrel-button/touch
 regressions are synthetic. Glass appeared solid grey on the hosted Server VM;
 client compositor appearance with the new controls remains unverified.
 
-The final Windows installer/portable run completed **57 lifecycle checks**,
+The review-01 Windows installer/portable run completed **57 lifecycle checks**,
 including install, upgrade, uninstall, saved preferences, registration and
 controlled startup. Frozen native suites passed **1,246 assertions for each
 installed and portable copy**, plus 880 focused portable capture assertions.
@@ -56,7 +217,7 @@ custom full-prefix cases. These hosted Server checks had zero recorded Defender
 detection events and zero protection-disable events. Browser/Explorer client
 acceptance remains separate.
 
-The final **default full-prefix matrix is INCOMPLETE**. Its pre-execution
+The review-01 **default full-prefix matrix is INCOMPLETE**. Its pre-execution
 checkpoint passed, but the runtime job exceeded its configured 20-minute step
 limit without uploading a runtime report. Cancellation was requested at
 09:34 UTC on 7 November; GitHub marked it cancelled at 09:39 UTC. The job log
@@ -122,22 +283,29 @@ retained instead of folding them into a smoother drawing claim.
 ### Remaining acceptance limits
 
 - Automatic launch during an actual Windows sign-in: **NOT RUN (not tested)**,
-  under the existing waiver. Registration and controlled command launches are
-  covered by the scripted checks, not a real sign-in.
-- Real stylus, physical mixed-DPI/multiple monitors, Windows 10, and the normal
-  Windows client browser-download/Explorer-extraction/SmartScreen route: **NOT RUN**.
-  Hosted Server runs use artifact downloads and Expand-Archive without download
-  origin markers. They do not complete client acceptance or identify school policy.
-- New toolbar Glass appearance on a Windows client, physical pen latency and
-  friend-device reproduction: **NOT RUN**.
-- Interactive Mac toolbar/shortcuts/focus/permissions/capture/Spaces,
-  macOS 14 execution and Intel execution: **NOT RUN**. Mac remains **Universal2 Preview**.
-- Microsoft's V1.3.4 determination does not cover the new V1.3.6 EXE. Earlier
-  blocked V1.3.6 VMs and the first native drawing diagnostic retained a
-  `Trojan:Win32/Gracing.I` detection involving temporary `provjobd` processes,
-  before app execution. That is not established as a Mini Whiteboard detection
-  and has not been classified as harmless. The runs stopped without exclusions,
-  restoration or reduced protection; their evidence remains available.
+  under the existing waiver. Startup registration and controlled command launches
+  were tested; they are separate from a real sign-in.
+- Native retail Windows 11 x64, Windows 10 and a clean client without development
+  tools: **NOT RUN**. The client results above use Windows 11 Enterprise ARM64,
+  x64 emulation and a hosted image displaying Test Mode. Browser/Explorer stages
+  that completed are reported separately from the incomplete GUI acceptance.
+- Glass on that client was captured but showed unintended solid grey on light and
+  busy backgrounds: **NOT ACCEPTED**. The captures remain evidence of the issue.
+- Real stylus, physical mixed-DPI/multiple monitors, hardware pen/display latency
+  and the friend's device reproduction: **NOT RUN**.
+- Smart App Control was off on the test image. Its enabled-policy behavior and
+  school-managed restrictions: **NOT RUN**. The ordinary unsigned-publisher
+  confirmation is not a SmartScreen or Defender detection.
+- Interactive Mac toolbar/shortcuts/focus/permissions/capture/Spaces, macOS 14
+  execution and Intel execution: **NOT RUN**. Mac remains **Universal2 Preview**.
+- Microsoft's V1.3.6 case header is Completed, but the required file-level final
+  determination remains Pending. V1.3.4's Not malware result applies only to its
+  submitted executable.
+- Earlier blocked V1.3.6 VMs and the first native drawing diagnostic retained a
+  `Trojan:Win32/Gracing.I` detection involving temporary `provjobd` processes before
+  app execution. It is not established as a Mini Whiteboard detection and has not
+  been classified as harmless. No exclusion, restoration or reduced protection
+  was used to continue those runs.
 
 ## Windows investigation and unpublished V1.3.5 candidate — 5 November 2026
 
@@ -148,13 +316,17 @@ as the cause. A separate creation-gesture defect was reproduced and addressed
 in an unpublished candidate. This is not an identified antivirus fix.
 
 Microsoft's existing [submission](https://www.microsoft.com/en-us/wdsi/submission/ce562150-3eef-4354-9bd0-07e374d0747a)
-for the unchanged official EXE showed **Final determination: Not malware** when
-checked at approximately **12:30 UTC on 5 November**. Its submission header still
-said **In progress**, with no analyst comments. Cloud and Client detection fields
-said **No malware detected**; the conflicting protection icons are recorded in
-the receipt. The earlier Pending observation is retained. This determination
-covers the submitted V1.3.4 hash, not the friend's unidentified file or V1.3.5.
-No duplicate submission or rescan was made.
+was checked again at **09:50 UTC on 7 November 2026**. The header now says
+**Completed**, the file-level final determination is **Not malware**, and the
+analyst comment says the submitted file did not meet malware/PUA criteria and
+the detection was removed. Cloud and Client fields say **No malware detected**
+(definition 1.463.134.0). Conflicting malware icon/tooltips remain recorded.
+The displayed result does not expose a hash; the original upload receipt ties
+it to V1.3.4 EXE `a539339e2ee83c54be86e3e67115c5d1f0bcbca12605bb875ba241f5b79e2716`.
+This does not clear the friend's unidentified file or a different candidate.
+The 5 November **In progress / Not malware**, earlier **Pending**, and no-comment
+observations remain historical evidence. No rescan or duplicate submission of
+that old executable was requested.
 
 ### Published files and retained evidence
 

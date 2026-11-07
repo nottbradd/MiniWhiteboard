@@ -10,18 +10,21 @@ releasing. Draw, type, paste images and annotate screenshots with keyboard short
 and reduces repeated geometry work during freehand drawing. V1.3.5 is also
 unpublished; this candidate includes its tested `c83104b` creation-gesture fix. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
 
-[Review the unpublished Windows candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282383/artifacts/13568526984)
-and [Mac Universal2 Preview candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42358282242/artifacts/13569055693)
-in Actions (GitHub sign-in required; artifacts expire). These are review builds,
+[Review the unpublished Windows candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361831062/artifacts/13569539601)
+and [Mac Universal2 Preview candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361845681/artifacts/13570237411)
+in Actions (GitHub sign-in required; artifacts expire). These are frozen review-02 builds from `b4b9d27`,
 not a published V1.3.6 release.
 
 Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
 (screenshot). Mac remains **Universal2 Preview**.
 
-The reported Windows quarantine remains unexplained. Microsoft's submitted
-V1.3.4 executable showed **Final determination: Not malware** on 5 November,
-while the submission header still said **In progress**. That observation does
-not cover new candidate files or the friend's unidentified copy. See the
+The reported Windows quarantine remains unexplained. Microsoft's original
+V1.3.4 submission was **Completed / Not malware** when checked on 7 November,
+with an analyst comment saying the detection was removed. That determination
+covers only the submitted V1.3.4 executable. The separate V1.3.6 submission is
+**Completed** at the case level, but its file-level final determination is still
+**Pending**; client acceptance and final file analysis remain
+release requirements. See the
 [investigation and candidate results](docs/RELEASE_NOTES.md) and
 [security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
 
@@ -168,7 +171,12 @@ The pastel background is a separate demonstration window. The palette is
 <details>
 <summary>Placement, customisation and small-board examples</summary>
 
-![Tool options after a long press](docs/media/floating-tools-white-options-v136.png)
+![Tool options after a long press, including the outlined White swatch](docs/media/floating-tools-white-options-v136.png)
+
+![White selected with its cyan highlight](docs/media/floating-tools-white-options-selected-v136.png)
+
+Swatches retain their fill colour inside a subtle outline. The options title uses
+compact semibold text.
 
 ![Tools below a board at the top edge](docs/media/floating-tools-white-below-v136.png)
 
@@ -184,8 +192,14 @@ The pastel background is a separate demonstration window. The palette is
 
 These are captures of the implemented widgets. Scale checks used Qt overrides
 at 100/125/150/175/200%; physical mixed-DPI and real pen acceptance are **NOT RUN**.
-Glass appeared as solid grey on the hosted VM; translucent Glass on a Windows
-client with the new controls still needs visual acceptance.
+Glass appeared as solid grey on both the Server VM and the Windows 11 ARM
+client VM. The actual frozen-client captures below show the unresolved appearance;
+Glass visual acceptance has not passed. These are diagnostic captures, not the
+intended translucent result.
+
+![Frozen client Glass over a light background — unresolved grey appearance](docs/media/floating-tools-client-glass-light-v136.png)
+
+![Frozen client Glass over a patterned background — unresolved grey appearance](docs/media/floating-tools-client-glass-busy-v136.png)
 
 </details>
 
