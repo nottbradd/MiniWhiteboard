@@ -65,7 +65,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Complete normal WSL setup once on the disposable client
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: python -m scripts.client_environment_check --setup verification/client-desktop/wsl-setup
       - name: Preserve the setup result before browser interaction
         if: always()

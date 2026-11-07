@@ -42,6 +42,14 @@ def setup_wsl(output):
             report['setup_choice']='Existing WSL: normal update'
             command=[executable,'--update','--web-download']
         updated=operation('normal-setup',command,180)
+        if updated['status']=='FAILED':
+            raw=(output/'normal-setup/stderr.txt').read_bytes()
+            message=raw.decode('utf-16-le' if b'\x00' in raw else 'utf-8',errors='replace')
+            if 'Windows Subsystem for Linux is not installed' in message and updated['elapsed_seconds']<1:
+                # The image's stub rejects even its advertised --install path.
+                # Microsoft's official MSI is a normal documented setup route.
+                updated=operation('official-msi',['pwsh','-NoProfile','-NonInteractive','-File',
+                    str(Path(__file__).with_name('setup_client_wsl.ps1')),'-Output',str(output.resolve())],210)
         if updated['status']!='PASS':
             raise RuntimeError('Normal WSL setup failed or timed out; no further setup or reboot attempted')
         after=operation('version-after',[executable,'--version'],15)
