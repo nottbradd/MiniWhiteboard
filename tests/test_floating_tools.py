@@ -218,10 +218,10 @@ class FloatingToolsTests(QtCase):
             QPointingDevice.PointerType.Pen,QInputDevice.Capability.Position,1,2)
         pos = QPointF(20,20)
         global_pos = QPointF(button.mapToGlobal(pos.toPoint()))
-        def tablet(kind):
+        def tablet(kind,button_value=Qt.MouseButton.LeftButton):
             ev=QTabletEvent(kind,device,pos,global_pos,.5,0,0,0,0,0,
-                           Qt.KeyboardModifier.NoModifier,Qt.MouseButton.LeftButton,
-                           Qt.MouseButton.NoButton if kind==QEvent.Type.TabletRelease else Qt.MouseButton.LeftButton)
+                           Qt.KeyboardModifier.NoModifier,button_value,
+                           Qt.MouseButton.NoButton if kind==QEvent.Type.TabletRelease else button_value)
             APP.sendEvent(button,ev)
             self.assertTrue(ev.isAccepted())
         tablet(QEvent.Type.TabletPress)
@@ -238,6 +238,11 @@ class FloatingToolsTests(QtCase):
         tablet(QEvent.Type.TabletRelease)
         self.assertEqual(calls,['tap'])
         self.assertIsNotNone(self.manager.options)
+        self.manager.close_options()
+        tablet(QEvent.Type.TabletPress,Qt.MouseButton.RightButton)
+        self.assertIsNotNone(self.manager.options)
+        tablet(QEvent.Type.TabletRelease,Qt.MouseButton.RightButton)
+        self.assertEqual(calls,['tap'])
 
     def test_synthetic_touch_tap_and_cancel(self):
         from PySide6.QtGui import QPointingDevice,QInputDevice,QTouchEvent,QEventPoint

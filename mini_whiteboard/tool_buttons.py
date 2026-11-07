@@ -154,6 +154,9 @@ class ToolButton(QToolButton):
         self.suppress_synthetic.start(500)
         if event.type() == QEvent.Type.TabletPress:
             self.press(event.globalPosition(),'tablet')
+            if event.button() == Qt.MouseButton.RightButton and self.hold:
+                self.timer.stop()
+                self.long_press()
         elif event.type() == QEvent.Type.TabletMove and self.pointer == 'tablet':
             self.move_pointer(event.globalPosition())
         elif event.type() == QEvent.Type.TabletRelease and self.pointer == 'tablet':

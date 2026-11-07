@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/v1.3.6-floating-tools]
-    paths: [.github/workflows/windows-v136-candidate.yml]
+    paths: [.github/workflows/windows-v136-candidate.yml, 'mini_whiteboard/**']
 
 permissions:
   contents: read
