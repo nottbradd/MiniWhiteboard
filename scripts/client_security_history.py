@@ -57,9 +57,17 @@ def main():
                 save('history-entries',rows);return 0
             for name in ('Protection history','Virus & threat protection'):
                 if name in visited:continue
+                if 'Protection history' in visited:break
                 choices=[c for c in controls if c.window_text().strip()==name and
                          c.element_info.control_type in ('Button','Hyperlink','ListItem','TreeItem') and c.is_enabled()]
+                # On the protection page both navigation and a content link
+                # expose this name. Prefer the observed content hyperlink.
+                links=[c for c in choices if c.element_info.control_type=='Hyperlink']
+                if len(links)==1:choices=links
                 if len(choices)==1:
+                    report.setdefault('navigation',[]).append(dict(name=name,role=choices[0].element_info.control_type,
+                        utc=datetime.now(timezone.utc).isoformat()))
+                    save('before-navigation',rows)
                     choices[0].click_input();visited.add(name);break
             time.sleep(.25)
         raise TimeoutError('Protection history UI was not observed within its deadline')

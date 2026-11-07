@@ -49,7 +49,16 @@ def main():
     power=Power()
     if C.windll.kernel32.GetSystemPowerStatus(C.byref(power)):
         report['power']={name:getattr(power,name) for name,_ in Power._fields_}
-    errors=[];sys.excepthook=lambda kind,value,tb:errors.append(repr(value))
+    errors=[];original_hook=sys.excepthook
+    def record_exception(kind,value,tb):
+        errors.append(repr(value))
+        report['failure_utc']=datetime.now(timezone.utc).isoformat()
+        from scripts.client_wizard_check import native_windows
+        report['failure_windows']=native_windows()
+        n.capture_rect(n.monitors()[0].rect).save(str(args.output/'failure-desktop.png'))
+        save()
+        original_hook(kind,value,tb)
+    sys.excepthook=record_exception
     report['callback_errors']=errors
     save()
     with compatibility_preferences():
@@ -108,6 +117,7 @@ def main():
                 if board is not None: board.close();QTest.qWait(80)
                 if child is not None and child.poll() is None: child.terminate();child.wait(5)
     report['ended_utc']=datetime.now(timezone.utc).isoformat();save()
+    sys.excepthook=original_hook
 
 
 if __name__=='__main__':

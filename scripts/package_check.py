@@ -483,16 +483,22 @@ def main():
 
             def tray_menu():
                 tray = desktop.window(class_name='Shell_TrayWnd')
-                icons = [b for b in tray.descendants(control_type='Button') if b.window_text().startswith('Mini Whiteboard')]
+                def visible_icons():
+                    surfaces=[w for w in desktop.windows() if w.is_visible() and
+                              (w.class_name()=='Shell_TrayWnd' or w.window_text()=='System tray overflow window.')]
+                    return [b for w in surfaces for b in w.descendants(control_type='Button')
+                            if b.is_visible() and b.window_text().strip().startswith('Mini Whiteboard')]
+                # Explorer prefixes this icon's accessible label with a space.
+                # An already-open overflow can also retain a 'Hide' suffix.
+                icons = visible_icons()
                 if not icons:
                     overflow = [b for b in tray.descendants(control_type='Button')
-                                if b.window_text().strip().casefold() in ('show hidden icons', 'hidden icon menu')]
+                                if b.window_text().strip().casefold().startswith(('show hidden icons', 'hidden icon menu'))]
                     if not overflow:
                         raise RuntimeError('Tray overflow control not exposed; saved GUI evidence is required')
                     overflow[0].click_input()
                     time.sleep(.2)
-                    icons = [b for w in desktop.windows() if w.is_visible()
-                             for b in w.descendants(control_type='Button') if b.window_text().startswith('Mini Whiteboard')]
+                    icons = visible_icons()
                 if len(icons) != 1:
                     raise RuntimeError('Cannot uniquely locate the test application tray icon')
                 icons[0].click_input(button='right')
