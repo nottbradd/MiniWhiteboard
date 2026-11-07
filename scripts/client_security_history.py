@@ -44,7 +44,15 @@ def main():
             if 'No recent actions' in names:
                 report.update(result='PASS: Protection history reports No recent actions',no_recent_actions=True)
                 save('history-empty',rows);return 0
-            if 'Protection history' in visited and any(c.element_info.control_type=='Text' and c.window_text().strip()=='Protection history' for c in controls):
+            # The previous Virus & threat protection page contains a hyperlink
+            # and child Text named Protection history. Clicking it does not
+            # synchronously complete navigation. Do not accept that old page
+            # as the history page while its current-threat controls remain.
+            history_heading=any(c.element_info.control_type=='Text' and
+                c.window_text().strip()=='Protection history' and
+                c.parent().element_info.control_type!='Hyperlink' for c in controls)
+            if ('Protection history' in visited and history_heading and
+                    'Quick scan' not in names and 'Virus & threat protection status' not in names):
                 report.update(result='Protection history opened; inspect retained entries',no_recent_actions=False)
                 save('history-entries',rows);return 0
             for name in ('Protection history','Virus & threat protection'):
