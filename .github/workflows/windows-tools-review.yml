@@ -1,6 +1,9 @@
 name: Frozen V1.3.6 tools visual checks
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/v1.3.6-floating-tools]
+    paths: [.github/workflows/windows-tools-review.yml]
 permissions:
   contents: read
 jobs:
