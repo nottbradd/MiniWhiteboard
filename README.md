@@ -10,6 +10,10 @@ releasing. Draw, type, paste images and annotate screenshots with keyboard short
 and reduces repeated geometry work during freehand drawing. V1.3.5 is also
 unpublished; this candidate includes its tested `c83104b` creation-gesture fix. The downloads below remain the published **V1.3.4 HotkeyPatch** files.
 
+V1.3.6 is being verified for an **early tester prerelease**. Windows client
+acceptance, the Glass comparison and the candidate's final Microsoft determination
+are still open. V1.3.4 remains the default stable download.
+
 [Review the unpublished Windows candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361831062/artifacts/13569539601)
 and [Mac Universal2 Preview candidate](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42361845681/artifacts/13570237411)
 in Actions (GitHub sign-in required; artifacts expire). These are frozen review-02 builds from `b4b9d27`,

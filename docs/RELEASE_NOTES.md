@@ -2,6 +2,10 @@
 
 ## V1.3.6 candidate — unpublished
 
+The intended distribution is **Mini Whiteboard V1.3.6 — early tester release.**
+It will be a GitHub prerelease under a separate tag, with V1.3.4 retained as the
+default stable download. No V1.3.6 release or public download URL exists yet.
+
 - Optional **Settings → Show floating tools**, off by default and remembered.
   One 46 px-high palette follows the active board, with 20 px icons, 42 px tool
   targets, tap/hold options, colour, undo/redo and a drag grip. It chooses above,
@@ -132,13 +136,33 @@ that probe; they do not establish the cause of the captured grey material. No
 speculative application change or rebuild was made. This probe's Defender
 intelligence was **1.463.174.0**, separate from the completed package runs above.
 
-The bounded client repair closes only the observed WSL update terminal once.
+The earlier bounded client repair closed only the observed WSL update terminal once.
 It reopened in the [visual](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365329423),
 [gesture](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365332049) and
 [installer](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42365334881)
 follow-ups. Each stopped at harmless preflight before candidate download or
 execution; none supplies a new application pass. A stable interactive client is
 still required for the remaining acceptance and Glass diagnosis.
+
+Normal setup diagnostics then established that the hosted image's WSL component
+is missing. Both the [normal update](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42371540708)
+and [normal install without a distribution](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42371920563)
+exited immediately with the same missing-WSL message. Initial desktop and setup
+evidence was uploaded before later phases. Neither run downloaded or executed
+Mini Whiteboard. These are setup failures, not application results.
+
+The pending comparison uses the published HotkeyPatch executable and unchanged
+review-02 executable on one VM, with matching backgrounds, placement and settings,
+and tools off/on. Source-only API/graphics diagnostics are recorded separately.
+The native backdrop/composition modules are unchanged from V1.3.4. This narrows
+the code comparison but does not establish the cause of the grey pixels.
+
+The new normal-wizard upgrade check starts from **V1.3.4 HotkeyPatch**, including
+cancellation, locked-file refusal, rollback, settings/startup preservation and
+same-version reinstall. Its actual predecessor/candidate inventories each have
+the same 199 paths, so this particular upgrade has no obsolete paths to remove.
+These added client checks are prepared, **NOT RUN** until desktop readiness passes;
+the prior Server upgrade used the original V1.3.4 installer.
 
 The [first focused editing job](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42364048831)
 exceeded its 21-minute client-step limit without a final runtime artifact. Its
@@ -160,8 +184,9 @@ stable environment instead of repeatedly launching the full checklist.
 
 Microsoft's separate submission of the review-02 executable
 (`1804af5a-568e-4420-bcaa-ea1161006797`) had a **Completed** case header but
-file-level final determination **Pending** when checked at 10:47 UTC on
-7 November. Cloud and
+file-level final determination **Pending** when checked at 23:14 AEDT on
+7 November. A rescan of the same submitted sample was requested and acknowledged
+at 23:14:12 AEDT; no new file was uploaded. Cloud and
 client fields said **No malware detected**. The analyst response reported no
 positive scan or telemetry indicators and said the submission would be closed
 without further action; actual detection diagnostics would be needed to continue

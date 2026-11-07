@@ -439,6 +439,13 @@ def main():
                 check('Mid-copy fault was injected after executable replacement began',bool(late_lock))
                 check('Normal wizard reports and aborts the mid-copy failure',code==20)
                 old_preserved('Mid-copy rollback')
+                restored=subprocess.Popen([str(target/'Mini Whiteboard.exe')],creationflags=subprocess.CREATE_NO_WINDOW)
+                try:
+                    time.sleep(3)
+                    check('Restored published HotkeyPatch runtime starts after rollback',restored.poll() is None,
+                          'Controlled direct process startup; normal Shell acceptance is a separate check')
+                finally:
+                    if restored.poll() is None:restored.terminate();restored.wait(5)
         check('Upgrade from published V1.3.4 HotkeyPatch to the investigated package completes', setup('upgrade-install') == 0)
         settings.sync()
         check('Upgrade preserves custom hotkeys, appearance, floating tools and disabled startup choice',
@@ -449,7 +456,10 @@ def main():
         check('External startup disable remains effective',not login.state().enabled)
         check('Upgrade reuses the stable installation identity and directory',
               reg(install_key,'InstallLocation')==old_location and reg(install_key,'DisplayVersion')==(candidate['version'] if candidate else '1.3.4'))
-        check('Upgrade removes all unchanged obsolete inventoried files',all(not (target/name).exists() for name in obsolete),obsolete)
+        if obsolete:
+            check('Upgrade removes all unchanged obsolete inventoried files',all(not (target/name).exists() for name in obsolete),obsolete)
+        else:
+            report['obsolete_removal']='NOT APPLICABLE to these two actual inventories: both contain the same 199 paths. No removal was exercised.'
         check('Upgrade preserves the unrelated file',unrelated.read_text(encoding='utf-8')=='Preserve this unrelated tester file.')
         entries=[]
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Microsoft\Windows\CurrentVersion\Uninstall') as root:
@@ -473,6 +483,12 @@ def main():
         payload(target, 'Installed after upgrade')
         check('Same-version repeat install completes', setup('repeat-install') == 0)
         payload(target, 'Installed after repeat setup')
+        settings.sync()
+        check('Same-version reinstall preserves path, hotkeys, floating tools and external startup disable',
+              reg(install_key,'InstallLocation')==old_location
+              and settings.value('shortcuts/custom_windows')==configuration.to_json()
+              and settings.value('appearance/theme')=='Glass' and settings.value('tools/floating',type=bool)
+              and reg(RUN_KEY,VALUE_NAME)==login.command and reg(APPROVAL_KEY,VALUE_NAME)==approval)
         native_passed = native(target, 'installed')
         payload(target, 'Installed after native suites')
         check('Normal '+('wizard' if args.client_gui else 'silent')+' uninstall completes', uninstall('normal-uninstall') == 0)

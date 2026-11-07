@@ -50,6 +50,12 @@ have different Screen Recording permission identities.
 Shared tools and document logic belong outside native adapters. Portable tests
 inject fake services; native scripts use owned windows and processes.
 
+Frozen-candidate client checks run in disposable hosted VMs through
+`windows-v136-client.yml`. Diagnostic helpers may advance independently of the
+frozen application revision. Keep their commit and package hashes in the receipt,
+retain failed attempts, and distinguish source instrumentation from observations
+of the unchanged executable. See [client acceptance](docs/TESTING.md#security-reports-and-release-acceptance).
+
 Keep these invariants covered:
 
 - Creation is hold → move → release, with no result on press. Releasing any

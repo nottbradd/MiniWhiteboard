@@ -117,11 +117,23 @@ captures. The ordinary **Open File – Security Warning** may be accepted with
 ask before opening this file** checked. This is recorded separately from
 SmartScreen, Defender or policy blocks, which are not bypassed. Glass captures use the exact frozen EXE over
 owned light and busy backgrounds. Record hosted ARM64 emulation and Test Mode
-limitations separately from native x64 retail-client acceptance. The one allowed
-WSL prompt repair closes only the identified unrelated update terminal in the
-disposable VM, without installation input or OS-setting changes. Recurrence or
-another obstruction stops the affected operation. Graphics diagnostics record
-policy and source rendering separately from frozen-binary acceptance.
+limitations separately from native x64 retail-client acceptance. Normal WSL setup
+is permitted only in the owned disposable VM. Record the initial desktop before
+one bounded install/update attempt; the official Microsoft MSI is a fallback for
+the image stub that rejects its own install command. Verify its pinned hash and
+Microsoft signature. Do not install a Linux distribution or reboot. Save setup
+logs before the harmless preflight, which must complete browser download,
+Explorer extraction and a three-second stable-foreground observation. A stale
+WSL prompt may be closed once; recurrence or another obstruction stops the check.
+No security setting or download-origin marker is weakened to make a check pass.
+
+The `comparison` subset captures published V1.3.4 HotkeyPatch, V1.3.6 tools off,
+V1.3.6 tools on, and White controls over the same two owned backgrounds. Record
+all backdrop HWNDs, stacking, styles, visibility and lifetime. Source-only API
+results and independent D3D11 capability probes are separate from frozen-binary
+evidence; a successful capability probe does not identify WUC's internal device.
+The `upgrade` subset exercises the normal wizard against the exact HotkeyPatch
+predecessor, including cancellation, pre-copy failure and mid-copy rollback.
 
 `packaged_shortcut_check --trace-transition` records only its tagged test input,
 foreground changes and the owned application's window/thread state. It retains
@@ -129,7 +141,13 @@ the original assertion timing and observes a late preview separately, including
 release and result geometry. These observations cannot convert a failed assertion
 into a pass. Source callback profiling is a separate diagnostic and does not
 execute or accept the published EXE. Keep the failure until the cause is understood;
-do not increase a timeout solely to obtain a passing run.
+do not increase a timeout solely to obtain a passing run. On the emulated client,
+the opt-in `--functional-deadline-ms 2000` mode separates functional completion
+from the original 120 ms preview/150 ms result observations. Earlier traces showed
+late working previews and correct final geometry; each new case retains whether
+the original timing was met and its observed latency. Foreground loss, duplicate
+results, wrong geometry or missed completion still fail. Fixed-schedule early
+release tests remain separate and do not wait for a preview before releasing.
 
 A replacement release requires an evidence-supported resolution and tests of the
 exact frozen candidate files. Record Windows/Defender versions, active/passive
