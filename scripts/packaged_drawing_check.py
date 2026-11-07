@@ -132,7 +132,7 @@ def main():
                     '--background-child','--background-kind',args.background,'--output',str(args.output/'background')],
                     creationflags=subprocess.CREATE_NO_WINDOW)
                 from scripts.client_glass_diagnostics import wait_visible_window
-                report['background_readiness']=wait_visible_window(background_process.pid,app.processEvents)
+                report['background_readiness']=wait_visible_window(background_process.pid,app.processEvents,background_kind=args.background)
                 preferences.setValue('appearance/theme',args.theme)
                 report.update(scope='Exact frozen executable visual/toolbar checks on an owned background',theme=args.theme,background=args.background)
                 n.capture_rect(n.monitors()[0].rect).save(str(args.output/'background-before-app.png'))

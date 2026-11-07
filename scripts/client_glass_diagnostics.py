@@ -46,7 +46,7 @@ def window_state(pid):
     return dict(utc=datetime.now(timezone.utc).isoformat(),foreground=u.GetForegroundWindow(),windows=rows)
 
 
-def wait_visible_window(pid,pump,seconds=8):
+def wait_visible_window(pid,pump,seconds=8,background_kind=None):
     """Observe a real painted background instead of assuming a cold-start delay."""
     send=C.WinDLL('user32').SendMessageTimeoutW
     send.argtypes=[W.HWND,W.UINT,W.WPARAM,W.LPARAM,W.UINT,W.UINT,C.POINTER(C.c_size_t)]
@@ -57,6 +57,17 @@ def wait_visible_window(pid,pump,seconds=8):
         for window in state['windows']:
             result=C.c_size_t()
             if window['visible'] and send(window['hwnd'],0,0,0,2,100,C.byref(result)):
+                if background_kind is not None:
+                    from PySide6.QtGui import QGuiApplication
+                    from mini_whiteboard import windows as native
+                    from mini_whiteboard.geometry import Rect
+                    scale=QGuiApplication.instance().primaryScreen().devicePixelRatio()
+                    left,top,_,_=window['rectangle']
+                    # Left of the fixture's text: opaque fill, independent of
+                    # font rendering, gradients and the native window shadow.
+                    pixel=native.capture_rect(Rect(round(left+10*scale),round(top+100*scale),1,1)).pixelColor(0,0)
+                    expected=(245,247,251) if background_kind=='light' else (220,196,219)
+                    if pixel.getRgb()[:3]!=expected:continue
                 return dict(ready_ms=(time.monotonic()-started)*1000,state=state)
         time.sleep(.025)
     raise TimeoutError('Owned background did not become visible and responsive: '+repr(state))

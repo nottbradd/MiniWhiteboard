@@ -116,6 +116,11 @@ jobs:
             & ./scripts/defender_investigation.ps1 -Exercise:$exercise -BrowserExplorer -Package $env:CLIENT_PACKAGE -CandidateBrowserArtifact 13569539601 -CandidateArtifactSha ec84483c67576cbd38fe74512459e78f5536041d94689a423e4c16d35268b1ab -WorkBudgetMinutes 18
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } finally { Pop-Location }
+      - name: Observe Protection history after the application checks
+        if: always() && inputs.checks != 'preflight'
+        timeout-minutes: 2
+        shell: pwsh
+        run: python -m scripts.observed_process --directory verification/client-desktop/security-history-operation --label security-history --timeout 60 python -m scripts.client_security_history --output verification/client-desktop/security-history
       - name: Preserve warnings, security observations and partial GUI results
         if: always()
         timeout-minutes: 3

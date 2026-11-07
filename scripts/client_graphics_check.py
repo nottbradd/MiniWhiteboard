@@ -60,7 +60,7 @@ def main():
                 child=subprocess.Popen([sys.executable,'-m','scripts.floating_tools_check','--native',
                     '--background-child','--background-kind',background,'--output',str(args.output/background)],
                     creationflags=subprocess.CREATE_NO_WINDOW)
-                ready=wait_visible_window(child.pid,app.processEvents)
+                ready=wait_visible_window(child.pid,app.processEvents,background_kind=background)
                 screen=n.monitors()[0].rect
                 before=n.capture_rect(screen);before.save(str(args.output/(background+'-before.png')))
                 board=BoardWindow('Source-only Glass diagnosis',prefs)
