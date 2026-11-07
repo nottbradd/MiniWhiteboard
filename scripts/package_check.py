@@ -274,7 +274,13 @@ def main():
             finally:
                 if ctrl:
                     key(0x11, True)
-            time.sleep(.08)
+            # This process owns a Qt clipboard in the extended check. Service
+            # its delayed-render requests while the frozen editor pastes; a
+            # sleeping clipboard owner can block the other app's message loop.
+            deadline=time.monotonic()+.08
+            while time.monotonic()<deadline:
+                app.processEvents()
+                time.sleep(.005)
 
         def dark_content():
             # A proxy editor's antialiased blue-gray frame is lighter than ink.
@@ -395,8 +401,11 @@ def main():
             app.clipboard().setText('Mini Whiteboard keeps this sentence inside the textbox. '
                                     'A V E 12345 remain text while editing this second sentence.')
             app.processEvents()
+            windows.capture_rect(paper).save(str(args.output/'client-before-paste.png'))
             text_key(ord('V'), ctrl=True)
+            windows.capture_rect(paper).save(str(args.output/'client-after-paste.png'))
             text_key(0x0D, ctrl=True)
+            windows.capture_rect(paper).save(str(args.output/'client-after-text-finish.png'))
             text_key(0x1B)
 
             def ink_bounds():

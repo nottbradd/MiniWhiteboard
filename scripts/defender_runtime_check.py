@@ -32,6 +32,8 @@ def main():
     parser.add_argument('--candidate-identity', type=Path)
     args = parser.parse_args()
     visuals_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_VISUALS_ONLY') == '1'
+    editing_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_EDITING_ONLY') == '1'
+    focused = visuals_only or editing_only
     candidate = None
     if args.candidate_identity:
         from scripts.candidate_identity import read
@@ -51,7 +53,8 @@ def main():
         report['candidate_identity'] = candidate
     if args.client_gui:
         report['not_run'][0]='Published release URL acceptance; this candidate uses the genuine browser/Explorer artifact-container route recorded by the parent'
-        report['client_scope']='Focused frozen Glass/toolbar checks only' if visuals_only else 'Full client package acceptance'
+        report['client_scope']=('Focused frozen Glass/toolbar checks only' if visuals_only else
+                                'Focused editing/tray/control checks only' if editing_only else 'Full client package acceptance')
 
     def save():
         output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -111,7 +114,7 @@ def main():
 
     def native(directory, label):
         completed = []
-        if args.client_gui:
+        if args.client_gui and not editing_only:
             for background in ('light','busy'):
                 dest=args.output/(label+'-glass-'+background)
                 code=bounded(label+'-glass-'+background,[sys.executable,'-m','scripts.packaged_drawing_check',
@@ -127,6 +130,8 @@ def main():
             ('scripts.package_check', 'editing', ['--expected-version', candidate['version'] if candidate else '1.3.4']
              + (['--extended'] if args.client_gui else [])),
         ):
+            if editing_only and suffix != 'editing':
+                continue
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
                        '--output', str(destination), *extra]
@@ -224,7 +229,7 @@ def main():
             if args.client_gui:
                 ImageGrab.grab(all_screens=True).save(args.output/(label+'-shell-launched.png'))
             check(label + (': normal Shell launch stays running' if args.client_gui else ': packaged runtime stays running without Python on PATH'), child.poll() is None)
-            if directory == target and not visuals_only:
+            if directory == target and not focused:
                 refused_setup=setup('running-refusal');refused_uninstall=uninstall('uninstall-refusal')
                 check('Setup refuses a running installed application', refused_setup==10 if args.client_gui else refused_setup!=0)
                 check('Uninstall refuses a running application', refused_uninstall==10 if args.client_gui else refused_uninstall!=0)
@@ -255,7 +260,7 @@ def main():
         payload(target, 'Installed before launch')
         quiet_launch(target, 'Installed')
         payload(target, 'Installed after execution')
-        if visuals_only:
+        if focused:
             native_passed=native(target,'installed')
             payload(target,'Installed after focused visual checks')
             check('Focused visual-check installation uninstalls normally',uninstall('visual-uninstall')==0)

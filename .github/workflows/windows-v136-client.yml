@@ -8,10 +8,10 @@ on:
         default: all
         options: [all, installer, portable]
       checks:
-        description: Full acceptance or only unresolved Glass and toolbar checks
+        description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, visuals]
+        options: [all, visuals, editing]
 permissions:
   contents: read
   actions: read
@@ -27,6 +27,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PYTHONUNBUFFERED: '1'
       MINIWHITEBOARD_CLIENT_VISUALS_ONLY: ${{ inputs.checks == 'visuals' && '1' || '0' }}
+      MINIWHITEBOARD_CLIENT_EDITING_ONLY: ${{ inputs.checks == 'editing' && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
