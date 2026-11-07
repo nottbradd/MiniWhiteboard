@@ -259,6 +259,20 @@ def main():
                 import hashlib
                 report['sha256']=hashlib.sha256(args.path.read_bytes()).hexdigest()
                 if report['sha256']!=args.artifact_sha: raise ValueError('Browser artifact bytes differ')
+            # File bytes can finish before Edge completes its security/download
+            # bookkeeping. Wait for the normal completed-download action too;
+            # never close a still-downloading dialog or click Keep/Run Anyway.
+            def completed_download_ui():
+                labels=[c.window_text() for w in desktop.windows(process=browser.pid) if w.is_visible()
+                        for c in w.descendants() if c.is_visible()]
+                report['download_ui_labels']=labels
+                save()
+                return any(label.strip().lower()=='open file' for label in labels)
+            try:
+                wait_for(completed_download_ui,30,'Edge did not expose a completed Open file action; bytes alone are not browser acceptance')
+            finally:
+                evidence('download-completion-state')
+            report['completed_download_ui']=True
             report['method'] = 'Visible Microsoft Edge; real address-bar navigation'
             # Close only the isolated browser profile opened by this test.
             window.close()

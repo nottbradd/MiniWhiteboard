@@ -11,7 +11,7 @@ on:
         description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, visuals, editing, gestures]
+        options: [all, visuals, editing, gestures, download]
 permissions:
   contents: read
   actions: read
@@ -71,10 +71,12 @@ jobs:
         timeout-minutes: 21
         env:
           CLIENT_PACKAGE: ${{ matrix.package }}
+          CLIENT_CHECKS: ${{ inputs.checks }}
         run: |
           Push-Location verification/client-source
           try {
-            & ./scripts/defender_investigation.ps1 -Exercise -BrowserExplorer -Package $env:CLIENT_PACKAGE -CandidateBrowserArtifact 13569539601 -CandidateArtifactSha ec84483c67576cbd38fe74512459e78f5536041d94689a423e4c16d35268b1ab -WorkBudgetMinutes 18
+            $exercise = $env:CLIENT_CHECKS -ne 'download'
+            & ./scripts/defender_investigation.ps1 -Exercise:$exercise -BrowserExplorer -Package $env:CLIENT_PACKAGE -CandidateBrowserArtifact 13569539601 -CandidateArtifactSha ec84483c67576cbd38fe74512459e78f5536041d94689a423e4c16d35268b1ab -WorkBudgetMinutes 18
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } finally { Pop-Location }
       - name: Preserve warnings, security observations and partial GUI results
