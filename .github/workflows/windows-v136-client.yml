@@ -1,9 +1,17 @@
 name: Frozen V1.3.6 Windows client acceptance
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/v1.3.6-floating-tools]
-    paths: [.github/workflows/windows-v136-client.yml]
+    inputs:
+      package:
+        description: Frozen package to check
+        type: choice
+        default: all
+        options: [all, installer, portable]
+      checks:
+        description: Full acceptance or only unresolved Glass and toolbar checks
+        type: choice
+        default: all
+        options: [all, visuals]
 permissions:
   contents: read
   actions: read
@@ -12,12 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [installer, portable]
+        package: ${{ fromJSON(inputs.package == 'installer' && '["installer"]' || inputs.package == 'portable' && '["portable"]' || '["installer","portable"]') }}
     runs-on: windows-11-arm
     timeout-minutes: 50
     env:
       GH_TOKEN: ${{ github.token }}
       PYTHONUNBUFFERED: '1'
+      MINIWHITEBOARD_CLIENT_VISUALS_ONLY: ${{ inputs.checks == 'visuals' && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

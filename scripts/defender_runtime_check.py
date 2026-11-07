@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--client-gui', action='store_true')
     parser.add_argument('--candidate-identity', type=Path)
     args = parser.parse_args()
+    visuals_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_VISUALS_ONLY') == '1'
     candidate = None
     if args.candidate_identity:
         from scripts.candidate_identity import read
@@ -50,6 +51,7 @@ def main():
         report['candidate_identity'] = candidate
     if args.client_gui:
         report['not_run'][0]='Published release URL acceptance; this candidate uses the genuine browser/Explorer artifact-container route recorded by the parent'
+        report['client_scope']='Focused frozen Glass/toolbar checks only' if visuals_only else 'Full client package acceptance'
 
     def save():
         output.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -117,6 +119,8 @@ def main():
                     '--output',str(dest),'--toolbar','--visual-only','--theme','Glass','--background',background],90)
                 completed.append(code==0)
                 check(label+': Glass/toolbar '+background+' visual capture completed',code==0,fatal=False)
+            if visuals_only:
+                return all(completed)
         for module, suffix, extra in (
             ('scripts.packaged_shortcut_check', 'defaults', ['--profile', 'default', '--available-defaults', '--trace-transition']),
             ('scripts.packaged_shortcut_check', 'custom', ['--profile', 'custom']),
@@ -219,7 +223,7 @@ def main():
             if args.client_gui:
                 ImageGrab.grab(all_screens=True).save(args.output/(label+'-shell-launched.png'))
             check(label + (': normal Shell launch stays running' if args.client_gui else ': packaged runtime stays running without Python on PATH'), child.poll() is None)
-            if directory == target:
+            if directory == target and not visuals_only:
                 refused_setup=setup('running-refusal');refused_uninstall=uninstall('uninstall-refusal')
                 check('Setup refuses a running installed application', refused_setup==10 if args.client_gui else refused_setup!=0)
                 check('Uninstall refuses a running application', refused_uninstall==10 if args.client_gui else refused_uninstall!=0)
@@ -250,6 +254,14 @@ def main():
         payload(target, 'Installed before launch')
         quiet_launch(target, 'Installed')
         payload(target, 'Installed after execution')
+        if visuals_only:
+            native_passed=native(target,'installed')
+            payload(target,'Installed after focused visual checks')
+            check('Focused visual-check installation uninstalls normally',uninstall('visual-uninstall')==0)
+            installed=False
+            check('All requested installed visual checks passed',native_passed)
+            report['result']='PASS for focused installed visual checks only; full acceptance remains separate'
+            return
         check('Fresh installation uninstalls normally', uninstall('fresh-uninstall') == 0)
         installed = False
 

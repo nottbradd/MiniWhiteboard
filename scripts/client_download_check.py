@@ -288,12 +288,11 @@ def main():
             save()
 
             def extract_button():
-                for window in desktop.windows(class_name='CabinetWClass'):
-                    if not window.is_visible():
-                        continue
-                    for control in window.descendants(control_type='Button'):
-                        if control.window_text().lower().strip().startswith('extract all'):
-                            return control
+                # Previous preflight/archive windows can remain open. Only
+                # operate the archive identified by this operation's path.
+                for control in archive_window.descendants(control_type='Button'):
+                    if control.window_text().lower().strip().startswith('extract all'):
+                        return control
                 return None
 
             button = wait_for(extract_button, 30, 'Explorer Extract all command unavailable')
