@@ -39,7 +39,8 @@ def main():
     gestures_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_GESTURES_ONLY') == '1'
     comparison_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_COMPARISON_ONLY') == '1'
     upgrade_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_UPGRADE_ONLY') == '1'
-    focused = visuals_only or editing_only or gestures_only
+    shortcuts_only = args.client_gui and os.environ.get('MINIWHITEBOARD_CLIENT_SHORTCUTS_ONLY') == '1'
+    focused = visuals_only or editing_only or gestures_only or shortcuts_only
     candidate = None
     if args.candidate_identity:
         from scripts.candidate_identity import read
@@ -135,7 +136,7 @@ def main():
                 completed.append(code==0)
                 check(label+': unchanged '+mode+' functional matrix completed',code==0,fatal=False)
             return all(completed)
-        if args.client_gui and not editing_only:
+        if args.client_gui and not editing_only and not shortcuts_only:
             for background in ('light','busy'):
                 dest=args.output/(label+'-glass-'+background)
                 code=bounded(label+'-glass-'+background,[sys.executable,'-m','scripts.packaged_drawing_check',
@@ -153,6 +154,8 @@ def main():
         ):
             if editing_only and suffix != 'editing':
                 continue
+            if shortcuts_only and suffix!='defaults':
+                continue
             destination = args.output / (label + '-' + suffix)
             command = [sys.executable, '-m', module, '--executable', str(directory / 'Mini Whiteboard.exe'),
                        '--output', str(destination), *extra]
@@ -169,7 +172,7 @@ def main():
             # Each suite owns and cleans up its process and preferences. Retain
             # failures while collecting the independent suites and file hashes.
             check(label + ': ' + suffix + ' native checks completed', passed, len(rows), fatal=False)
-            if suffix == 'defaults' and (not passed or label == 'portable'):
+            if suffix == 'defaults' and (not passed or (label == 'portable' and not shortcuts_only)):
                 for diagnostic_name, diagnostic_option, purpose in (
                     ('capture-isolated', '--capture-only', 'Q without prior W workload'),
                     ('capture-after-cancel', '--cancel-prelude', 'Q after only one zero-area W cancellation'),

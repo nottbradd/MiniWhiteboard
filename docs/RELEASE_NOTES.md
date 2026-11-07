@@ -151,6 +151,14 @@ exited immediately with the same missing-WSL message. Initial desktop and setup
 evidence was uploaded before later phases. Neither run downloaded or executed
 Mini Whiteboard. These are setup failures, not application results.
 
+The [official-MSI setup follow-up](https://github.com/nottbradd/MiniWhiteboard/actions/runs/42372370336)
+installed WSL 3.0.3 normally after verifying Microsoft's signature and published
+SHA-256. It needed no distribution or reboot. The harmless Edge/Explorer preflight
+then passed, including 30 foreground samples over three seconds with one Explorer
+window throughout. Active Defender used intelligence **1.463.174.0**, with cloud,
+real-time, behaviour and IOAV protection enabled and relevant exclusions absent.
+This establishes readiness for that VM; each application-check VM repeats it.
+
 The pending comparison uses the published HotkeyPatch executable and unchanged
 review-02 executable on one VM, with matching backgrounds, placement and settings,
 and tools off/on. Source-only API/graphics diagnostics are recorded separately.

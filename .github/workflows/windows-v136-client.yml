@@ -11,7 +11,7 @@ on:
         description: Full acceptance or an unresolved GUI subset
         type: choice
         default: all
-        options: [all, comparison, upgrade, visuals, editing, gestures, download, preflight, environment]
+        options: [all, comparison, upgrade, visuals, editing, gestures, shortcuts, download, preflight, environment]
 permissions:
   contents: read
   actions: read
@@ -32,6 +32,7 @@ jobs:
       MINIWHITEBOARD_CLIENT_GESTURES_ONLY: ${{ inputs.checks == 'gestures' && '1' || '0' }}
       MINIWHITEBOARD_CLIENT_COMPARISON_ONLY: ${{ inputs.checks == 'comparison' && '1' || '0' }}
       MINIWHITEBOARD_CLIENT_UPGRADE_ONLY: ${{ inputs.checks == 'upgrade' && '1' || '0' }}
+      MINIWHITEBOARD_CLIENT_SHORTCUTS_ONLY: ${{ inputs.checks == 'shortcuts' && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
