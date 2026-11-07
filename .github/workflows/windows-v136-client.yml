@@ -84,7 +84,7 @@ jobs:
         timeout-minutes: 8
         run: ./scripts/defender_investigation.ps1 -ClientPreflight -BrowserExplorer -EvidenceName client-preflight -WorkBudgetMinutes 5
       - name: Record graphics policy and source-only compositor diagnostics
-        if: inputs.checks != 'preflight'
+        if: inputs.checks == 'all' || inputs.checks == 'comparison' || inputs.checks == 'visuals'
         timeout-minutes: 2
         run: |
           Push-Location verification/client-source
