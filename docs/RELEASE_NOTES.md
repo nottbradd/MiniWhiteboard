@@ -1,10 +1,112 @@
 # Release notes
 
+## V1.3.6 — Windows release + Mac Universal2 Preview — 14 November 2026
+
+[V1.3.6](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6) is the
+official Windows release. It promotes the unchanged review-02 files previously
+published under **v1.3.6-early.1**; the early tester and historical releases remain
+available. Application and build source is
+[`b4b9d276efb484512978449d216bfa4a253ef2d9`](https://github.com/nottbradd/MiniWhiteboard/commit/b4b9d276efb484512978449d216bfa4a253ef2d9).
+Later commits contain diagnostics and documentation, not rebuilt packages.
+
+### Downloads and changes
+
+- **[Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe)**
+- [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip)
+- [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MacMiniWhiteboardV1.3.6-Preview.zip), macOS 14+
+- [SHA-256 checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/SHA256SUMS.txt)
+
+Enable **tray/menu bar → Settings → Show floating tools** for the optional compact
+toolbar. It starts off and follows the active board. Tap to choose a tool; hold or
+right-click for options; drag the dotted grip. Placement adjusts above, below or
+inside the board. **White remains the default appearance.** Windows defaults are
+**Ctrl+Win+Shift+W** for a board and **Ctrl+Win+Shift+Q** for capture; existing saved
+shortcuts are preserved. Mac defaults remain **Control+Option+W/S**.
+
+Drawing previews retain an incremental path. A matched 1,920-point White-board
+workload reduced p95 paint work from **12.50 ms to 0.72 ms**, while release-and-paint
+cost rose from **6.07 ms to 12.49 ms**. These synthetic processing measurements
+cover the unchanged review-01 drawing code; they are not pen latency or display
+FPS. The reported several-second freeze has not been conclusively reproduced.
+
+Close the app before updating. **Setup replaces the registered Windows
+installation. Portable users must replace the complete application folder
+manually.** Separate portable folders and downloaded ZIPs remain under the user's
+control. On Mac, quit and replace Mini Whiteboard.app in Applications.
+
+### Verification and retained limitations
+
+The official release reuses exact-byte review-02 verification: **355 Windows tests
+passed / two Mac-only skips**, **356 Mac tests passed / one Windows-only skip**,
+48 Windows application modules matched the recorded source, and the Mac
+Universal2/signature/extraction/limited-startup checks passed. Completed Server
+and partial client checks retain their original scope and results below.
+
+On 14 November, fresh public early-tester downloads matched the review-02 receipt,
+GitHub asset digests and published checksums. Both ZIP CRCs, all **199 Windows
+payload hashes**, **18 Windows / 16 Mac dependency notices**, version metadata and
+unchanged application/build source were rechecked. Targeted Defender scans of the
+packages and submitted EXE reported no threats, with no candidate detections or
+events and unchanged post-scan hashes. Protection was Normal/active, platform
+4.18.26100.4, engine 1.1.26100.4, intelligence **1.463.288.0**. This non-admin host
+could not expose exclusions or run CheckExclusion; those fresh scans supplement
+the completed protected VM evidence and do not replace client runtime acceptance.
+No application was run and no protection setting was changed for this promotion.
+
+The following remain accepted limitations of this official release:
+
+- **Glass is grey** on the hosted Windows 11 Enterprise 10.0.26200 ARM64 client
+  with x64 emulation, Hyper-V graphics and Test Mode, and on the Server test
+  desktop. Published V1.3.4 HotkeyPatch reproduced the same client board pixels.
+  The environment versus shared implementation cause is unresolved. White is the
+  verified opaque option; the frozen EXE did not automatically select the
+  source-only forced fallback.
+- **One editable-clipboard case remains unresolved:** 22/23 pending-creation and
+  8/8 pointer-motion cases passed. All 28 saved PNG exports and 27 available
+  original-image payloads matched, but one following capture's editable MIME
+  payload was unavailable. It is not counted as a pass.
+- **Client tray/settings/exit, HotkeyPatch upgrade/rollback/reinstall/uninstall
+  and Protection History UI acceptance are incomplete.** Earlier completed Server
+  installer checks used the original V1.3.4 baseline, not the later HotkeyPatch.
+  Several bounded follow-ups stalled without final runtime evidence; their cause
+  is unestablished.
+- A separate editing VM's `Trojan:Win32/Gracing.I` detection against temporary
+  `provjobd` remains unattributed. It is not established as a Mini Whiteboard
+  detection, harmless, or the cause of those stalls. Candidate payload hashes
+  remained unchanged; no quarantine was restored or protection weakened.
+- **NOT RUN:** native Windows 11 x64/Windows 10 client acceptance, real pen,
+  physical mixed-DPI/multiple-monitor and hardware-latency checks, school-managed
+  policy and Smart App Control On acceptance; interactive Mac, macOS 14 and Intel
+  execution. **Actual Windows sign-in: NOT RUN (not tested)** under the existing
+  waiver. Startup registration and controlled launches were tested separately.
+
+### Microsoft review, signing and source
+
+For submitted Windows EXE SHA-256
+`39ff0141dc7ddd27c8f6da668bf5ceea1dedc4474f7e24ab3affb93ef5d33f16`, Microsoft's
+completed written analyst response reported no positive scanner or telemetry
+indicators and closed the case without further action. It satisfies the explicitly
+accepted review policy for this official release. Authenticated recheck on
+**14 November 2026** of submission `1804af5a-568e-4420-bcaa-ea1161006797` showed
+**Completed** case / **Pending** file-level determination, with both current
+detection fields saying **No malware detected**, definition **1.463.227.0**.
+Contradictory Malware protection icons/tooltips remain documented.
+**No definitive Not malware classification is claimed for V1.3.6.** The earlier
+V1.3.4 determination covers only its own hash, and the original reported
+quarantine remains unresolved.
+
+**Windows is unsigned. Mac is ad-hoc signed, not notarized, and remains Universal2
+Preview for macOS 14+.** Both packages retain their dependency notices and source
+information. See [dependency sources](../assets/licenses/SOURCES.md),
+[rebuilding](../CONTRIBUTING.md) and the review-02 hash table and detailed evidence
+below. The official SHA256SUMS.txt is byte-identical to the early tester file.
+
 ## V1.3.6 — early tester prerelease — 8 November 2026
 
 [Mini Whiteboard V1.3.6 — early tester release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
-uses tag **v1.3.6-early.1** and the GitHub prerelease flag. V1.3.4 HotkeyPatch remains
-the default stable download. The three review-02 packages are distributed unchanged.
+uses tag **v1.3.6-early.1** and the GitHub prerelease flag. At that publication,
+V1.3.4 HotkeyPatch remained the default stable download. The three review-02
+packages were distributed unchanged; the official promotion above uses the same files.
 
 This early tester release retains the grey client Glass appearance, one unresolved
 editable-clipboard case and incomplete client tray/settings and HotkeyPatch
@@ -31,7 +133,7 @@ Mac remains **Universal2 Preview**; quit and replace the app in Applications.
   each growing immutable stroke. Exact path, raster, endpoint and undo regressions
   preserve the document representation. No new runtime dependency was added.
 - Includes the tested V1.3.5 `c83104b` creation-gesture fix. V1.3.5 itself remains
-  unpublished; V1.3.4 HotkeyPatch remains the stable release.
+  unpublished; V1.3.4 HotkeyPatch was the stable release at this prerelease's publication.
 
 ### Review-02 package verification — 7 November 2026
 

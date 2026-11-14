@@ -6,57 +6,48 @@
 Place a small desktop whiteboard by holding a shortcut, moving the pointer and
 releasing. Draw, type, paste images and annotate screenshots with keyboard shortcuts or optional floating tools. Launch opens only a Windows tray icon or a macOS menu-bar item.
 
-**V1.3.4 HotkeyPatch remains the default stable download.**
-[V1.3.6 — early tester release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
-adds optional compact floating tools and reduces repeated geometry work during
-freehand drawing. It is a prerelease with known visual and acceptance limitations.
+**[V1.3.6 is the current official Windows release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6).**
+It adds optional compact floating tools and reduces repeated geometry work during
+freehand drawing. Mac remains **Universal2 Preview**. Known visual and testing
+limitations are described below and in the release notes.
 
 Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
 (screenshot). Mac remains **Universal2 Preview**.
 
 ![Mini Whiteboard icon](assets/branding/app-128.png)
 
-## Download V1.3.4 — stable
+## Download V1.3.6
 
 | Download | Platform | Installation |
 |---|---|---|
-| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MiniWhiteboard-1.3.4-HotkeyPatch-Setup.exe) | Windows 10/11, x64 | Run Setup. Installs for your account, adds a Start menu shortcut and offers a desktop shortcut. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/WinMiniWhiteboardV1.3.4-HotkeyPatch.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. Keep the entire folder together. |
-| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.4/MacMiniWhiteboardV1.3.4-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Extract on a Mac, move **Mini Whiteboard.app** to Applications and open it. Interactive Mac acceptance is **NOT RUN**. |
+| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe) | Windows 10/11, x64 | Close Mini Whiteboard and run Setup. Installs for your account or replaces the registered installed copy. |
+| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. When updating, close the old copy and replace its complete application folder manually. |
+| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MacMiniWhiteboardV1.3.6-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Quit, extract on a Mac and replace **Mini Whiteboard.app** in Applications. Interactive Mac acceptance is **NOT RUN**. |
 
-Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md)
-describe this release. [Checksums and dependency sources](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4)
-accompany the downloads. [Earlier releases](https://github.com/nottbradd/MiniWhiteboard/releases)
-remain available.
+Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md#v136--windows-release--mac-universal2-preview--14-november-2026),
+[SHA-256 checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/SHA256SUMS.txt)
+and [dependency sources](assets/licenses/SOURCES.md) accompany the release.
+These are the unchanged review-02 packages from source `b4b9d27`, previously
+published as [v1.3.6-early.1](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1).
+That prerelease, [V1.3.4 HotkeyPatch](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4)
+and [historical releases](https://github.com/nottbradd/MiniWhiteboard/releases) remain available.
 
-The Windows files labelled **HotkeyPatch** include the new defaults. Existing saved
-hotkeys stay as chosen; use **Settings → Hotkeys → Reset Defaults → Apply** to
-switch to the new pair. The original V1.3.4 files remain available on the release.
-
-## Download V1.3.6 — early tester prerelease
-
-[Release notes and known limitations](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1)
-cover the unchanged review-02 packages from source `b4b9d27`.
-
-| Download | Platform | Installation |
-|---|---|---|
-| [Windows installer — recommended for early testers](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/MiniWhiteboard-1.3.6-Setup.exe) | Windows x64 | Close Mini Whiteboard and run Setup to replace the registered installed copy. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/WinMiniWhiteboardV1.3.6.zip) | Windows x64 | Close the old copy, extract the new ZIP and replace the complete application folder manually. |
-| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/MacMiniWhiteboardV1.3.6-Preview.zip) | macOS 14+, arm64/x86_64 bundle | Quit, extract on a Mac and replace Mini Whiteboard.app in Applications. Interactive Mac acceptance is NOT RUN. |
-
-[SHA-256 checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6-early.1/SHA256SUMS.txt)
-are provided with the release. Enable **Settings → Show floating tools** from the
+Existing saved hotkeys stay as chosen; use **Settings → Hotkeys → Reset Defaults → Apply**
+to select **Ctrl+Win+Shift+W/Q**. Enable **Settings → Show floating tools** from the
 tray/menu bar. Tap a tool, hold or right-click for options, and drag the dotted grip.
 The toolbar starts off and follows the active board when enabled.
 
-Glass remains grey on the tested hosted Windows client; **Appearance → White**
+**White remains the default appearance.** Glass remains grey on the tested hosted
+Windows 11 ARM64 client under x64 emulation with Hyper-V graphics and Test Mode,
+and on the Server test desktop. Its cause remains unresolved; **Appearance → White**
 provides the verified opaque appearance. One editable-clipboard case and complete
 client tray/settings and HotkeyPatch upgrade/rollback/reinstall/uninstall acceptance
-remain unresolved. See the [verification details](docs/RELEASE_NOTES.md#v136--early-tester-prerelease--8-november-2026).
+remain unresolved. These limitations are retained in the official release; see the
+[verification details](docs/RELEASE_NOTES.md#v136--windows-release--mac-universal2-preview--14-november-2026).
 
 Microsoft's completed written response reported no positive scanner or telemetry
 indicators for the submitted V1.3.6 EXE. Its portal file-level determination still
-displayed **Pending** on 8 November; this is not a definitive **Not malware**
+displayed **Pending** on 14 November 2026; this is not a definitive **Not malware**
 classification. The original reported quarantine remains unexplained. See
 [security troubleshooting](docs/TESTING.md#security-reports-and-release-acceptance).
 
@@ -158,7 +149,7 @@ Screenshot content reaches the rounded board boundary. Small translucent control
 and temporary feedback sit over the image; copied image content excludes them.
 The top edge still moves the window and its edges/corners resize it.
 
-## Optional floating tools (V1.3.6 early tester)
+## Optional floating tools (V1.3.6)
 
 Enable **tray/menu bar → Settings → Show floating tools**. This preference is
 remembered and starts off. One compact palette follows the active board; other
@@ -224,8 +215,9 @@ A controlled 1,920-point stroke on an empty White board reduced p95 paint work
 from **12.50 ms to 0.72 ms**, with floating tools enabled. The matched 18-case
 synthetic workload covered both themes, empty/populated/screenshot boards,
 three stroke lengths and repeated drawing/whole-stroke erasing/undo/redo.
-These are offscreen processing measurements, not pen latency or display FPS.
-Stroke completion can take longer, and boundary clipping remains expensive.
+These are offscreen processing measurements of the unchanged review-01 drawing
+code, not pen latency or display FPS. Release-and-paint cost in that matched case
+rose from **6.07 ms to 12.49 ms**, and boundary clipping remains expensive.
 The friend's several-second freeze has not been conclusively reproduced. See
 [measurement scope, package results and remaining limits](docs/RELEASE_NOTES.md#v136--early-tester-prerelease--8-november-2026).
 
@@ -328,8 +320,11 @@ Historical V1.3 release assets and notes remain available.
 ## Limitations and development
 
 - Documents are session-only. Only preferences are saved.
-- Windows 11 has scripted native and packaged checks. Windows 10, clean-machine
-  deployment and physical mixed-DPI arrangements still need testing.
+- V1.3.6 has completed Server checks and partial Windows 11 ARM64 client checks
+  under x64 emulation. Native Windows 11 x64 and Windows 10 client acceptance,
+  physical mixed-DPI/multiple-monitor setups, real pen and hardware latency are **NOT RUN**.
+- School-managed policy and Smart App Control On acceptance are **NOT RUN**.
+  The original reported quarantine remains unresolved; do not bypass a managed-device policy.
 - Mac remains a preview. Interactive shortcuts, focus, permissions, capture,
   Spaces and Retina/multi-monitor acceptance are outstanding. Floating windows
   use normal Space membership; coverage over every full-screen app is not guaranteed.
