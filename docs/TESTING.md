@@ -66,8 +66,8 @@ sharing diagnostics. See [Microsoft's Defender event reference](https://learn.mi
 
 A school or work device can separately restrict unapproved applications through
 [App Control or AppLocker](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/appcontrol-and-applocker-overview).
-Ask its administrator to identify the relevant event and approval policy. The MIT
-license, a publisher signature, Defender classification and organizational approval
+Ask its administrator to identify the relevant event and approval policy. The project's
+software license, a publisher signature, Defender classification and organizational approval
 are different things. A policy restriction does not establish the cause of a
 Defender quarantine. Do not disable protection, create exclusions or bypass the
 organization's controls.

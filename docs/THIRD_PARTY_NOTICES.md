@@ -1,10 +1,12 @@
 # Third-party software and distribution
 
-The [MIT license](https://github.com/nottbradd/MiniWhiteboard/blob/main/LICENSE)
-covers Mini Whiteboard's own source and assets. Python, Qt, PySide6 and the other
-dependencies retain their original licenses.
+The [GNU General Public License, version 3 only](https://github.com/nottbradd/MiniWhiteboard/blob/main/LICENSE)
+(`GPL-3.0-only`) covers Mini Whiteboard's current source, documentation and original
+assets, copyright (c) 2026 nottbradd. Python, Qt, PySide6 and the other dependencies
+retain their original licenses. Published V1.3.6 and earlier packages and tags
+retain the project's MIT license; they were not replaced for the license change.
 
-## Dependencies used by Version 1.3.4
+## Dependencies used by V1.3.6 and current development
 
 | Software | Use | Upstream license information |
 |---|---|---|
@@ -19,7 +21,7 @@ dependencies retain their original licenses.
 
 The Mac PyObjC framework set includes Cocoa, Quartz, ScreenCaptureKit, CoreMedia
 and ServiceManagement. The icon vector masters and generated branding are
-Mini Whiteboard's own MIT-licensed assets.
+Mini Whiteboard's own assets, covered by the project license for that revision.
 
 ## What the downloads contain
 
@@ -28,8 +30,10 @@ on Mac it is under `Contents/Resources`. Its `MANIFEST.json` records
 the builder's Python version, package versions and SHA-256 of every notice file.
 Packaging verifies these hashes before making an archive.
 
-The directory includes the project's MIT license, the actual Python runtime
-license, original installed-package notices, and versioned collections of
+Future builds include the project's GPLv3 text as `MiniWhiteboard-GPL-3.0.txt`;
+published V1.3.6 and earlier builds contain `MiniWhiteboard-MIT.txt`. The directory
+also includes the actual Python runtime license, original installed-package
+notices, and versioned collections of
 upstream license and third-party notice texts from Qt/PySide 6.11.2. The
 collections preserve upstream alternative commercial terms and notices for
 components present in those source archives; that does not change the LGPL
@@ -48,8 +52,10 @@ rebuild or replace the dynamically loaded Qt/PySide libraries. The same guide
 is included at `licenses/upstream/SOURCES.md`. Corresponding source archives
 are attached to the [V1.3 GitHub Release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3).
 
-The project's MIT source and PyInstaller build specifications are available in
-the repository and GitHub's source archives. No project license term prevents
+The project's source and PyInstaller build specifications are available in
+the repository and GitHub's source archives, under the license at that revision.
+Use the immutable source revision linked by the release when rebuilding it.
+No project license term prevents
 modifying or reverse engineering the app to debug changes to LGPL libraries.
 Modified Mac bundles need to be re-signed; the build supports ad-hoc signing.
 

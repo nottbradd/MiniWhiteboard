@@ -1,5 +1,13 @@
 # Release notes
 
+## Unreleased
+
+- **16 November 2026:** current source, documentation and original assets now use
+  GNU GPL version 3 only (`GPL-3.0-only`). Future packages include the GPLv3 text
+  and updated project notices. Dependencies retain their original licenses.
+  Published V1.3.6 and earlier downloads and tags retain their MIT license;
+  no version number, published binary, release asset or historical tag changed.
+
 ## V1.3.6 — Windows release + Mac Universal2 Preview — 14 November 2026
 
 [V1.3.6](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6) is the

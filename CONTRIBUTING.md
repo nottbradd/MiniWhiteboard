@@ -242,5 +242,12 @@ detailed local evidence there or in Actions artifacts. Release notes summarize
 actual checks. For suspected security issues, use private vulnerability reporting
 if available, or request a private channel without posting exploit details publicly.
 
-Contributions to the project's own code/assets use [MIT](LICENSE).
+Contributions to the project's own source, documentation and assets use
+[GNU GPL version 3 only](LICENSE) (`GPL-3.0-only`). Preserve third-party copyright
+and license notices. Published V1.3.6 and earlier versions retain their MIT terms.
+
+For future GPL-covered binary releases, provide the exact corresponding source,
+build scripts and instructions, and required dependency sources alongside the
+downloads. Link to the immutable release revision rather than only to `main`;
+see [dependency sources and rebuilding](assets/licenses/SOURCES.md).
 Preserve attribution and dependency terms in [third-party notices](docs/THIRD_PARTY_NOTICES.md).

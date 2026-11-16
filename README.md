@@ -339,7 +339,18 @@ with the version, OS and reproduction steps.
 
 ## License
 
-Mini Whiteboard's own source and assets use the [MIT license](LICENSE).
+Copyright (c) 2026 nottbradd.
+
+The current Mini Whiteboard source, documentation and original assets use the
+[GNU General Public License, version 3 only](LICENSE) (`GPL-3.0-only`). This change
+took effect on 16 November 2026. The software is provided without warranty; see
+the license for its terms and conditions.
+
+**Published V1.3.6 and earlier downloads and tags retain their
+[MIT license](https://github.com/nottbradd/MiniWhiteboard/blob/v1.3.6/LICENSE).**
+The change does not revoke the rights already granted for those versions. No
+published package was rebuilt or replaced for this license change.
+
 Dependencies retain their own terms; see [third-party notices](docs/THIRD_PARTY_NOTICES.md).
-Both packages contain license texts, exact dependency versions, notice hashes
-and the [source/rebuild guide](assets/licenses/SOURCES.md).
+Packages contain the applicable project license, dependency notices, exact dependency
+versions and notice hashes, with the [source/rebuild guide](assets/licenses/SOURCES.md).

@@ -8,8 +8,11 @@ texts. The corresponding notice collections are packaged with both apps.
 
 ## Rebuilding and replacing Qt/PySide
 
-Mini Whiteboard's MIT source and both PyInstaller specifications are available
-in the repository and the release's automatically generated source archives.
+Mini Whiteboard's current source uses GNU GPL version 3 only (`GPL-3.0-only`).
+Published V1.3.6 and earlier versions retain their MIT license. The source and
+both PyInstaller specifications are available in the repository and each
+release's automatically generated source archives; use the matching release
+revision when rebuilding a published package.
 Follow Qt/Qt for Python's upstream build instructions inside these source
 archives to build compatible shared libraries and Python bindings. Install your
 build into a development environment and rebuild Mini Whiteboard with build.ps1

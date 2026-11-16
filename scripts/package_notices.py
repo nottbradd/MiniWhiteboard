@@ -25,7 +25,7 @@ def stage(project=PROJECT, destination=None):
         path.write_bytes(data)
         files[name] = {'path': name, 'sha256': hashlib.sha256(data).hexdigest()}
 
-    add('MiniWhiteboard-MIT.txt', (project / 'LICENSE').read_bytes())
+    add('MiniWhiteboard-GPL-3.0.txt', (project / 'LICENSE').read_bytes())
     add('THIRD_PARTY_NOTICES.md', (project / 'docs' / 'THIRD_PARTY_NOTICES.md').read_bytes())
     for source in sorted((project / 'assets' / 'licenses').glob('*')):
         if source.is_file():
@@ -70,8 +70,13 @@ def stage(project=PROJECT, destination=None):
             source = Path(dist.locate_file(entry))
             if source.is_file():
                 add('packages/' + name + '/' + relative.name, source.read_bytes())
-    readme = ('Mini Whiteboard dependency notices\n\n'
-              'The app source is MIT licensed. Qt/PySide libraries are dynamically loaded.\n'
+    readme = ('Mini Whiteboard license and dependency notices\n\n'
+              'Copyright (c) 2026 nottbradd.\n'
+              'Mini Whiteboard is free software under GNU GPL version 3 only (GPL-3.0-only).\n'
+              'You may redistribute and modify it under those terms. It is provided without\n'
+              'warranty, including implied warranties of merchantability or fitness for a\n'
+              'particular purpose. See MiniWhiteboard-GPL-3.0.txt for the complete terms.\n'
+              'Dependencies retain their original licenses. Qt/PySide libraries are dynamically loaded.\n'
               'See THIRD_PARTY_NOTICES.md and upstream/SOURCES.md for versioned source access\n'
               'and instructions for replacing/rebuilding those libraries.\n'
               'PyInstaller is a packaging tool; its bootloader distribution exception is included.\n'
