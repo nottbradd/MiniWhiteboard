@@ -3,6 +3,26 @@ from PySide6.QtGui import QActionGroup
 from . import APP_VERSION
 from .platform.base import CREATE_HOTKEY, CAPTURE_HOTKEY, HIDE_HOTKEY
 from .shortcuts import ShortcutPolicy
+from .appearance import THEMES, OPAQUE
+
+
+def populate_appearance(appearance, preferences, desktop, boards):
+    """Re-evaluate both platform capabilities and an open board's actual material."""
+    group = QActionGroup(appearance)
+    group.setExclusive(True)
+    board = next((b for b in reversed(boards) if b.isVisible() and not b.screenshot_surface), None)
+    policy = desktop.display_policy()
+    for theme in THEMES:
+        finish = desktop.available_finish(theme, policy, board.screen() if board else None)
+        if board is not None and theme != 'White' and theme == preferences.theme:
+            finish = board.native_glass or OPAQUE
+        label = theme if finish == theme else f'{theme} · uses {finish}'
+        action = appearance.addAction(label)
+        action.setData(theme)
+        action.setCheckable(True)
+        action.setChecked(preferences.theme == theme)
+        group.addAction(action)
+        action.triggered.connect(lambda checked=False, value=theme: preferences.set_theme(value))
 
 
 def rebuild_menu(controller):
@@ -39,15 +59,7 @@ def rebuild_menu(controller):
     floating.setCheckable(True)
     floating.setChecked(c.preferences.floating_tools)
     floating.toggled.connect(c.preferences.set_floating_tools)
-    appearance = menu.addMenu('Appearance')
-    group = QActionGroup(appearance)
-    group.setExclusive(True)
-    for theme in ('White', 'Glass'):
-        action = appearance.addAction(theme)
-        action.setCheckable(True)
-        action.setChecked(c.preferences.theme == theme)
-        group.addAction(action)
-        action.triggered.connect(lambda checked=False, value=theme: c.preferences.set_theme(value))
+    populate_appearance(menu.addMenu('Appearance'), c.preferences, c.platform.desktop, c.boards)
     snap = menu.addMenu("Snap & Guides")
     for label, enabled, callback in (("Smart Guides", c.preferences.smart_guides, c.preferences.set_smart),
                                      ("Grid Snap", c.preferences.grid_snap, c.preferences.set_grid)):

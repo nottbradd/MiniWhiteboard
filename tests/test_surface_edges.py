@@ -79,7 +79,7 @@ class SurfaceEdgeTests(QtCase):
                     self.assertTrue(path.contains(point),(theme,point))
                 self.assertTrue(button.toolTip())
                 self.assertTrue(button.accessibleName())
-                self.assertEqual(button.focusPolicy(),Qt.FocusPolicy.NoFocus)
+                self.assertEqual(button.focusPolicy(),Qt.FocusPolicy.TabFocus)
             self.assertEqual(board.remove.x()-board.minus.x()-CONTROL_WIDTH,CONTROL_GAP)
             self.assertEqual(board.minus.y(),board.remove.y())
 

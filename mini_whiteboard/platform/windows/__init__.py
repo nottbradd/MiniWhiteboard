@@ -11,6 +11,13 @@ from ..base import Platform, QtDesktop, QtRuntime
 
 
 class WindowsDesktop(QtDesktop):
+    def available_finish(self, requested, policy, screen=None):
+        from .appearance import capable
+        from ...appearance import FROSTED, OPAQUE
+        if requested == 'White':
+            return requested
+        return FROSTED if capable(policy, screen) else OPAQUE
+
     def display_policy(self):
         from .appearance import display_policy
         return display_policy()
@@ -18,7 +25,8 @@ class WindowsDesktop(QtDesktop):
     def apply_appearance(self, board):
         from .appearance import BackdropHost, capable
         from ...appearance import FROSTED, is_glass
-        if not is_glass(board.appearance_theme) or not capable(board.display_policy):
+        if (not is_glass(board.appearance_theme) or getattr(board, 'screenshot_surface', False)
+                or not capable(board.display_policy, board.screen())):
             self.release_appearance(board)
             return False
         try:
@@ -127,7 +135,9 @@ class WindowsDesktop(QtDesktop):
     def native_event(self, board, event_type, message):
         if native.IS_WINDOWS and bytes(event_type) == b"windows_generic_MSG":
             msg = W.MSG.from_address(int(message))
-            if msg.message in (0x001A, 0x031A, 0x031E):
+            if msg.message in (0x001A, 0x007E, 0x031A, 0x031E):
+                from .appearance import backdrop_display
+                backdrop_display.cache_clear()
                 board.refresh_appearance()
             if msg.message == 0x0047 and getattr(board, '_backdrop', None) is not None:
                 try:

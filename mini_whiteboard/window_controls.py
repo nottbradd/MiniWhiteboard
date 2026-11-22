@@ -1,6 +1,6 @@
 """Theme-aware window actions with symmetric vector icons, independent of fonts."""
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QToolButton
 from .chrome import ChromeSample, paint_chrome
 from .settings import CONTROL_HIT_PADDING
@@ -11,7 +11,7 @@ class WindowControl(QToolButton):
         super().__init__(board)
         self.board, self.delete = board, delete
         self.chrome_sample = ChromeSample()
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self.setAccessibleName('Delete whiteboard' if delete else 'Minimise whiteboard')
         self.setToolTip('Delete this whiteboard and its contents' if delete else
@@ -33,6 +33,10 @@ class WindowControl(QToolButton):
         rect = QRectF(self.rect()).adjusted(pad, pad, -pad, -pad)
         ink = paint_chrome(painter, self, rect, self.chrome_sample, hover=hover, pressed=pressed,
                            destructive=self.delete)
+        if self.hasFocus():
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor('#164b91'), 2))
+            painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 5, 5)
         pen = QPen(ink, 1.35)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)

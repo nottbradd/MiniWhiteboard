@@ -60,7 +60,8 @@ class ChromeSample:
 def paint_chrome(painter, widget, rect, sample, *, radius=6, hover=False, pressed=False, destructive=False):
     board = widget.window()
     policy = getattr(board, 'display_policy', None)
-    opaque = policy is None or policy.high_contrast or not policy.transparency
+    finish = getattr(board, 'control_finish', 'White')
+    opaque = policy is None or policy.high_contrast or not policy.transparency or finish == 'Opaque'
     screenshot = getattr(board, 'screenshot_surface', False)
     if not opaque:
         sample.prepare(widget, rect, radius)
@@ -75,6 +76,8 @@ def paint_chrome(painter, widget, rect, sample, *, radius=6, hover=False, presse
     else:
         fill = QColor(244, 247, 251, 220 if pressed else 198 if hover else 176)
         border, ink = QColor(75, 89, 108, 45), QColor('#303746')
+    if not opaque and not hover and not pressed and finish == 'Frosted Glass':
+        fill.setAlpha(194)
     if destructive and (hover or pressed):
         fill = QColor((164 if pressed else 148) if dark else (218 if pressed else 229),
                       (36 if pressed else 47) if dark else (44 if pressed else 70), 61 if dark else 85,

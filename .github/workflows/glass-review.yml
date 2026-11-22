@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-26, windows-2025, windows-11-arm]
+        os: [macos-26, macos-15, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 16
     steps:
@@ -39,6 +39,18 @@ jobs:
           Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion
           Get-CimInstance Win32_ComputerSystem | Select-Object Model
       - run: python -u -m scripts.glass_optics verification/glass
+      - name: Measure the current and review builds on the same desktop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 7b38b3ea6b6411159aacae4217bced7144cad1b6
+          path: baseline
+          persist-credentials: false
+      - run: python -u -m scripts.glass_benchmark baseline verification/glass/baseline.json White Glass
+      - run: python -u -m scripts.glass_benchmark . verification/glass/candidate.json White "Frosted Glass" "Liquid Glass"
+      - run: python -u -m scripts.glass_controls_review verification/glass
+      - name: Check native cross-process corner input and control geometry
+        if: always() && matrix.os == 'windows-2025'
+        run: python -u -m scripts.surface_input_check --output verification/glass/input
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

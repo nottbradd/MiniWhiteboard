@@ -191,13 +191,24 @@ class ToolButton(QToolButton):
     def contextMenuEvent(self,event):
         event.accept()  # Right button and native hold already share the options route.
 
+    def keyPressEvent(self, event):
+        if self.hold and event.key() in (Qt.Key.Key_Down, Qt.Key.Key_Menu):
+            self.held.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def paintEvent(self,event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self.isChecked() or self.isDown() or self.underMouse() or self.hasFocus():
-            p.setPen(QPen(QColor('#77d7e6'),1) if self.isChecked() else Qt.PenStyle.NoPen)
+            p.setPen(QPen(QColor('#337280'),1.5) if self.isChecked() else Qt.PenStyle.NoPen)
             p.setBrush(QColor('#b8eef3') if self.isChecked() else QColor(120,160,200,25))
             p.drawRoundedRect(QRectF(self.rect()).adjusted(2,2,-2,-2),13,13)
+        if self.hasFocus():
+            p.setPen(QPen(QColor('#164b91'), 2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(QRectF(self.rect()).adjusted(3,3,-3,-3),12,12)
         if not self.isEnabled():
             p.setOpacity(.32)
         p.translate((self.width()-ICON)/2,(self.height()-ICON)/2)

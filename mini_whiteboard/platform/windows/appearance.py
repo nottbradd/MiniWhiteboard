@@ -2,6 +2,7 @@
 import ctypes as C
 from ctypes import wintypes as W
 import sys
+from functools import lru_cache
 
 from ...appearance import DisplayPolicy
 from . import native
@@ -30,9 +31,41 @@ def display_policy():
                          motion=bool(motion.value), high_contrast=bool(high.flags & 1))
 
 
-def capable(policy):
+class DisplayDevice(C.Structure):
+    _fields_ = [('cb', W.DWORD), ('name', W.WCHAR * 32), ('description', W.WCHAR * 128),
+                ('flags', W.DWORD), ('identifier', W.WCHAR * 128), ('key', W.WCHAR * 128)]
+
+
+@lru_cache(maxsize=16)
+def backdrop_display(name):
+    # These display drivers return success for a backdrop even when the entire
+    # material stays solid. Query the active display without reading the desktop.
+    if native.user32.GetSystemMetrics(0x1000):  # SM_REMOTESESSION
+        return False
+    enabled = W.BOOL()
+    composition = native.bind(C.WinDLL('dwmapi'), 'DwmIsCompositionEnabled', C.c_long, C.POINTER(W.BOOL))
+    if composition(C.byref(enabled)) < 0 or not enabled.value:
+        return False
+    enumerate_display = native.bind(native.user32, 'EnumDisplayDevicesW', W.BOOL,
+                                    W.LPCWSTR, W.DWORD, C.POINTER(DisplayDevice), W.DWORD)
+    index = 0
+    device = DisplayDevice()
+    device.cb = C.sizeof(device)
+    while enumerate_display(None, index, C.byref(device), 0):
+        index += 1
+        matches = device.name == name if name else device.flags & 4  # primary display
+        if not device.flags & 1 or not matches:
+            continue
+        unsupported = ('hyper-v video', 'basic display', 'remote display', 'basic render')
+        return not (device.flags & 0x06000008 or
+                    any(label in device.description.casefold() for label in unsupported))
+    return False
+
+
+def capable(policy, screen=None):
     return (native.IS_WINDOWS and sys.getwindowsversion().build >= 22621
-            and policy.transparency and not policy.high_contrast)
+            and policy.transparency and not policy.high_contrast
+            and backdrop_display(screen.name() if screen is not None else ''))
 
 
 class BackdropHost:

@@ -5,7 +5,7 @@ from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 from .platform import get_platform
-from .appearance import corner_radius, paint_surface
+from .appearance import corner_radius, is_glass, paint_surface
 from .geometry import Rect, large_enough
 from .settings import (BORDER, EDGE_GRIP, MIN_HEIGHT, MIN_WIDTH, PAPER,
                        RADIUS, SHADOW, TOP_STRIP, CANVAS_INSET, BORDER_WIDTH,
@@ -25,6 +25,7 @@ class BoardWindow(QWidget):
         self.desktop = platform.desktop
         self.name = name
         self.screenshot_surface = screenshot
+        self.capture_suspended = False
         self.setWindowTitle(name)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setMouseTracking(True)
@@ -48,6 +49,7 @@ class BoardWindow(QWidget):
         from .appearance import Emphasis
         self.display_policy = self.desktop.display_policy()
         self.native_glass = False
+        self.control_finish = 'White'
         self.emphasis = Emphasis(self)
         self._presented_theme = self.appearance_theme
         self.canvas.preferences.appearance_changed.connect(self.refresh_appearance)
@@ -60,7 +62,11 @@ class BoardWindow(QWidget):
         self._presented_theme = self.appearance_theme
         self.display_policy = self.desktop.display_policy()
         self.desktop.release_appearance(self)
-        self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() and not self.screenshot_surface else False
+        self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() else False
+        if self.screenshot_surface:
+            self.control_finish = self.desktop.available_finish(self.appearance_theme, self.display_policy, self.screen())
+        else:
+            self.control_finish = self.native_glass or ('Opaque' if is_glass(self.appearance_theme) else 'White')
         self.layout_children()
         self._region_key = None
         self.sync_shadow()
@@ -76,11 +82,12 @@ class BoardWindow(QWidget):
         return self.canvas.preferences.theme
 
     def corner_radius(self):
-        return corner_radius(self.paper_rect(), self.appearance_theme)
+        return corner_radius(self.paper_rect(), 'White' if self.screenshot_surface else self.appearance_theme)
 
     def event(self, event):
         result = super().event(event)
-        if event.type() in (QEvent.Type.WinIdChange,QEvent.Type.DevicePixelRatioChange) and hasattr(self, 'emphasis') and not self._closing:
+        if event.type() in (QEvent.Type.WinIdChange, QEvent.Type.DevicePixelRatioChange,
+                            QEvent.Type.ScreenChangeInternal) and hasattr(self, 'emphasis') and not self._closing:
             self.refresh_appearance()
         return result
 
@@ -172,13 +179,24 @@ class BoardWindow(QWidget):
         self.desktop.focus_window(self)
         (self.canvas or self).setFocus()
         self.activation_timer.start(0)
-        if self.appearance_theme == 'Glass':
+        if is_glass(self.appearance_theme):
             self.emphasis.start()
 
     def minimize_to_tray(self):
         self.prepare_hide()
         self.hide()
         self.minimized.emit(self)
+
+    def set_capture_suspended(self, suspended):
+        if self._closing or suspended == self.capture_suspended:
+            return
+        self.capture_suspended = suspended
+        self.minus.setVisible(not suspended)
+        self.remove.setVisible(not suspended)
+        if suspended:
+            self.canvas.stop_transient_ui()
+        else:
+            self.canvas.sync_tool_overlay()
 
     def prepare_hide(self):
         self.activation_timer.stop()
@@ -200,7 +218,7 @@ class BoardWindow(QWidget):
             self.activation_timer.start(0)
         else:
             self.desktop.show_without_activating(self)
-        if was_hidden and self.appearance_theme == 'Glass':
+        if was_hidden and is_glass(self.appearance_theme):
             self.emphasis.start()
         self.restored.emit(self)
 

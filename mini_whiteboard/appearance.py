@@ -1,7 +1,7 @@
 """Shared visual values; native compositor and accessibility policy stay in adapters."""
 from dataclasses import dataclass
 from PySide6.QtCore import QEasingCurve, QElapsedTimer, QPointF, QRectF, Qt, QTimer, QVariantAnimation
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainterPath, QPen, QRegion
+from PySide6.QtGui import QColor, QFont, QPen, QRegion
 
 ANIMATION_MS = 140
 ACCENT = '#2467f5'
@@ -17,6 +17,7 @@ UI_SECONDARY = '#4c5261'
 LIQUID = 'Liquid Glass'
 FROSTED = 'Frosted Glass'
 THEMES = ('White', LIQUID, FROSTED)
+OPAQUE = 'Opaque'
 
 
 def is_glass(theme):
@@ -49,56 +50,40 @@ class DisplayPolicy:
     high_contrast: bool = False
 
 
-def surface(theme, native_glass, policy, *, preview=False):
+def surface(theme, native_glass, policy, *, preview=False, popup=False):
     if not is_glass(theme) or policy.high_contrast:
         return QColor(WHITE)
-    color = QColor(GLASS_TINT if native_glass else GLASS_FALLBACK)
-    if policy.transparency and (native_glass or preview):
-        color.setAlpha(32 if preview else 30 if native_glass == LIQUID else 104)
-    return color
+    if not policy.transparency or (not native_glass and not preview):
+        return QColor(GLASS_FALLBACK)
+    tint = QColor(GLASS_TINT)
+    # Controls get their own legibility backing. Changing tint never moves ink
+    # or alters the radius/blur of the native optical material.
+    alpha = 194 if popup else 22 if native_glass == LIQUID else 66
+    tint.setAlpha(32 if preview else alpha)
+    return tint
 
 
 def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, emphasis=0, preview=False):
-    """A neutral backing, broad reflected light and one continuous optical edge.
-
-    The compositor supplies frost. These static gradients suggest a polished
-    curved edge without a texture, desktop readback or a continuously running timer.
-    """
+    """Paint the legibility backing and fine edge underneath Qt foreground content."""
     from .settings import BORDER, BORDER_WIDTH
     radius = corner_radius(rect, theme, popup=popup)
-    glass = is_glass(theme) and not policy.high_contrast
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(surface(theme, native_glass, policy, preview=preview))
+    painter.setBrush(surface(theme, native_glass, policy, preview=preview, popup=popup))
     painter.drawRoundedRect(rect, radius, radius)
-    if glass:
-        path = QPainterPath()
-        path.addRoundedRect(rect, radius, radius)
-        painter.save()
-        painter.setClipPath(path)
-        light = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        for stop, color in ((0, QColor(255,255,255,54)), (.24, QColor(255,255,255,9)),
-                            (.62, QColor(255,255,255,0)), (1, QColor(210,220,246,30))):
-            light.setColorAt(stop, color)
-        painter.fillRect(rect, light)
-        # A broad, very faint top reflection, independent of document content.
-        top = QLinearGradient(0, rect.top(), 0, rect.top()+min(54, rect.height()/3))
-        top.setColorAt(0, QColor(255,255,255,29))
-        top.setColorAt(1, QColor(255,255,255,0))
-        painter.fillRect(rect, top)
-        painter.restore()
-        edge = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        edge.setColorAt(0, QColor(255,255,255,244))
-        edge.setColorAt(.36, QColor(255,255,255,136))
-        edge.setColorAt(.7, QColor(220,231,255,120))
-        edge.setColorAt(1, QColor(255,255,255,222))
+    if is_glass(theme):
+        # AppKit renders the displaced background, specular rim and dispersion.
+        # Frost has a single quiet edge. The opaque material has no optical rim.
+        liquid = native_glass == LIQUID and policy.transparency and not policy.high_contrast
+        edge = (QColor(255, 255, 255, 102) if liquid else QColor(79, 93, 110, 69))
+        if policy.high_contrast:
+            edge = QColor(UI_INK)
+        elif preview:
+            edge = QColor(248, 252, 255, 225)
+        elif emphasis:
+            edge = QColor(63, 91, 129, round(69 + 58*emphasis))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        if emphasis:
-            # A brief light catch confined to the edge, beneath the fixed rim.
-            # The document is always painted at its normal opacity/position.
-            painter.setPen(QPen(QColor(255,255,255,round(85*emphasis)), 4.4))
-            painter.drawRoundedRect(rect.adjusted(2.2,2.2,-2.2,-2.2), radius-2.2, radius-2.2)
-        painter.setPen(QPen(edge, 1.35))
-        painter.drawRoundedRect(rect.adjusted(.7,.7,-.7,-.7), radius-.7, radius-.7)
+        painter.setPen(QPen(edge, 1))
+        painter.drawRoundedRect(rect.adjusted(.5, .5, -.5, -.5), max(0, radius-.5), max(0, radius-.5))
     elif popup:
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(QColor(BORDER), 1))

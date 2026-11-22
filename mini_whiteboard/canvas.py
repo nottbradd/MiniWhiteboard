@@ -169,6 +169,10 @@ class Canvas(EditingActions, QWidget):
     def sync_tool_overlay(self):
         if not hasattr(self, "editor"):
             return
+        if getattr(self.window(), 'capture_suspended', False):
+            if self.tool_overlay is not None:
+                self.tool_overlay.hide()
+            return
         frame = self.frame if self.tool in ("Select", "Shape", "Text") else None
         cursor = self.cursor_position if self.tool == "Eraser" else None
         marquee = self.marquee_rect()

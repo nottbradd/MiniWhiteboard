@@ -43,34 +43,37 @@ class Background(QWidget):
         base, line = ('#e7ecec', '#2e4755')
         if self.palette_name == 'dark':
             base, line = '#263543', '#dce9db'
+        if self.palette_name == 'neutral':
+            base, line = '#dfdfdf', '#202020'
         painter.fillRect(self.rect(), QColor(base))
         if self.palette_name == 'busy':
-            for x in range(-150, WIDTH + 50, 34):
+            for x in range(-150, self.width() + 50, 34):
                 painter.setPen(QPen(QColor('#a4babc'), 12))
-                painter.drawLine(x, 0, x + 150, HEIGHT)
-            for y in range(0, HEIGHT, 45):
+                painter.drawLine(x, 0, x + 150, self.height())
+            for y in range(0, self.height(), 45):
                 painter.setPen(QPen(QColor('#ced9cf'), 7))
-                painter.drawLine(0, y, WIDTH, y - 30)
+                painter.drawLine(0, y, self.width(), y - 30)
         if self.phase is not None:
             painter.setPen(QPen(QColor(line), 5))
             painter.drawLine(QPointF(0, line_y(0, self.phase)),
-                             QPointF(WIDTH, line_y(WIDTH, self.phase)))
+                             QPointF(self.width(), line_y(self.width(), self.phase)))
 
 
-def photograph(background, path):
+def photograph(background, path, area=None):
     QTest.qWait(450)
-    origin = background.mapToGlobal(QPoint())
+    origin = background.mapToGlobal(QPoint()) if area is None else area.topLeft()
+    width, height = (WIDTH, HEIGHT) if area is None else (area.width(), area.height())
     if sys.platform == 'darwin':
         subprocess.run(['/usr/sbin/screencapture', '-x',
-                        f'-R{origin.x()},{origin.y()},{WIDTH},{HEIGHT}', str(path)],
+                        f'-R{origin.x()},{origin.y()},{width},{height}', str(path)],
                        check=True, timeout=15)
     else:
         ratio = background.devicePixelRatioF()
         box = tuple(round(v * ratio) for v in (origin.x(), origin.y(),
-                                                origin.x() + WIDTH, origin.y() + HEIGHT))
+                                                origin.x() + width, origin.y() + height))
         ImageGrab.grab(bbox=box, include_layered_windows=True, all_screens=True).save(path)
     with Image.open(path) as image:
-        if image.width < WIDTH or max(image.convert('L').getextrema()) == 0:
+        if image.width < width or max(image.convert('L').getextrema()) == 0:
             raise RuntimeError('OS capture returned an empty or undersized image')
 
 
@@ -137,25 +140,17 @@ def main():
                   runner=os.getenv('ImageVersion'), samples={})
     try:
         modes = ['Uncovered', 'White', 'Frosted Glass', 'Liquid Glass']
-        if sys.platform == 'win32':
-            modes.append('Desktop acrylic')
         for theme in modes:
             name = theme.lower().split()[0]
             if theme != 'Uncovered':
-                if theme == 'Desktop acrylic':
-                    from .probe_acrylic import AcrylicHost
-                    board.desktop.release_appearance(board)
-                    board._backdrop = AcrylicHost(board)
-                    board._backdrop.sync(board)
-                else:
-                    preferences.set_theme(theme)
+                preferences.set_theme(theme)
                 if not board.isVisible():
                     board.place(bounds)
                 QTest.qWait(500)
             native = board.native_glass
             print(f'{theme}, adapter returned {native!r}', flush=True)
             record = report['samples'][theme] = dict(native=native, policy=vars(board.display_policy))
-            for palette in ('light', 'dark', 'busy'):
+            for palette in ('light', 'dark', 'busy', 'neutral'):
                 bg.palette_name = palette
                 for phase in (None, 0, 12):
                     bg.phase = phase

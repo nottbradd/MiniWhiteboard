@@ -180,6 +180,7 @@ class WhiteboardApplication:
         board.minimized.connect(self.remember_minimized)
         board.restored.connect(self.forget_hidden_board)
         self.boards.append(board)
+        self.capture.chrome_suspended.connect(board.set_capture_suspended)
         self.floating_tools.add_board(board)
         return board
 

@@ -3,7 +3,7 @@ from PySide6.QtCore import QEvent, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRegion
 from PySide6.QtWidgets import QLabel, QMenu, QWidgetAction
 
-from .appearance import Emphasis, corner_radius, interface_font, paint_surface
+from .appearance import Emphasis, corner_radius, interface_font, is_glass, paint_surface
 
 
 class Surface:
@@ -76,7 +76,7 @@ class Surface:
             self.desktop.configure_overlay(self, interactive=getattr(self,'interactive_surface',not bool(
                 self.windowFlags() & Qt.WindowType.WindowDoesNotAcceptFocus)))
         self.refresh_appearance()
-        if self.appearance_theme == 'Glass':
+        if is_glass(self.appearance_theme):
             self.emphasis.start()
 
     def hideEvent(self, event):
@@ -100,7 +100,8 @@ class Surface:
 
     def event(self, event):
         result = super().event(event)
-        if event.type() in (QEvent.Type.WinIdChange,QEvent.Type.DevicePixelRatioChange) and hasattr(self, 'preferences') and self.isVisible():
+        if event.type() in (QEvent.Type.WinIdChange, QEvent.Type.DevicePixelRatioChange,
+                            QEvent.Type.ScreenChangeInternal) and hasattr(self, 'preferences') and self.isVisible():
             self.refresh_appearance()
         return result
 
@@ -135,7 +136,7 @@ class SurfaceMenu(Surface, QMenu):
                 'QMenu { background:transparent; border:0; padding:14px; color:#181b24; }'
                 'QMenu::item { background:transparent; min-height:20px; padding:10px 28px 10px 18px; border-radius:10px; }'
                 'QMenu::item:checked { background:rgba(255,255,255,100); }'
-                'QMenu::item:selected { background:rgba(228,238,255,205); color:#123eae; }'
+                'QMenu::item:selected { background:#dce9fb; color:#123eae; border:2px solid #164b91; }'
                 'QMenu::item:disabled { color:#616775; }'
                 'QMenu::separator { height:1px; background:rgba(90,105,130,35); margin:9px 6px; }'
                 'QMenu::indicator { width:0; height:0; }')

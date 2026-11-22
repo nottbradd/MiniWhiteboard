@@ -18,6 +18,17 @@ class MacDesktop(QtDesktop):
     shadow_margin = 0
     paints_shadow = False
 
+    def available_finish(self, requested, policy, screen=None):
+        import AppKit
+        from ...appearance import FROSTED, LIQUID, OPAQUE
+        if requested == 'White':
+            return requested
+        if policy.high_contrast or not policy.transparency:
+            return OPAQUE
+        if requested == LIQUID and getattr(AppKit, 'NSGlassEffectView', None) is not None:
+            return LIQUID
+        return FROSTED
+
     def display_policy(self):
         import AppKit
         from ...appearance import DisplayPolicy
@@ -29,7 +40,7 @@ class MacDesktop(QtDesktop):
 
     def apply_appearance(self, board):
         import AppKit
-        from ...appearance import FROSTED, LIQUID, is_glass
+        from ...appearance import FROSTED, LIQUID
         if getattr(board, '_appearance_observer', None) is None:
             from Foundation import NSOperationQueue
             def policy_changed(_notification):
@@ -39,39 +50,40 @@ class MacDesktop(QtDesktop):
             board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
                 AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
                 NSOperationQueue.mainQueue(), policy_changed)
-        if not is_glass(board.appearance_theme) or not board.display_policy.transparency or board.display_policy.high_contrast:
-            record = getattr(board, '_visual_effect', None)
-            if record is not None:
-                record[1].removeFromSuperview()
-                board._visual_effect = None
+        finish = self.available_finish(board.appearance_theme, board.display_policy)
+        if getattr(board, 'screenshot_surface', False) or finish not in (LIQUID, FROSTED):
+            self.remove_material(board)
             return False
+        record = getattr(board, '_visual_effect', None)
         try:
-            window = native_window(board)
-            content = window.contentView()
-            record = getattr(board, '_visual_effect', None)
-            if record is not None and record[0] != content:
-                self.release_appearance(board)
+            content = native_window(board).contentView()
+            parent = content.superview()
+            if record is not None and (record[0] != content or record[2] != parent):
+                self.remove_material(board)
                 record = None
-            if record is None:
-                parent = content.superview()
-                if parent is None:
-                    return False
-                glass_class = getattr(AppKit, 'NSGlassEffectView', None)
-                finish = FROSTED
-                effect = None
-                if board.appearance_theme == LIQUID and glass_class is not None:
-                    try:
-                        effect = glass_class.alloc().initWithFrame_(content.frame())
-                        effect.setStyle_(AppKit.NSGlassEffectViewStyleClear)
-                        effect.setCornerRadius_(board.corner_radius())
-                        finish = LIQUID
-                    except (AttributeError, ValueError, RuntimeError):
-                        effect = None
-                if effect is None:
+            if parent is None:
+                return False
+            if record is not None:
+                self.sync_material(board)
+                return board._native_finish
+        except (AttributeError, RuntimeError, ValueError):
+            self.remove_material(board)
+            return False
+        # Failure to install one native view can still leave the other material
+        # available. Keep the accessibility observer through either failure.
+        for candidate in ((LIQUID, FROSTED) if finish == LIQUID else (FROSTED,)):
+            effect = None
+            try:
+                if candidate == LIQUID:
+                    effect = AppKit.NSGlassEffectView.alloc().initWithFrame_(content.frame())
+                    effect.setStyle_(AppKit.NSGlassEffectViewStyleClear)
+                    effect.setCornerRadius_(board.corner_radius())
+                else:
                     effect = AppKit.NSVisualEffectView.alloc().initWithFrame_(content.frame())
                     effect.setMaterial_(AppKit.NSVisualEffectMaterialPopover)
                     effect.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
                     effect.setState_(AppKit.NSVisualEffectStateActive)
+                    effect.setAlphaValue_(0.77)
                 effect.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
                 effect.setAutoresizingMask_(AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
                 effect.setWantsLayer_(True)
@@ -79,12 +91,14 @@ class MacDesktop(QtDesktop):
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
-                board._native_finish = finish
-            self.sync_material(board)
-            return board._native_finish
-        except (AttributeError, RuntimeError, ValueError):
-            self.release_appearance(board)
-            return False
+                board._native_finish = candidate
+                self.sync_material(board)
+                return candidate
+            except (AttributeError, RuntimeError, ValueError):
+                if effect is not None:
+                    effect.removeFromSuperview()
+                board._visual_effect = None
+        return False
 
     def sync_material(self, surface):
         record = getattr(surface, '_visual_effect', None)
@@ -96,14 +110,19 @@ class MacDesktop(QtDesktop):
         effect.setFrame_(((frame.origin.x+paper.left(),
                            frame.origin.y+bounds.size.height-paper.bottom()),
                           (paper.width(), paper.height())))
+        if getattr(surface, '_native_finish', None) == 'Liquid Glass':
+            effect.setCornerRadius_(surface.corner_radius())
         effect.layer().setCornerRadius_(surface.corner_radius())
         effect.layer().setMasksToBounds_(True)
 
-    def release_appearance(self, board):
+    def remove_material(self, board):
         record = getattr(board, '_visual_effect', None)
         if record is not None:
             record[1].removeFromSuperview()
             board._visual_effect = None
+
+    def release_appearance(self, board):
+        self.remove_material(board)
         observer = getattr(board, '_appearance_observer', None)
         if observer is not None:
             import AppKit

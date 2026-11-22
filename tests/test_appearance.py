@@ -39,7 +39,7 @@ class AppearanceTests(QtCase):
         workspace.accessibilityDisplayShouldReduceTransparency.return_value = True
         appkit = SimpleNamespace(NSWorkspace=SimpleNamespace(sharedWorkspace=lambda: workspace),
             NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification='policy',
-            NSVisualEffectView=MagicMock(), NSVisualEffectMaterialUnderWindowBackground=1,
+            NSVisualEffectView=MagicMock(), NSVisualEffectMaterialPopover=1,
             NSVisualEffectBlendingModeBehindWindow=0, NSVisualEffectStateActive=1,
             NSAppearance=MagicMock(), NSAppearanceNameAqua='Aqua', NSViewWidthSizable=2,
             NSViewHeightSizable=4, NSWindowBelow=-1, NSFloatingWindowLevel=3,
@@ -105,7 +105,7 @@ class AppearanceTests(QtCase):
             self.assertEqual(board.canvas.document.history, original_history)
             self.assertEqual(rendered_image(original), copied_before)
             fresh = SnapPreferences(settings=QSettings(str(Path(directory)/'settings.ini'), QSettings.Format.IniFormat))
-            self.assertEqual(fresh.theme, 'Glass')
+            self.assertEqual(fresh.theme, 'Frosted Glass')
             other = BoardWindow('New', fresh, platform)
             self.widgets.append(other)
             other.show()

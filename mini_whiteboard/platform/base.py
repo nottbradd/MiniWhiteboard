@@ -52,6 +52,10 @@ class QtDesktop:
     def apply_appearance(self, board):
         return False
 
+    def available_finish(self, requested, policy, screen=None):
+        from ..appearance import OPAQUE
+        return 'White' if requested == 'White' else OPAQUE
+
     def release_appearance(self, board):
         pass
 

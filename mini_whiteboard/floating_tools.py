@@ -64,7 +64,7 @@ class ToolSurface(Surface,QFrame):
 class ToolPalette(ToolSurface):
     def __init__(self, manager, board):
         super().__init__(manager,board)
-        self.setWindowFlag(Qt.WindowType.WindowDoesNotAcceptFocus)
+        # Show without activation. F6 can still deliberately give this window focus.
         self.buttons = {}
         self.grip = ToolButton('Grip',self,grip=True)
         self.grip.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -202,8 +202,9 @@ class Options(ToolSurface):
         b.setChecked(checked)
         b.setEnabled(enabled)
         b.setStyleSheet('QToolButton { color:#202124; background:transparent; border:1px solid transparent; border-radius:10px; padding:2px; }'
-                        'QToolButton:checked { background:#b8eef3; border-color:#77d7e6; }'
-                        'QToolButton:hover, QToolButton:focus { background:rgba(120,160,200,35); border-color:#8aa2b8; }'
+                        'QToolButton:checked { background:#b8eef3; border-color:#337280; }'
+                        'QToolButton:hover { background:rgba(120,160,200,35); border-color:#667889; }'
+                        'QToolButton:focus { border:2px solid #164b91; }'
                         'QToolButton:disabled { color:#9b9da1; }')
         b.clicked.connect(lambda: self.manager.option_action(fn))
         return b
@@ -448,6 +449,17 @@ class FloatingTools(QObject):
         if self.closed:
             return False
         kind = event.type()
+        if (kind == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_F6
+                and self.palette is not None and self.palette.isVisible() and self.board is not None
+                and self.board.canvas.editor is None):
+            if watched is self.board.canvas:
+                self.palette.activateWindow()
+                button = self.palette.buttons.get(self.board.canvas.tool, self.palette.buttons['Draw'])
+                button.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                return True
+            if isinstance(watched, QWidget) and watched.window() in (self.palette, self.options):
+                self.close_options(refocus=True)
+                return True
         if watched in self.boards:
             if kind == QEvent.Type.WindowActivate:
                 self.schedule()
