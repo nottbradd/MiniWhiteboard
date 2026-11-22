@@ -25,6 +25,35 @@ def global_rect(widget):
     return QRect(widget.mapToGlobal(QPoint()), widget.size())
 
 
+def activate_owned_board(board):
+    board.activate_explicitly()
+    if sys.platform != 'win32':
+        return
+    from ctypes import wintypes as W
+    from mini_whiteboard.platform.windows import native
+    QTest.qWait(70)
+    u = native.user32
+    foreground = native.bind(u, 'GetForegroundWindow', W.HWND)
+    if foreground() == int(board.winId()):
+        return
+    # An interactive Windows desktop can reject SetForegroundWindow on initial
+    # launch. Activate only the test board, with one click on its empty top strip.
+    paper = board.physical_paper_rect()
+    target = round(paper.x+paper.width/2),round(paper.y+4*board.devicePixelRatioF())
+    lookup = native.bind(u,'WindowFromPoint',W.HWND,W.POINT)
+    root = native.bind(u,'GetAncestor',W.HWND,W.HWND,W.UINT)
+    if root(lookup(W.POINT(*target)),2) != int(board.winId()):
+        raise RuntimeError('Another window covers the board activation target.')
+    cursor = native.cursor_position()
+    move = native.bind(u,'SetCursorPos',W.BOOL,W.INT,W.INT)
+    mouse = native.bind(u,'mouse_event',None,W.DWORD,W.DWORD,W.DWORD,W.DWORD,W.WPARAM)
+    move(*target)
+    mouse(2,0,0,0,0)
+    mouse(4,0,0,0,0)
+    QTest.qWait(75)
+    if native.cursor_position()==target:
+        move(*cursor)
+
 def luminance(rgb):
     value = np.asarray(rgb, dtype=float)/255
     linear = np.where(value <= .04045, value/12.92, ((value+.055)/1.055)**2.4)
@@ -91,16 +120,20 @@ def run(folder):
                 board.refresh_appearance()
             else:
                 prefs.set_theme(mode)
-            board.activate_explicitly()
+            activate_owned_board(board)
             QTest.qWait(300)
             manager.refresh()
             palette = manager.palette
-            if palette is None:
+            if palette is None or not palette.isVisible():
                 raise RuntimeError('The active board did not show its floating tools')
             palette.refresh_appearance()
-            manager.open_options('Draw')
+            QTest.keyClick(board.canvas,Qt.Key.Key_F6)
+            QTest.qWait(80)
+            QTest.keyClick(palette.buttons['Draw'],Qt.Key.Key_Down)
             QTest.qWait(240)
             options = manager.options
+            if options is None or not options.isVisible() or not palette.isVisible():
+                raise RuntimeError('Toolbar or popover disappeared during keyboard opening.')
             area = global_rect(board).united(global_rect(palette)).united(global_rect(options))
             area = area.adjusted(-12,-12,12,12).intersected(work)
             name = mode.lower().split()[0]
@@ -215,6 +248,9 @@ def run(folder):
         if (not observed['text'] or min(observed['text'].values()) < 4.5 or
                 min(observed['tool_icon'], observed['selected_ring']) < 3):
             raise RuntimeError(f'Insufficient measured contrast in {scene}: {observed}')
+    for mode, visibility in report.get('native_tool_visibility', {}).items():
+        if not visibility['target_is_toolbar']:
+            raise RuntimeError(f'Toolbar was occluded in the {mode} photographs.')
     if report.get('focus_contrast',0) < 3:
         raise RuntimeError('Keyboard focus missed its contrast target')
 

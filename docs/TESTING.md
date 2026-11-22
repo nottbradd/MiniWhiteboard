@@ -408,15 +408,25 @@ still needs the checks below. Capture can request Screen Recording permission.
   geometry, selection, content/history and normal clicking afterward.
 - Hide active text, previews, transforms, help, palettes, menus and animations.
   No late popup, shadow, native host, mouse grab or activation timer may remain.
-- White is the first-launch default. Persist Glass, switch existing/new boards and
-  compare source PNG bytes, document state, masks and clipboard artwork output.
-- Verify actual Windows frost with an owned changing bright/dark/busy background;
-  successful API calls or offscreen renders alone do not prove blur. Check native
-  failure/unsupported-system fallback, reduced transparency/motion and high contrast.
-- Use `scripts.appearance_check` for actual Windows White/Glass captures on owned
-  light/dark/busy backgrounds, menus, palette, help, screenshot opacity, rounded
-  input regions and repeated resource cleanup. Inspect the captures personally;
-  successful DWM calls alone cannot establish appearance.
+- Start with fresh preferences and check that White is selected. Load a saved
+  `Glass` preference and check that it becomes Frosted Glass. Switch all three
+  choices on an open board, create a second board, then relaunch. Toggle system
+  transparency and high contrast and check the effective finish in Appearance.
+- On a physical Windows 11 display with transparency enabled, run
+  `python -m scripts.glass_optics verification/optics` and
+  `python -m scripts.glass_reel_review verification/lines` with Pillow and NumPy
+  available in the test environment. The independent background window moves a
+  line behind a stationary board. Compare the width and position with the uncovered
+  line. Compare the colour channels after subtracting the no-line frame so a
+  permanently tinted border cannot pass as refraction. Record the OS build, GPU,
+  driver, scale and whether the desktop is virtual or physical.
+- Run `python -m scripts.glass_controls_review verification/controls` for the
+  toolbar, keyboard focus, menus and popover contrast on light, dark and busy scenes.
+  On Windows, `python -m scripts.windows_glass_content_check verification/content`
+  checks screenshot-board pixels, artwork and clipboard rendering, Hide/Restore
+  and fallback recovery. `scripts.surface_input_check --private-shortcuts` lets
+  the cross-process input check run alongside the installed app using isolated
+  test shortcuts. Track physical stylus and mixed-DPI checks separately.
 - Test both persisted Windows H choices. When the default conflicts, run
   `scripts.hotkey_workflow_check --hide-shortcut shift`. It chooses the real menu
   option, verifies its saved value and dispatches the shipped binding with native

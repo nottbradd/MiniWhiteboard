@@ -33,6 +33,40 @@ class AppearanceTests(QtCase):
             self.assertFalse(appearance.capable(DisplayPolicy(high_contrast=True),screen))
             display.assert_not_called()
 
+    def test_windows_frost_matches_the_adapter_attached_to_each_monitor(self):
+        from mini_whiteboard.geometry import Rect
+        from mini_whiteboard.platform.windows import appearance
+
+        monitors = [SimpleNamespace(name='DISPLAY-A', rect=Rect(0, 0, 1920, 1080)),
+                    SimpleNamespace(name='DISPLAY-B', rect=Rect(-2560, 80, 2560, 1440))]
+        adapters = [('DISPLAY-A', 'Hyper-V Video', 5), ('DISPLAY-B', 'NVIDIA', 1)]
+
+        def enabled(flag):
+            flag._obj.value = True
+            return 0
+
+        def enumerate_display(_name, index, info, _flags):
+            if index == len(adapters):
+                return False
+            info._obj.name, info._obj.description, info._obj.flags = adapters[index]
+            return True
+
+        def bind(_library, method, *_args):
+            return {'DwmIsCompositionEnabled': enabled, 'EnumDisplayDevicesW': enumerate_display}[method]
+
+        query = appearance.backdrop_display
+        query.cache_clear()
+        self.addCleanup(query.cache_clear)
+        with (patch.object(appearance.native, 'monitors', return_value=monitors),
+              patch.object(appearance.native, 'user32', create=True,
+                           new=SimpleNamespace(GetSystemMetrics=lambda _: 0)),
+              patch.object(appearance.native, 'bind', create=True, side_effect=bind),
+              patch.object(appearance.C, 'WinDLL', create=True)):
+            self.assertTrue(query((-2560, 80)))
+            self.assertFalse(query((0, 0)))
+            self.assertFalse(query((40, 20)))
+            self.assertFalse(query())
+
     def test_mac_accessibility_fallback_recovers_when_transparency_is_reenabled(self):
         from mini_whiteboard.platform.macos.desktop import MacDesktop
         callbacks = {}

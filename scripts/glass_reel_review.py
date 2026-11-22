@@ -6,7 +6,6 @@ from pathlib import Path
 import platform
 import sys
 
-from PySide6.QtCore import QPoint
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
@@ -40,7 +39,7 @@ def take_frame(background, path):
     photograph(background,path,settle_ms=0)
 
 
-def capture_scene(bg, folder, name, *, motion=False):
+def capture_scene(bg, folder, name):
     bg.palette_name = 'reel'
     for phase in (None, 0, 12):
         bg.phase = phase
@@ -50,7 +49,7 @@ def capture_scene(bg, folder, name, *, motion=False):
               'channels': [channel_separation(folder, name, p, 'reel') for p in (0,12)]}
     if any(phase['exterior']['columns'] != 30 for phase in result['diagonal']):
         raise RuntimeError('The uncovered part of the moving line was missing.')
-    phases = list(range(-12,13,2)) if motion else [-4,0,4]
+    phases = range(-12, 13, 2)
     bg.grazing = True
     for phase in [None,*phases]:
         bg.phase = phase
@@ -60,28 +59,27 @@ def capture_scene(bg, folder, name, *, motion=False):
     return result
 
 
-def mac_trials(board, bg, folder, report):
-    import AppKit
-    if board.native_glass != LIQUID or board._glass_rim is None:
-        raise RuntimeError('The native AppKit liquid material is required for the rim comparison.')
-    rim = board._glass_rim
-    # Parameters affect only the additional native glass view under Qt artwork.
-    # Each scene includes its own stationary no-line frame for colour measurements.
-    for name,inset,width,alpha,tint in (('reference-blue',2.8,8.0,.78,(.03,.42,.88,.92)),):
-        rim.inset,rim.band,rim.key = inset,width,None
-        rim.view.setAlphaValue_(alpha)
-        rim.view.setTintColor_(AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(*tint))
-        board.desktop.sync_material(board)
-        QTest.qWait(180)
-        report['samples'][name] = capture_scene(bg,folder,name)
-    from .mac_rim_samples import paired_samples
-    paired_samples(board,bg,folder,report,capture_scene)
+def compare_with_uncovered(report):
+    uncovered = report['samples']['uncovered']['diagonal']
+    for name, sample in report['samples'].items():
+        for reference, observed in zip(uncovered, sample['diagonal']):
+            outside = dict(reference['rim_samples'])
+            matched = [abs(offset - outside[x]) for x, offset in observed['rim_samples'] if x in outside]
+            observed['rim_peak_vs_uncovered'] = round(max(matched), 2) if matched else None
+    if report['native']['liquid'] == LIQUID:
+        # Static highlights are absent from the difference image. Require a
+        # change at the native rim in both poses and a channel split in motion.
+        liquid = report['samples']['liquid']
+        for pose in liquid['diagonal']:
+            if (pose['rim_peak_vs_uncovered'] or 0) < 1.5:
+                raise RuntimeError('Liquid rim did not move the line at both positions.')
+        if max(row['rim_max'] or 0 for row in liquid['channels']) < .45:
+            raise RuntimeError('Moving neutral line did not separate into colours at the rim.')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output',type=Path)
-    parser.add_argument('--mac-trials',action='store_true')
     args = parser.parse_args()
     folder = args.output
     folder.mkdir(parents=True,exist_ok=True)
@@ -103,9 +101,8 @@ def main():
                     board.place(bounds)
                 QTest.qWait(300)
                 report['native'][name] = board.native_glass or ('White' if theme=='White' else 'Opaque')
-            report['samples'][name] = capture_scene(bg,folder,name,motion=not args.mac_trials)
-        if args.mac_trials:
-            mac_trials(board,bg,folder,report)
+            report['samples'][name] = capture_scene(bg, folder, name)
+        compare_with_uncovered(report)
     finally:
         (folder/'reel.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
         board.close()

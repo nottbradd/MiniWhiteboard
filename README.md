@@ -285,11 +285,13 @@ rim. Frosted Glass uses an evenly diffused backdrop. Earlier supported Mac
 versions use Frosted Glass for either glass choice. Mac remains a Universal2
 Preview for macOS 14 and later. The system draws native Mac menus.
 
-On Windows, both glass choices request Frosted Glass on compatible Windows 11
-displays. Windows 10, remote sessions, the tested Hyper-V display driver and
-systems with transparency disabled show an opaque surface. The Appearance menu
-names the active fallback. Your preference survives changes to display or
-accessibility settings.
+On compatible Windows 11 displays, Frosted Glass softens the live desktop behind
+the board. It was verified with a moving line on an NVIDIA RTX 5060 Ti. On that
+desktop, Windows prevented the compositor from shifting the backdrop for a Liquid
+rim. The menu shows **Liquid Glass · uses Frosted Glass** when that fallback is active.
+Windows 10, remote sessions, the tested Hyper-V display driver, high contrast and
+disabled transparency use an opaque surface. The saved choice is restored when the
+display supports it again.
 
 Floating tools stay optional under **Settings → Show floating tools**. From a
 focused canvas, **F6** focuses the toolbar, **Tab** moves between tools, **Down**
