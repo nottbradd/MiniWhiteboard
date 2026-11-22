@@ -183,7 +183,9 @@ class ToolButton(QToolButton):
         return super().event(event)
 
     def leaveEvent(self,event):
-        if self.pointer and not self.grip:
+        # Windows can move the mouse hover independently of a stationary pen.
+        # Pen and touch gestures check their own positions in move_pointer().
+        if self.pointer == 'mouse' and not self.grip:
             self.timer.stop()
             self.consumed = True
         super().leaveEvent(event)
