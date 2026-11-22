@@ -39,10 +39,10 @@ def paired_samples(board, background, folder, report, capture):
     gold=(.99,.49,.015,.91)
     from PySide6.QtTest import QTest
     for name,config in (
-        ('pair-a',[(2.5,3,5,.90,gold),(-3,3,5,.40,blue)]),
-        ('pair-b',[(-4,2,5.5,.91,gold),(1.6,2,5.5,.49,blue)]),
-        ('pair-c',[(1.0,2,5,.95,blue),(-6,2,5,.52,gold)]),
-        ('pair-d',[(-6,2.8,4.2,.94,blue),(2.2,2.8,4.2,.52,gold)]),
+        ('thin-a',[(2.6,3,3.3,.93,gold),(-3,3,3.3,.49,blue)]),
+        ('thin-b',[(1.8,2,3.6,.90,(.99,.47,.09,.92)),(-4,2,3.6,.50,(.03,.46,.83,.95))]),
+        ('thin-c',[(-4,1.9,3.2,.91,gold),(1.5,1.9,3.2,.48,blue)]),
+        ('thin-d',[(2.0,2.2,2.9,.83,(.90,.32,.11,.90)),(-3.5,2.2,2.9,.48,(.04,.55,.82,.92))]),
     ):
         views=paired_trial(board,config)
         try:
