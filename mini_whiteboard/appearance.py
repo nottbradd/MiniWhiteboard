@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from PySide6.QtCore import QEasingCurve, QElapsedTimer, QPointF, QRectF, Qt, QTimer, QVariantAnimation
 from PySide6.QtGui import QColor, QFont, QPen, QRegion
 
-ANIMATION_MS = 140
+ANIMATION_MS = 110
 ACCENT = '#2467f5'
 GLASS_TINT = '#f5f5f7'
 GLASS_FALLBACK = '#edf0f5'

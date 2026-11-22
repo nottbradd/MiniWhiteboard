@@ -198,6 +198,11 @@ class BoardWindow(QWidget):
         self.capture_suspended = suspended
         self.minus.setVisible(not suspended)
         self.remove.setVisible(not suspended)
+        editor = self.canvas.editor_overlay
+        if editor is not None:
+            editor.proxy.capture_suspended = suspended
+            editor.viewport().update()
+            self.canvas.update()
         if suspended:
             self.canvas.stop_transient_ui()
         else:

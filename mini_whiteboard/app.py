@@ -61,7 +61,7 @@ class WhiteboardApplication:
         self.capture.captured.connect(self.create_screenshot_board)
         self.capture.message.connect(self.notify)
         self.capture.permission_required.connect(self.capture_permission_error)
-        self.capture.chrome_suspended.connect(self.floating_tools.set_capture_suspended)
+        self.capture.chrome_suspended.connect(self.suspend_capture_chrome)
         self.rebuild_menu()
         self.tray.show()
         try:
@@ -93,6 +93,11 @@ class WhiteboardApplication:
         self.notify('A global shortcut is unavailable. Working shortcuts remain registered. '
                     f'Open {self.platform.shortcuts.status_location} → Settings → Hotkeys to choose another chord.\n{detail}')
         self.update_shortcut_labels()
+
+    def suspend_capture_chrome(self, suspended):
+        if suspended:
+            self.menu.close()
+        self.floating_tools.set_capture_suspended(suspended)
 
     def update_shortcut_labels(self):
         policy = self.platform.shortcuts

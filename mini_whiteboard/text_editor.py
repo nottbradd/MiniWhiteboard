@@ -99,8 +99,11 @@ class MaskedEditorProxy(QGraphicsProxyWidget):
     def __init__(self, obj):
         super().__init__()
         self.obj = obj
+        self.capture_suspended = False
 
     def paint(self, painter, option, widget=None):
+        if self.capture_suspended:
+            return
         painter.save()
         if self.obj.erasures:
             clip = QPainterPath()

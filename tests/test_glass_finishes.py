@@ -9,6 +9,7 @@ from PySide6.QtTest import QTest
 from mini_whiteboard.appearance import DisplayPolicy, FROSTED, LIQUID, THEMES, surface
 from mini_whiteboard.board import BoardWindow
 from mini_whiteboard.clipboard import rendered_image
+from mini_whiteboard.document import Text
 from mini_whiteboard.floating_tools import FloatingTools
 from mini_whiteboard.images import from_image
 from mini_whiteboard.snapping import SnapPreferences
@@ -105,6 +106,26 @@ class FinishTests(QtCase):
         QTest.keyClick(manager.options, Qt.Key.Key_Escape)
         self.assertIsNone(manager.options)
         self.assertTrue(wait_until(board.canvas.hasFocus, 600))
+
+    def test_capture_keeps_editor_buffer_selection_and_undo(self):
+        board = BoardWindow('Edit during capture', SnapPreferences(), fake_platform())
+        self.widgets.append(board)
+        board.resize(420,240)
+        board.show()
+        board.canvas.begin_editing(Text((15,20),'Draft'))
+        editor = board.canvas.editor
+        QTest.keyClicks(editor, ' text')
+        editor.selectAll()
+        selected = editor.textCursor().selectedText()
+        board.set_capture_suspended(True)
+        self.assertTrue(board.canvas.editor_overlay.proxy.capture_suspended)
+        self.assertFalse(board.grab().isNull())
+        board.set_capture_suspended(False)
+        self.assertFalse(board.canvas.editor_overlay.proxy.capture_suspended)
+        self.assertIs(board.canvas.editor, editor)
+        self.assertEqual(editor.textCursor().selectedText(), selected)
+        self.assertTrue(editor.document().isUndoAvailable())
+        self.assertEqual(board.canvas.document.history, [])
 
     def test_frosted_fallback_uses_frosted_tint_and_accessibility_is_opaque(self):
         for popup in (False, True):

@@ -487,6 +487,11 @@ class Canvas(EditingActions, QWidget):
             paint(self.preview, self.live_stroke.bounds, self.live_stroke.paint_data())
         elif self.preview is not None:
             paint(self.preview, rendering.bounds(self.preview))
+        if self.editor is not None and getattr(self.window(), 'capture_suspended', False):
+            # Capture visible text through the document painter while Qt keeps
+            # the editor, insertion point, selection and its undo stack intact.
+            draft = replace(self.editing_object, text=self.editor.toPlainText())
+            paint(draft, rendering.bounds(draft))
 
     @staticmethod
     def position(event):

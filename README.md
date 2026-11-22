@@ -294,7 +294,7 @@ accessibility settings.
 Floating tools stay optional under **Settings → Show floating tools**. From a
 focused canvas, **F6** focuses the toolbar, **Tab** moves between tools, **Down**
 opens tool options and **Escape** returns to drawing. Reduced motion disables the
-140 ms edge emphasis. A screenshot board keeps its original image and clipping
+110 ms edge emphasis. A screenshot board keeps its original image and clipping
 in every finish. The theme uses the native compositor without screen recording.
 
 <details>

@@ -2,15 +2,16 @@
 
 
 class GlassRim:
-    def __init__(self, parent, base):
+    def __init__(self, parent, base, *, compact=False):
         import AppKit
         import Quartz
+        self.inset, self.band = (.9, 2.4) if compact else (1.6, 4.5)
         self.view = AppKit.NSGlassEffectView.alloc().initWithFrame_(base.frame())
         self.view.setStyle_(AppKit.NSGlassEffectViewStyleClear)
         self.view.setAppearance_(base.appearance())
         self.view.setTintColor_(AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(.20,.60,.80,.52))
         self.view.setWantsLayer_(True)
-        self.view.setAlphaValue_(0.25)
+        self.view.setAlphaValue_(0.14 if compact else 0.25)
         self.mask = Quartz.CAShapeLayer.layer()
         self.mask.setFillRule_(Quartz.kCAFillRuleEvenOdd)
         self.view.layer().setMask_(self.mask)
@@ -25,13 +26,14 @@ class GlassRim:
         width, height = frame.size.width, frame.size.height
         if min(width,height) < 12 or radius < 5:
             self.view.setHidden_(True)
+            self.key = None
             return
         self.view.setHidden_(False)
         self.key = key
         Quartz.CATransaction.begin()
         try:
             Quartz.CATransaction.setDisableActions_(True)
-            inset, band = 1.6, 4.5
+            inset, band = self.inset, self.band
             width, height = width-2*inset, height-2*inset
             radius -= inset
             self.view.setFrame_(((frame.origin.x+inset,frame.origin.y+inset),(width,height)))

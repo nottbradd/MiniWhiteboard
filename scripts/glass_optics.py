@@ -185,6 +185,29 @@ def measure(folder, name, palette, phase):
                 rim_samples=[(x, round(d, 2)) for x,d,_,_ in columns if RIGHT-20 <= x < RIGHT])
 
 
+def channel_separation(folder, name, phase):
+    """Compare channel centroids of the moving neutral line after subtracting the static rim."""
+    import numpy as np
+    def rgb(suffix):
+        with Image.open(folder/f'neutral-{name}-{suffix}.png') as im:
+            return np.array(im.convert('RGB').resize((WIDTH,HEIGHT),Image.Resampling.BOX), dtype=float)
+    change = np.abs(rgb(phase)-rgb('bare'))
+    def separation(xs):
+        offsets = []
+        for x in xs:
+            y = round(line_y(x, phase))
+            ys = np.arange(y-25,y+26)
+            signal = change[ys,x,:]
+            if min(signal.max(axis=0)) < 5:
+                continue
+            weights = np.maximum(0,signal-.04*signal.max(axis=0))
+            means = np.average(ys, weights=weights[:,0])-np.average(ys, weights=weights[:,2])
+            offsets.append(abs(float(means)))
+        return round(max(offsets),3) if offsets else None
+    return dict(centre_max=separation(range(RIGHT-100, RIGHT-50)),
+                rim_max=separation(range(RIGHT-16, RIGHT)), exterior_max=separation(range(RIGHT+10, RIGHT+32)))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
@@ -234,7 +257,22 @@ def main():
                 suffix = 'bare' if phase is None else str(phase)
                 photograph(bg, folder/f'rim-{name}-{suffix}.png')
             bg.grazing = False
+            record['neutral_red_blue_displacement'] = [channel_separation(folder,name,k) for k in (0,12)]
             print(json.dumps(record['light'][0]), flush=True)
+        raw = report['samples']['Uncovered']['light']
+        assert all(row['centre']['columns'] == 110 and row['exterior']['signal'] > 50 for row in raw)
+        assert all(row['centre']['columns'] == 0 for row in report['samples']['White']['light'])
+        for theme in ('Frosted Glass', 'Liquid Glass'):
+            record = report['samples'][theme]
+            for phase in record['light']:
+                assert phase['exterior']['columns'] == 30
+                if not record['native']:
+                    assert phase['centre']['columns'] == 0
+                elif record['native'] == 'Liquid Glass':
+                    assert phase['centre']['signal'] > 15
+                    assert max(abs(d-raw[0]['centre']['offset']) for _,d in phase['rim_samples']) > 1.5
+                else:
+                    assert phase['centre'].get('width_sd',0) > raw[0]['centre']['width_sd']*1.5
     finally:
         (folder/'optics.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
         board.close()

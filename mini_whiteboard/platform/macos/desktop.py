@@ -92,10 +92,10 @@ class MacDesktop(QtDesktop):
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
                 board._native_finish = candidate
-                if candidate == LIQUID and getattr(board, 'canvas', None) is not None:
+                if candidate == LIQUID:
                     from .glass_rim import GlassRim
                     try:
-                        board._glass_rim = GlassRim(parent, effect)
+                        board._glass_rim = GlassRim(parent, effect, compact=not hasattr(board, 'canvas'))
                     except (AttributeError, ValueError, RuntimeError):
                         board._glass_rim = None
                 self.sync_material(board)
