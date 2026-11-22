@@ -25,14 +25,16 @@ from mini_whiteboard.snapping import SnapPreferences
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--private-shortcuts',action='store_true',
+                        help='Exercise command handlers without taking any system-wide shortcuts.')
     args=parser.parse_args()
     output=args.output
     output.mkdir(parents=True,exist_ok=True)
     n.enable_dpi_awareness()
     app=QApplication([])
     app.setQuitOnLastWindowClosed(False)
-    guard=n.SingleInstance()
-    if not guard.acquired:raise RuntimeError('Exit Mini Whiteboard before the native check.')
+    guard=None if args.private_shortcuts else n.SingleInstance()
+    if guard is not None and not guard.acquired:raise RuntimeError('Exit Mini Whiteboard before the native check.')
     u=n.user32
     foreground=n.bind(u,'GetForegroundWindow',W.HWND)
     previous,cursor=foreground(),n.cursor_position()
@@ -129,7 +131,15 @@ def main():
         display=n.monitors()[0].rect
         region=Rect(region.x,region.y,min(region.right,display.right)-region.x,
                     min(region.bottom,display.bottom)-region.y)
-        controller=WhiteboardApplication(app,SnapPreferences())
+        from mini_whiteboard.platform import get_platform
+        services=get_platform()
+        if args.private_shortcuts:
+            from dataclasses import replace
+            from tests.fake_platform import FakeHotkeys
+            services=replace(services,hotkey_factory=FakeHotkeys)
+        controller=WhiteboardApplication(app,SnapPreferences(),platform=services)
+        if args.private_shortcuts:
+            controller.tray.hide()
         controller.notify=lambda text:None
         scale=app.primaryScreen().devicePixelRatio()
         normal_width=min(620,int((region.width-64)/scale)-16)
@@ -192,6 +202,8 @@ def main():
                     before=send(background,0x8003,0,0)
                     set_cursor(round(x),round(y));QTest.qWait(20)
                     target=at(W.POINT(round(x),round(y)))
+                    if ancestor(target,2) not in (background,int(board.winId())):
+                        raise RuntimeError('An unrelated window covers the click target.')
                     styles=n.bind(u,'GetWindowLongPtrW',C.c_ssize_t,W.HWND,C.c_int)
                     probes.append({'point':[x,y],'target':target,'root':ancestor(target,2),
                         'board':int(board.winId()),'background':background,'foreground':foreground(),
@@ -287,7 +299,8 @@ def main():
             if background:send(background,0x8002,0,0)
             try:child.wait(timeout=5)
             except subprocess.TimeoutExpired:child.terminate();child.wait(timeout=5)
-        guard.close();app.processEvents()
+        if guard is not None:guard.close()
+        app.processEvents()
         set_cursor(*cursor)
         if previous:u.SetForegroundWindow(previous)
         sys.excepthook=old_hook

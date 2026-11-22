@@ -18,6 +18,21 @@ from mini_whiteboard.clipboard import rendered_image
 
 
 class AppearanceTests(QtCase):
+    def test_windows_frost_uses_the_screen_origin_for_a_friendly_monitor_name(self):
+        from PySide6.QtCore import QRect
+        from mini_whiteboard.platform.windows import appearance
+        screen = SimpleNamespace(name=lambda: '24G2W1G3-', geometry=lambda: QRect(-1920, 80, 1536, 864))
+        with (patch.object(appearance.native, 'IS_WINDOWS', True),
+              patch.object(appearance.sys, 'getwindowsversion', create=True,
+                           return_value=SimpleNamespace(build=26300)),
+              patch.object(appearance, 'backdrop_display', return_value=True) as display):
+            self.assertTrue(appearance.capable(DisplayPolicy(),screen))
+            display.assert_called_once_with((-1920,80))
+            display.reset_mock()
+            self.assertFalse(appearance.capable(DisplayPolicy(transparency=False),screen))
+            self.assertFalse(appearance.capable(DisplayPolicy(high_contrast=True),screen))
+            display.assert_not_called()
+
     def test_mac_accessibility_fallback_recovers_when_transparency_is_reenabled(self):
         from mini_whiteboard.platform.macos.desktop import MacDesktop
         callbacks = {}

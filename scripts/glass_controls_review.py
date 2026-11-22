@@ -107,6 +107,26 @@ def run(folder):
             report['surfaces'][mode] = dict(board=board.native_glass,
                toolbar=palette.native_glass, popover=options.native_glass,
                toolbar_height=palette.height(), target=palette.buttons['Draw'].width())
+            if sys.platform == 'win32':
+                from ctypes import wintypes as W
+                from mini_whiteboard.platform.windows import native
+                point=palette.buttons['Draw'].mapToGlobal(palette.buttons['Draw'].rect().center())
+                ratio=palette.devicePixelRatioF()
+                lookup=native.bind(native.user32,'WindowFromPoint',W.HWND,W.POINT)
+                root=native.bind(native.user32,'GetAncestor',W.HWND,W.HWND,W.UINT)
+                def at_tool():
+                    return root(lookup(W.POINT(round(point.x()*ratio),round(point.y()*ratio))),2)
+                before=at_tool()
+                if before == int(bg.winId()):
+                    # The test backdrop can enter the topmost band after the
+                    # first owned tool opens. Order only the fixture window.
+                    host=getattr(board,'_backdrop',None)
+                    native.user32.SetWindowPos(int(bg.winId()),host.handle if host else int(board.winId()),
+                                               0,0,0,0,0x0213)
+                    QTest.qWait(80)
+                report.setdefault('native_tool_visibility',{})[mode]=dict(
+                    covered_by_fixture=before==int(bg.winId()),visible=palette.isVisible(),
+                    target_is_toolbar=at_tool()==int(palette.winId()))
             for scene in ('light', 'dark', 'busy'):
                 bg.palette_name = scene
                 bg.update()

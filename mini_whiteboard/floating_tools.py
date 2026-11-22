@@ -187,7 +187,7 @@ class Options(ToolSurface):
     def heading(self,text):
         label = QLabel(text)
         label.setFont(interface_font('support'))
-        label.setStyleSheet('color:#454954;background:transparent;')
+        label.setStyleSheet('color:#303642;background:transparent;')
         self.grid.addWidget(label,self.row,0,1,self.columns)
         self.row += 1
 

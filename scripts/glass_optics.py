@@ -12,7 +12,7 @@ import platform
 import subprocess
 import sys
 
-from PIL import Image, ImageGrab
+from PIL import Image
 from PySide6 import __version__ as qt_binding
 from PySide6.QtCore import QPoint, QPointF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
@@ -79,8 +79,8 @@ class Background(QWidget):
                                      QPointF(self.width(), line_y(self.width(), self.phase + offset)))
 
 
-def photograph(background, path, area=None):
-    QTest.qWait(450)
+def photograph(background, path, area=None, *, settle_ms=450):
+    QTest.qWait(settle_ms)
     origin = background.mapToGlobal(QPoint()) if area is None else area.topLeft()
     width, height = (WIDTH, HEIGHT) if area is None else (area.width(), area.height())
     if sys.platform == 'darwin':
@@ -88,10 +88,12 @@ def photograph(background, path, area=None):
                         f'-R{origin.x()},{origin.y()},{width},{height}', str(path)],
                        check=True, timeout=15)
     else:
+        from mini_whiteboard.platform.windows import native
         ratio = background.devicePixelRatioF()
-        box = tuple(round(v * ratio) for v in (origin.x(), origin.y(),
-                                                origin.x() + width, origin.y() + height))
-        ImageGrab.grab(bbox=box, include_layered_windows=True, all_screens=True).save(path)
+        left, top, right, bottom = (round(v * ratio) for v in
+                                   (origin.x(), origin.y(), origin.x()+width, origin.y()+height))
+        if not native.capture_rect(Rect(left,top,right-left,bottom-top)).save(str(path)):
+            raise OSError(f'Could not save {path.name}')
     with Image.open(path) as image:
         if image.width < width or max(image.convert('L').getextrema()) == 0:
             raise RuntimeError('OS capture returned an empty or undersized image')

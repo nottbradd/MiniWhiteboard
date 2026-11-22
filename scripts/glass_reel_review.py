@@ -37,10 +37,7 @@ def take_frame(background, path):
         window_pid(point_window(W.POINT(round((x+dx)*scale),round((y+dy)*scale))), ctypes.byref(pid))
         if pid.value not in (os.getpid(), background.pid):
             raise RuntimeError('Another window covers the moving-line fixture.')
-    # This test camera reads only the physical rectangle occupied by our fixture.
-    region = Rect(*(round(v*scale) for v in (x,y,WIDTH,HEIGHT)))
-    if not native.capture_rect(region).save(str(path)):
-        raise OSError(f'Could not save {path.name}')
+    photograph(background,path,settle_ms=0)
 
 
 def capture_scene(bg, folder, name, *, motion=False):
@@ -70,18 +67,15 @@ def mac_trials(board, bg, folder, report):
     rim = board._glass_rim
     # Parameters affect only the additional native glass view under Qt artwork.
     # Each scene includes its own stationary no-line frame for colour measurements.
-    for name,inset,width,alpha,tint in (
-        ('narrow',2.4,5.5,.53,(.04,.42,.79,.70)),
-        ('inset',4.0,6.0,.70,(.02,.46,.85,.86)),
-        ('wide',2.8,8.0,.78,(.03,.42,.88,.92)),
-        ('warm',3.5,6.5,.70,(.95,.36,.04,.85)),
-    ):
+    for name,inset,width,alpha,tint in (('reference-blue',2.8,8.0,.78,(.03,.42,.88,.92)),):
         rim.inset,rim.band,rim.key = inset,width,None
         rim.view.setAlphaValue_(alpha)
         rim.view.setTintColor_(AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(*tint))
         board.desktop.sync_material(board)
         QTest.qWait(180)
         report['samples'][name] = capture_scene(bg,folder,name)
+    from .mac_rim_samples import paired_samples
+    paired_samples(board,bg,folder,report,capture_scene)
 
 
 def main():
