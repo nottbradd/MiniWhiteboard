@@ -92,9 +92,16 @@ class MacDesktop(QtDesktop):
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
                 board._native_finish = candidate
+                if candidate == LIQUID and getattr(board, 'canvas', None) is not None:
+                    from .glass_rim import GlassRim
+                    try:
+                        board._glass_rim = GlassRim(parent, effect)
+                    except (AttributeError, ValueError, RuntimeError):
+                        board._glass_rim = None
                 self.sync_material(board)
                 return candidate
             except (AttributeError, RuntimeError, ValueError):
+                self.remove_material(board)
                 if effect is not None:
                     effect.removeFromSuperview()
                 board._visual_effect = None
@@ -112,10 +119,17 @@ class MacDesktop(QtDesktop):
                           (paper.width(), paper.height())))
         if getattr(surface, '_native_finish', None) == 'Liquid Glass':
             effect.setCornerRadius_(surface.corner_radius())
+            rim = getattr(surface, '_glass_rim', None)
+            if rim is not None:
+                rim.resize(effect.frame(), surface.corner_radius())
         effect.layer().setCornerRadius_(surface.corner_radius())
         effect.layer().setMasksToBounds_(True)
 
     def remove_material(self, board):
+        rim = getattr(board, '_glass_rim', None)
+        if rim is not None:
+            rim.close()
+            board._glass_rim = None
         record = getattr(board, '_visual_effect', None)
         if record is not None:
             record[1].removeFromSuperview()

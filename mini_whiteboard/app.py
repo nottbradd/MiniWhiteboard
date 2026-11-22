@@ -36,7 +36,9 @@ class WhiteboardApplication:
         app.setQuitOnLastWindowClosed(False)
         app.setApplicationName(APP_NAME)
         app.setApplicationVersion(APP_VERSION)
-        app.setWindowIcon(app_icon())
+        icon = app_icon()
+        if app.windowIcon().cacheKey() != icon.cacheKey():
+            app.setWindowIcon(icon)
         from .surfaces import SurfaceMenu
         self.menu = SurfaceMenu(self.platform, self.preferences)
         self.tray = QSystemTrayIcon(self.platform.runtime.tray_icon(), app)
@@ -303,7 +305,10 @@ class WhiteboardApplication:
         for board in tuple(self.boards):
             board.close()
         self.tray.hide()
+        self.tray.setContextMenu(None)
         self.menu.close()
+        self.menu.deleteLater()
+        self.tray.deleteLater()
 
 
 def main():

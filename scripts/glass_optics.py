@@ -157,7 +157,8 @@ def main():
                 QTest.qWait(500)
             native = board.native_glass
             print(f'{theme}, adapter returned {native!r}', flush=True)
-            record = report['samples'][theme] = dict(native=native, policy=vars(board.display_policy))
+            record = report['samples'][theme] = dict(native=native, policy=vars(board.display_policy),
+                                                     channel_rim=getattr(board, '_glass_rim', None) is not None)
             for palette in ('light', 'dark', 'busy', 'neutral'):
                 bg.palette_name = palette
                 for phase in (None, 0, 12):

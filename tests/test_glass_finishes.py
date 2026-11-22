@@ -12,6 +12,8 @@ from mini_whiteboard.clipboard import rendered_image
 from mini_whiteboard.floating_tools import FloatingTools
 from mini_whiteboard.images import from_image
 from mini_whiteboard.snapping import SnapPreferences
+from mini_whiteboard.surfaces import SurfaceMenu
+from mini_whiteboard.system_menu import populate_appearance
 from tests.fake_platform import fake_platform
 from tests.qt_case import APP, QtCase, wait_until
 
@@ -111,3 +113,19 @@ class FinishTests(QtCase):
             for theme in THEMES:
                 for policy in (DisplayPolicy(high_contrast=True), DisplayPolicy(transparency=False)):
                     self.assertEqual(surface(theme, LIQUID, policy, popup=popup).alpha(), 255)
+
+    def test_menu_checks_preference_and_reports_actual_mount_failure(self):
+        platform, prefs = fake_platform(), SnapPreferences()
+        board = BoardWindow('Menu', prefs, platform)
+        menu = SurfaceMenu(platform, prefs)
+        self.widgets.extend([board, menu])
+        board.show()
+        prefs.set_theme(LIQUID)
+        with patch.object(platform.desktop, 'available_finish', side_effect=lambda t, p, s: t):
+            populate_appearance(menu, prefs, platform.desktop, [board])
+        actions = {a.data():a for a in menu.actions()}
+        self.assertEqual(set(actions), set(THEMES))
+        self.assertTrue(actions[LIQUID].isChecked())
+        self.assertIn('Opaque', actions[LIQUID].text())
+        actions[FROSTED].trigger()
+        self.assertEqual(prefs.theme, FROSTED)
