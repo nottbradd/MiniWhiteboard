@@ -136,10 +136,19 @@ def main():
                   ratio=screen.devicePixelRatio(), display=[work.width(), work.height()],
                   runner=os.getenv('ImageVersion'), samples={})
     try:
-        for theme in ('Uncovered', 'White', 'Frosted Glass', 'Liquid Glass'):
+        modes = ['Uncovered', 'White', 'Frosted Glass', 'Liquid Glass']
+        if sys.platform == 'win32':
+            modes.append('Desktop acrylic')
+        for theme in modes:
             name = theme.lower().split()[0]
             if theme != 'Uncovered':
-                preferences.set_theme(theme)
+                if theme == 'Desktop acrylic':
+                    from .probe_acrylic import AcrylicHost
+                    board.desktop.release_appearance(board)
+                    board._backdrop = AcrylicHost(board)
+                    board._backdrop.sync(board)
+                else:
+                    preferences.set_theme(theme)
                 if not board.isVisible():
                     board.place(bounds)
                 QTest.qWait(500)
