@@ -5,6 +5,7 @@ does not inspect, store or request permission to capture a backdrop for a theme.
 """
 import argparse
 import json
+from multiprocessing import get_context
 import os
 from pathlib import Path
 import platform
@@ -13,7 +14,7 @@ import sys
 
 from PIL import Image, ImageGrab
 from PySide6 import __version__ as qt_binding
-from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtCore import QPoint, QPointF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
@@ -85,6 +86,71 @@ def photograph(background, path, area=None):
             raise RuntimeError('OS capture returned an empty or undersized image')
 
 
+def backdrop_process(connection):
+    """A separate test application owns all moving pixels behind the real board."""
+    app = QApplication([])
+    bg = Background(None, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
+    work = app.primaryScreen().availableGeometry()
+    bg.setGeometry(work.x()+(work.width()-WIDTH)//2, work.y()+(work.height()-HEIGHT)//2,
+                   WIDTH, HEIGHT)
+    bg.show()
+    bg.raise_()
+    bg.activateWindow()
+    QTest.qWait(350)
+    pos = bg.mapToGlobal(QPoint())
+    connection.send((pos.x(),pos.y(),bg.devicePixelRatioF(),os.getpid()))
+    def receive():
+        if connection.poll():
+            message = connection.recv()
+            if message is None:
+                app.quit()
+            else:
+                bg.palette_name,bg.phase,bg.grazing = message
+                bg.repaint()
+                connection.send(True)
+    timer = QTimer()
+    timer.timeout.connect(receive)
+    timer.start(20)
+    app.exec()
+    connection.close()
+
+
+class RemoteBackground:
+    palette_name, phase, grazing = 'light', None, False
+
+    def __init__(self):
+        context = get_context('spawn')
+        self.channel, other = context.Pipe()
+        self.process = context.Process(target=backdrop_process,args=(other,),daemon=True)
+        self.process.start()
+        other.close()
+        if not self.channel.poll(20):
+            raise RuntimeError('Backdrop test process did not start')
+        x,y,self.ratio,self.pid = self.channel.recv()
+        self.origin = QPoint(x,y)
+
+    def mapToGlobal(self, point):
+        return self.origin + point
+
+    def devicePixelRatioF(self):
+        return self.ratio
+
+    def update(self):
+        self.channel.send((self.palette_name,self.phase,self.grazing))
+        if not self.channel.poll(8) or not self.channel.recv():
+            raise RuntimeError('Moving backdrop did not acknowledge the requested phase')
+
+    def close(self):
+        try:
+            self.channel.send(None)
+            self.process.join(5)
+        finally:
+            if self.process.is_alive():
+                self.process.terminate()
+                self.process.join(3)
+            self.channel.close()
+
+
 def measure(folder, name, palette, phase):
     """Subtract the identical no-line frame to exclude fixed borders and shadows."""
     import numpy as np
@@ -130,14 +196,8 @@ def main():
     screen = app.primaryScreen()
     services = get_platform()
     preferences = SnapPreferences()
-    bg = Background(None, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
     work = screen.availableGeometry()
-    bg.setGeometry(work.x()+(work.width()-WIDTH)//2, work.y()+(work.height()-HEIGHT)//2,
-                   WIDTH, HEIGHT)
-    bg.show()
-    bg.raise_()
-    bg.activateWindow()
-    QTest.qWait(400)
+    bg = RemoteBackground()
     origin = bg.mapToGlobal(QPoint())
     factor = screen.devicePixelRatio() if sys.platform == 'win32' else 1
     bounds = Rect(*[round(v*factor) for v in (origin.x()+LEFT, origin.y()+TOP, BOARD_W, BOARD_H)])
@@ -145,7 +205,7 @@ def main():
     report = dict(system=platform.platform(), release=platform.mac_ver() if sys.platform == 'darwin'
                   else platform.win32_ver(), qt=qt_binding, backend=app.platformName(),
                   ratio=screen.devicePixelRatio(), display=[work.width(), work.height()],
-                  runner=os.getenv('ImageVersion'), samples={})
+                  runner=os.getenv('ImageVersion'), board_pid=os.getpid(), backdrop_pid=bg.pid, samples={})
     try:
         modes = ['Uncovered', 'White', 'Frosted Glass', 'Liquid Glass']
         for theme in modes:

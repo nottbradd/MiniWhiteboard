@@ -5,7 +5,6 @@ from PySide6.QtGui import QColor, QFont, QPen, QRegion
 
 ANIMATION_MS = 140
 ACCENT = '#2467f5'
-GLASS_BORDER = '#f5f7ff'
 GLASS_TINT = '#f5f5f7'
 GLASS_FALLBACK = '#edf0f5'
 WHITE = '#ffffff'

@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-26, macos-15, windows-2025, windows-11-arm]
+        os: [macos-26, macos-15, macos-15-intel, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 16
     steps:
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.13'
-          architecture: ${{ runner.os == 'macOS' && 'arm64' || 'x64' }}
+          architecture: ${{ runner.os == 'macOS' && matrix.os != 'macos-15-intel' && 'arm64' || 'x64' }}
           cache: pip
       - run: python -m pip install -r requirements-macos.txt pillow numpy
       - name: Enable transparency on the disposable Mac
@@ -45,6 +45,12 @@ jobs:
           PYTHONFAULTHANDLER: '1'
         run: python -u -m scripts.run_tests
       - run: python -u -m scripts.glass_optics verification/glass
+      - name: Save the one-board optical evidence before interaction tests
+        if: matrix.os == 'macos-26'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: board-optics
+          path: verification/glass
       - name: Measure the current and review builds on the same desktop
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

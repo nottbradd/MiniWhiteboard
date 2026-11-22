@@ -45,6 +45,17 @@ def sample(image, crop, target, *, icon=False):
     return round((backing+.05)/(ink+.05),2)
 
 
+def ring_contrast(image, crop, button):
+    origin = global_rect(button).topLeft()-crop.topLeft()
+    scale = image.width/crop.width()
+    pixels = luminance(np.asarray(image.convert('RGB')))
+    y = round((origin.y()+button.height()/2)*scale)
+    x = origin.x()
+    edge = pixels[y-2:y+3,round((x+1)*scale):round((x+5)*scale)]
+    inside = pixels[y-2:y+3,round((x+7)*scale):round((x+10)*scale)]
+    return round((float(np.median(inside))+.05)/(float(np.median(edge.min(axis=1)))+.05),2)
+
+
 def run(folder):
     folder.mkdir(parents=True, exist_ok=True)
     app = QApplication([])
@@ -59,8 +70,9 @@ def run(folder):
     bg.raise_()
     board = BoardWindow('Mini Whiteboard', prefs, platform)
     factor = app.primaryScreen().devicePixelRatio() if sys.platform == 'win32' else 1
-    width, height = min(510,work.width()-40), min(247,work.height()-140)
-    x, y = work.center().x()-width//2, work.center().y()-height//2+26
+    width, height = min(570,work.width()-40), min(247,work.height()-140)
+    x = work.center().x()-width//2
+    y = min(work.bottom()-height-18, work.top()+round(work.height()*.56))
     board.place(Rect(*[round(v*factor) for v in (x,y,width,height)]))
     board.canvas.document.add(Text((26, 35), 'Sketch for Monday', size=20))
     board.canvas.document.add(Stroke(((35,108),(66,91),(93,97),(117,78),(161,85)), width=3,
@@ -104,7 +116,8 @@ def run(folder):
                     labels = [x for x in options.findChildren(QLabel) if x.isVisible() and x.text()]
                     report['contrast'][f'{mode}/{scene}'] = dict(
                         text={x.text():sample(im, area, x) for x in labels},
-                        tool_icon=sample(im, area, palette.buttons['Draw'], icon=True))
+                        tool_icon=sample(im, area, palette.buttons['Draw'], icon=True),
+                        selected_ring=ring_contrast(im, area, palette.buttons['Draw']))
             manager.close_options(refocus=True)
         platform.desktop.display_policy = original_policy
         prefs.set_theme('Liquid Glass')
@@ -120,8 +133,10 @@ def run(folder):
         QTest.qWait(150)
         checks['F6_focus'] = palette.buttons['Eraser'].hasFocus()
         if checks['F6_focus']:
-            photograph(bg, folder/'keyboard-focus.png',
-                       global_rect(palette).adjusted(-6,-6,6,6).intersected(work))
+            focus_area = global_rect(palette).adjusted(-6,-6,6,6).intersected(work)
+            photograph(bg, folder/'keyboard-focus.png', focus_area)
+            with Image.open(folder/'keyboard-focus.png') as im:
+                report['focus_contrast'] = ring_contrast(im, focus_area, palette.buttons['Eraser'])
         QTest.keyClick(palette.buttons['Eraser'], Qt.Key.Key_Down)
         QTest.qWait(150)
         checks['keyboard_options'] = manager.options is not None and manager.options.isVisible()

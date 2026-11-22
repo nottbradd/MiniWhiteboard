@@ -6,11 +6,13 @@ from .shortcuts import ShortcutPolicy
 from .appearance import THEMES, OPAQUE
 
 
-def populate_appearance(appearance, preferences, desktop, boards):
+def populate_appearance(appearance, preferences, desktop, boards, active_board=None):
     """Re-evaluate both platform capabilities and an open board's actual material."""
     group = QActionGroup(appearance)
     group.setExclusive(True)
-    board = next((b for b in reversed(boards) if b.isVisible() and not b.screenshot_surface), None)
+    visible = [b for b in boards if b.isVisible() and not b.screenshot_surface]
+    board = active_board if active_board in visible else next(
+        (b for b in visible if b.isActiveWindow()), visible[-1] if visible else None)
     policy = desktop.display_policy()
     for theme in THEMES:
         finish = desktop.available_finish(theme, policy, board.screen() if board else None)
@@ -59,7 +61,8 @@ def rebuild_menu(controller):
     floating.setCheckable(True)
     floating.setChecked(c.preferences.floating_tools)
     floating.toggled.connect(c.preferences.set_floating_tools)
-    populate_appearance(menu.addMenu('Appearance'), c.preferences, c.platform.desktop, c.boards)
+    populate_appearance(menu.addMenu('Appearance'), c.preferences, c.platform.desktop, c.boards,
+                        c.floating_tools.board)
     snap = menu.addMenu("Snap & Guides")
     for label, enabled, callback in (("Smart Guides", c.preferences.smart_guides, c.preferences.set_smart),
                                      ("Grid Snap", c.preferences.grid_snap, c.preferences.set_grid)):

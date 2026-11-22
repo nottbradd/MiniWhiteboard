@@ -37,7 +37,7 @@ to select **Ctrl+Win+Shift+W/Q**. Enable **Settings → Show floating tools** fr
 tray/menu bar. Tap a tool, hold or right-click for options, and drag the dotted grip.
 The toolbar starts off and follows the active board when enabled.
 
-**White remains the default appearance.** Glass remains grey on the tested hosted
+**White remains the default appearance.** The published V1.3.6 Glass finish appeared grey on the tested hosted
 Windows 11 ARM64 client under x64 emulation with Hyper-V graphics and Test Mode,
 and on the Server test desktop. Its cause remains unresolved; **Appearance → White**
 provides the verified opaque appearance. One editable-clipboard case and complete

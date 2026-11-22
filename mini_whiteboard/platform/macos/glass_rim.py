@@ -5,23 +5,12 @@ class GlassRim:
     def __init__(self, parent, base):
         import AppKit
         import Quartz
-        self.view = AppKit.NSView.alloc().initWithFrame_(base.frame())
+        self.view = AppKit.NSGlassEffectView.alloc().initWithFrame_(base.frame())
+        self.view.setStyle_(AppKit.NSGlassEffectViewStyleClear)
+        self.view.setAppearance_(base.appearance())
+        self.view.setTintColor_(AppKit.NSColor.colorWithSRGBRed_green_blue_alpha_(.20,.60,.80,.52))
         self.view.setWantsLayer_(True)
-        self.sample = AppKit.NSGlassEffectView.alloc().initWithFrame_(self.view.bounds())
-        self.sample.setStyle_(AppKit.NSGlassEffectViewStyleClear)
-        self.sample.setAppearance_(base.appearance())
-        self.view.addSubview_(self.sample)
-        # min(base, (sample.red,1,1)) changes only the red channel where the
-        # second optical sample actually darkens. A uniform field stays neutral.
-        matrix = Quartz.CIFilter.filterWithName_('CIColorMatrix')
-        vector = Quartz.CIVector.vectorWithX_Y_Z_W_
-        zero = vector(0,0,0,0)
-        matrix.setValue_forKey_(zero,'inputGVector')
-        matrix.setValue_forKey_(zero,'inputBVector')
-        matrix.setValue_forKey_(vector(0,1,1,0),'inputBiasVector')
-        self.view.setContentFilters_([matrix])
-        self.view.setCompositingFilter_(Quartz.CIFilter.filterWithName_('CIDarkenBlendMode'))
-        self.view.setAlphaValue_(0.22)
+        self.view.setAlphaValue_(0.25)
         self.mask = Quartz.CAShapeLayer.layer()
         self.mask.setFillRule_(Quartz.kCAFillRuleEvenOdd)
         self.view.layer().setMask_(self.mask)
@@ -42,10 +31,11 @@ class GlassRim:
         Quartz.CATransaction.begin()
         try:
             Quartz.CATransaction.setDisableActions_(True)
-            self.view.setFrame_(frame)
-            inset, band = 1.8, 6.0
-            self.sample.setFrame_(((inset,inset),(width-2*inset,height-2*inset)))
-            self.sample.setCornerRadius_(max(0,radius-inset))
+            inset, band = 1.6, 4.5
+            width, height = width-2*inset, height-2*inset
+            radius -= inset
+            self.view.setFrame_(((frame.origin.x+inset,frame.origin.y+inset),(width,height)))
+            self.view.setCornerRadius_(radius)
             ring = Quartz.CGPathCreateMutable()
             for d in (0.0,band):
                 rounded = Quartz.CGPathCreateWithRoundedRect(

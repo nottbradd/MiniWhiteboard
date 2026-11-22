@@ -49,7 +49,7 @@ class BoardWindow(QWidget):
         from .appearance import Emphasis
         self.display_policy = self.desktop.display_policy()
         self.native_glass = False
-        self.control_finish = 'White'
+        self._screenshot_control_finish = 'White'
         self.emphasis = Emphasis(self)
         self._presented_theme = self.appearance_theme
         self.canvas.preferences.appearance_changed.connect(self.refresh_appearance)
@@ -64,9 +64,8 @@ class BoardWindow(QWidget):
         self.desktop.release_appearance(self)
         self.native_glass = self.desktop.apply_appearance(self) if self.isVisible() else False
         if self.screenshot_surface:
-            self.control_finish = self.desktop.available_finish(self.appearance_theme, self.display_policy, self.screen())
-        else:
-            self.control_finish = self.native_glass or ('Opaque' if is_glass(self.appearance_theme) else 'White')
+            self._screenshot_control_finish = self.desktop.available_finish(
+                self.appearance_theme, self.display_policy, self.screen())
         self.layout_children()
         self._region_key = None
         self.sync_shadow()
@@ -80,6 +79,12 @@ class BoardWindow(QWidget):
     @property
     def appearance_theme(self):
         return self.canvas.preferences.theme
+
+    @property
+    def control_finish(self):
+        if self.screenshot_surface:
+            return self._screenshot_control_finish
+        return self.native_glass or ('Opaque' if is_glass(self.appearance_theme) else 'White')
 
     def corner_radius(self):
         return corner_radius(self.paper_rect(), 'White' if self.screenshot_surface else self.appearance_theme)
