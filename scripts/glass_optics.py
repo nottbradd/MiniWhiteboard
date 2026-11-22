@@ -54,6 +54,8 @@ class Background(QWidget):
             base, line = '#263543', '#dce9db'
         if self.palette_name == 'neutral':
             base, line = '#dfdfdf', '#202020'
+        if self.palette_name == 'reel':
+            base, line = '#121212', '#f5f5f5'
         painter.fillRect(self.rect(), QColor(base))
         if self.palette_name == 'busy':
             for x in range(-150, self.width() + 50, 34):
@@ -71,8 +73,10 @@ class Background(QWidget):
                     return RIGHT - 7 + (y-BOTTOM+28)*.19 + self.phase
                 painter.drawLine(QPointF(x_at(0),0), QPointF(x_at(self.height()), self.height()))
             else:
-                painter.drawLine(QPointF(0, line_y(0, self.phase)),
-                                 QPointF(self.width(), line_y(self.width(), self.phase)))
+                offsets = (-92, 0, 92) if self.palette_name == 'reel' else (0,)
+                for offset in offsets:
+                    painter.drawLine(QPointF(0, line_y(0, self.phase + offset)),
+                                     QPointF(self.width(), line_y(self.width(), self.phase + offset)))
 
 
 def photograph(background, path, area=None):
@@ -192,11 +196,11 @@ def measure(folder, name, palette, phase):
                 rim_samples=[(x, round(d, 2)) for x,d,_,_ in columns if RIGHT-20 <= x < RIGHT])
 
 
-def channel_separation(folder, name, phase):
+def channel_separation(folder, name, phase, palette='neutral'):
     """Compare channel centroids of the moving neutral line after subtracting the static rim."""
     import numpy as np
     def rgb(suffix):
-        with Image.open(folder/f'neutral-{name}-{suffix}.png') as im:
+        with Image.open(folder/f'{palette}-{name}-{suffix}.png') as im:
             return np.array(im.convert('RGB').resize((WIDTH,HEIGHT),Image.Resampling.BOX), dtype=float)
     change = np.abs(rgb(phase)-rgb('bare'))
     def separation(xs):

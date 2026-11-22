@@ -37,7 +37,7 @@ class DisplayDevice(C.Structure):
 
 
 @lru_cache(maxsize=16)
-def backdrop_display(name):
+def backdrop_display(origin=None):
     # These display drivers return success for a backdrop even when the entire
     # material stays solid. Query the active display without reading the desktop.
     if native.user32.GetSystemMetrics(0x1000):  # SM_REMOTESESSION
@@ -46,6 +46,19 @@ def backdrop_display(name):
     composition = native.bind(C.WinDLL('dwmapi'), 'DwmIsCompositionEnabled', C.c_long, C.POINTER(W.BOOL))
     if composition(C.byref(enabled)) < 0 or not enabled.value:
         return False
+    name = None
+    if origin is not None:
+        # Qt can expose the monitor's EDID product name. Win32 enumerates
+        # adapter device names. Screen origins on Windows are in native desktop
+        # coordinates even when adjacent monitors use different scale factors.
+        try:
+            monitor = next((m for m in native.monitors()
+                            if (m.rect.x, m.rect.y) == origin), None)
+        except OSError:
+            return False
+        if monitor is None:
+            return False
+        name = monitor.name
     enumerate_display = native.bind(native.user32, 'EnumDisplayDevicesW', W.BOOL,
                                     W.LPCWSTR, W.DWORD, C.POINTER(DisplayDevice), W.DWORD)
     index = 0
@@ -63,9 +76,12 @@ def backdrop_display(name):
 
 
 def capable(policy, screen=None):
-    return (native.IS_WINDOWS and sys.getwindowsversion().build >= 22621
-            and policy.transparency and not policy.high_contrast
-            and backdrop_display(screen.name() if screen is not None else ''))
+    if (not native.IS_WINDOWS or sys.getwindowsversion().build < 22621
+            or not policy.transparency or policy.high_contrast):
+        return False
+    if screen is None:
+        return backdrop_display()
+    return backdrop_display(screen.geometry().topLeft().toTuple())
 
 
 class BackdropHost:

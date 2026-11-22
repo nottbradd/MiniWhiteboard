@@ -134,6 +134,9 @@ class RoundedBackdrop:
             self.target = own(desktop_target.query('a1bea8ba-d726-4663-8129-6b5e7927ffa6'))
             sprite = own(compositor.create(22))
             self.visual = own(sprite.query('117e202d-a859-4c89-873b-c2aa566788e3'))
+            # The system host brush supplies the diffusion. A little direct
+            # transmission keeps narrow lines readable through the frosted field.
+            self.visual.call(23, (C.c_float,), (.93,))  # IVisual.put_Opacity
             compositor3 = own(self.compositor.query('c9dd8ef0-6eb1-4e3c-a658-675d9c64d4ab'))
             backdrop = own(compositor3.create(6))
             brush = own(backdrop.query('ab0d7608-30c0-40e9-b568-b60a6bd1fb46'))

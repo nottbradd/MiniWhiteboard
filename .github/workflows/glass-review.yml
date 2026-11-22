@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON((inputs.windows_client_only || contains(github.event.head_commit.message, '[windows-client]')) && '["windows-11-arm"]' || '["macos-26","macos-15","macos-15-intel","windows-2025","windows-11-arm"]') }}
+        os: ${{ fromJSON(contains(github.event.head_commit.message, '[mac-rim]') && '["macos-26"]' || (inputs.windows_client_only || contains(github.event.head_commit.message, '[windows-client]')) && '["windows-11-arm"]' || '["macos-26","macos-15","macos-15-intel","windows-2025","windows-11-arm"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 16
     steps:
@@ -58,6 +58,9 @@ jobs:
           PYTHONFAULTHANDLER: '1'
         run: python -u -m scripts.run_tests
       - run: python -u -m scripts.glass_optics verification/glass
+      - name: Photograph the rim against moving white lines
+        if: matrix.os == 'macos-26'
+        run: python -u -m scripts.glass_reel_review verification/glass/reel ${{ contains(github.event.head_commit.message, '[mac-rim]') && '--mac-trials' || '' }}
       - name: Save the one-board optical evidence before interaction tests
         if: matrix.os == 'macos-26'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -67,10 +70,10 @@ jobs:
       - name: Measure the current and review builds on the same desktop
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 7b38b3ea6b6411159aacae4217bced7144cad1b6
+          ref: 3a515aa2d9f8c01b456d36d734b81ba21c1153f0
           path: baseline
           persist-credentials: false
-      - run: python -u -m scripts.glass_benchmark baseline verification/glass/baseline.json White Glass --idle-seconds ${{ matrix.os == 'windows-11-arm' && 12 || 4 }}
+      - run: python -u -m scripts.glass_benchmark baseline verification/glass/baseline.json White "Frosted Glass" "Liquid Glass" --idle-seconds ${{ matrix.os == 'windows-11-arm' && 12 || 4 }}
       - run: python -u -m scripts.glass_benchmark . verification/glass/candidate.json White "Frosted Glass" "Liquid Glass" --idle-seconds ${{ matrix.os == 'windows-11-arm' && 12 || 4 }}
       - run: python -u -m scripts.glass_controls_review verification/glass
       - name: Check native cross-process corner input and control geometry
