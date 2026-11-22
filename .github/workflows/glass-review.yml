@@ -3,6 +3,11 @@ on:
   push:
     branches: [codex/glass-finishes-review]
   workflow_dispatch:
+    inputs:
+      windows_client_only:
+        description: Run just the Windows 11 comparison
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -10,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-26, macos-15, macos-15-intel, windows-2025, windows-11-arm]
+        os: ${{ fromJSON((inputs.windows_client_only || contains(github.event.head_commit.message, '[windows-client]')) && '["windows-11-arm"]' || '["macos-26","macos-15","macos-15-intel","windows-2025","windows-11-arm"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 16
     steps:

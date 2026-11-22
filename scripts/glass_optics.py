@@ -39,6 +39,13 @@ class Background(QWidget):
     palette_name = 'light'
     grazing = False
 
+    def __init__(self, parent, flags):
+        # The board is always on top. Keep the test scene in that same band,
+        # underneath it, when the hosted runner opens normal console windows.
+        if sys.platform == 'win32':
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        super().__init__(parent, flags)
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
