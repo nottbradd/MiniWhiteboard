@@ -29,6 +29,8 @@ jobs:
           python -m pip install pywinauto==0.6.9
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.observed_process --directory verification/client-desktop/operation --label desktop --timeout 45 -- python -m scripts.client_download_check prepare --path verification/client-desktop --destination verification/client-desktop --output verification/client-desktop/ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m scripts.glass_client_desktop
       - name: Enable transparency on the disposable Mac
         if: runner.os == 'macOS'
         shell: bash
