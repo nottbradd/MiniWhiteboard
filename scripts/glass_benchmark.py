@@ -13,6 +13,7 @@ def main():
     p.add_argument('source', type=Path)
     p.add_argument('output', type=Path)
     p.add_argument('themes', nargs='+')
+    p.add_argument('--idle-seconds', type=int, default=4, choices=range(1,61), metavar='1..60')
     args = p.parse_args()
     sys.path.insert(0, str(args.source.resolve()))
     from PySide6.QtCore import QEvent, QEventLoop, QObject, QPointF, QTimer, Qt
@@ -25,10 +26,26 @@ def main():
     app = QApplication([])
     app.setQuitOnLastWindowClosed(False)
     class Paints(QObject):
-        n = 0
+        def __init__(self, board):
+            super().__init__()
+            self.n = 0
+            self.started = None
+            self.events = []
+            self.roles = {board: 'board', board.canvas: 'canvas', board.minus: 'minimise',
+                          board.remove: 'close', board.windowHandle(): 'window'}
+            for widget in self.roles:
+                widget.installEventFilter(self)
+
         def eventFilter(self, watched, event):
-            if event.type() == QEvent.Type.Paint:
+            kind = event.type()
+            if kind == QEvent.Type.Paint and self.roles[watched] != 'window':
                 self.n += 1
+            if self.started is not None and len(self.events) < 128 and kind in (
+                QEvent.Type.Paint, QEvent.Type.Expose, QEvent.Type.UpdateRequest,
+                QEvent.Type.WindowActivate, QEvent.Type.WindowDeactivate, QEvent.Type.Resize
+            ):
+                self.events.append((round((time.perf_counter()-self.started)*1000,1),
+                                    self.roles[watched],kind.name))
             return False
 
     def rest(ms):
@@ -42,15 +59,16 @@ def main():
         prefs.set_theme(theme)
         b = BoardWindow('Mini Whiteboard', prefs)
         b.place(Rect(85, 95, 580, 330))
-        counter = Paints()
-        for widget in (b, b.canvas, b.minus, b.remove):
-            widget.installEventFilter(counter)
+        counter = Paints(b)
         rest(600)
         counter.n = 0
         wall, cpu = time.perf_counter(), time.process_time()
-        rest(4000)
+        counter.started = wall
+        rest(1000*args.idle_seconds)
         duration = time.perf_counter() - wall
-        idle = dict(duration_s=duration, process_cpu_s=time.process_time()-cpu, paints=counter.n)
+        counter.started = None
+        idle = dict(duration_s=duration, process_cpu_s=time.process_time()-cpu, paints=counter.n,
+                    events_ms=counter.events)
         def send(kind, x, y):
             point = QPointF(x, y)
             btn = Qt.MouseButton.LeftButton
