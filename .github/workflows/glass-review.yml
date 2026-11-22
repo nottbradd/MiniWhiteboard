@@ -38,6 +38,12 @@ jobs:
         run: |
           Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion
           Get-CimInstance Win32_ComputerSystem | Select-Object Model
+      - name: Run regression suite on the older Cocoa runtime
+        if: matrix.os == 'macos-15'
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PYTHONFAULTHANDLER: '1'
+        run: python -u -m scripts.run_tests
       - run: python -u -m scripts.glass_optics verification/glass
       - name: Measure the current and review builds on the same desktop
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -50,7 +56,14 @@ jobs:
       - run: python -u -m scripts.glass_controls_review verification/glass
       - name: Check native cross-process corner input and control geometry
         if: always() && matrix.os == 'windows-2025'
-        run: python -u -m scripts.surface_input_check --output verification/glass/input
+        run: |
+          $failed = @()
+          foreach ($scale in '1','1.25','1.5','2') {
+            $env:QT_SCALE_FACTOR = $scale
+            python -u -m scripts.surface_input_check --output "verification/glass/input-$scale"
+            if ($LASTEXITCODE -ne 0) { $failed += $scale }
+          }
+          if ($failed.Count) { throw "Input check failed at scale $failed" }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

@@ -36,6 +36,7 @@ def line_y(x, offset=0):
 class Background(QWidget):
     phase = None
     palette_name = 'light'
+    grazing = False
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -55,8 +56,15 @@ class Background(QWidget):
                 painter.drawLine(0, y, self.width(), y - 30)
         if self.phase is not None:
             painter.setPen(QPen(QColor(line), 5))
-            painter.drawLine(QPointF(0, line_y(0, self.phase)),
-                             QPointF(self.width(), line_y(self.width(), self.phase)))
+            if self.grazing:
+                # A near-vertical line meets the lower-right curve at a shallow
+                # angle. It reveals displacement along the normal to that rim.
+                def x_at(y):
+                    return RIGHT - 7 + (y-BOTTOM+28)*.19 + self.phase
+                painter.drawLine(QPointF(x_at(0),0), QPointF(x_at(self.height()), self.height()))
+            else:
+                painter.drawLine(QPointF(0, line_y(0, self.phase)),
+                                 QPointF(self.width(), line_y(self.width(), self.phase)))
 
 
 def photograph(background, path, area=None):
@@ -158,6 +166,13 @@ def main():
                     suffix = 'bare' if phase is None else str(phase)
                     photograph(bg, folder / f'{palette}-{name}-{suffix}.png')
                 record[palette] = [measure(folder, name, palette, p) for p in (0, 12)]
+            bg.grazing, bg.palette_name = True, 'neutral'
+            for phase in (None, -4, 0, 4):
+                bg.phase = phase
+                bg.update()
+                suffix = 'bare' if phase is None else str(phase)
+                photograph(bg, folder/f'rim-{name}-{suffix}.png')
+            bg.grazing = False
             print(json.dumps(record['light'][0]), flush=True)
     finally:
         (folder/'optics.json').write_text(json.dumps(report, indent=2), encoding='utf-8')

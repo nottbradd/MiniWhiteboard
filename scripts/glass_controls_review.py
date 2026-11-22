@@ -150,6 +150,23 @@ def run(folder):
         board.restore()
         QTest.qWait(200)
         checks['restore'] = board.isVisible() and board.appearance_theme == 'Liquid Glass'
+        if sys.platform == 'darwin':
+            # WindowServer's point lookup can be made without AX privileges.
+            # Check a known body and exterior point before interpreting a corner.
+            import AppKit
+            from mini_whiteboard.platform.macos.desktop import native_window
+            primary_height = AppKit.NSScreen.screens()[0].frame().size.height
+            paper = board.paper_rect().toAlignedRect()
+            bnum = native_window(board).windowNumber()
+            bgnum = native_window(bg).windowNumber()
+            found = {}
+            for label,point in (('body',paper.center()), ('corner',paper.topLeft()+QPoint(1,1)),
+                                ('exterior', paper.bottomLeft()+QPoint(0,12))):
+                pos = board.mapToGlobal(point)
+                number = AppKit.NSWindow.windowNumberAtPoint_belowWindowWithWindowNumber_(
+                    (pos.x(),primary_height-pos.y()),0)
+                found[label] = 'board' if number == bnum else 'background' if number == bgnum else 'another window'
+            report['WindowServer point lookup'] = found
     finally:
         platform.desktop.display_policy = original_policy
         (folder/'controls.json').write_text(json.dumps(report,indent=2),encoding='utf-8')

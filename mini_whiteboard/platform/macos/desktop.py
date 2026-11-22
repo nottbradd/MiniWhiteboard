@@ -83,7 +83,7 @@ class MacDesktop(QtDesktop):
                     effect.setMaterial_(AppKit.NSVisualEffectMaterialPopover)
                     effect.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
                     effect.setState_(AppKit.NSVisualEffectStateActive)
-                    effect.setAlphaValue_(0.77)
+                    effect.setAlphaValue_(0.95)
                 effect.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
                 effect.setAutoresizingMask_(AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
                 effect.setWantsLayer_(True)

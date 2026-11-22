@@ -4,6 +4,8 @@ import unittest
 
 
 def main():
+    if not faulthandler.is_enabled():
+        faulthandler.enable()
     # A C++ geometry stall otherwise occupies the entire 45-minute build job.
     # Exit nonzero with its Python call site; every test still has to pass.
     faulthandler.dump_traceback_later(300, exit=True)

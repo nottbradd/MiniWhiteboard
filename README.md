@@ -276,20 +276,26 @@ leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the sess
 
 ## Appearance and Hide All
 
-**Appearance → White / Glass** is a global saved preference in the tray/menu.
-White is the default. V1.3.1 Glass uses a mostly neutral backing, native frost,
-rounded light-catching edges, subtle highlights and matching temporary surfaces.
-Interface headings are bold; document text and artwork retain their original
-weight, colours and opacity. Windows 11 build 22621+ uses a rounded native compositor backdrop; Windows 10,
-unavailable effects and reduced transparency/high contrast use a solid surface.
-Mac uses NSVisualEffectView. This is a Liquid Glass-inspired approximation;
-it does not implement optical refraction or native Apple Liquid Glass.
-OS-owned Mac menus and standard colour/permission dialogs retain native styling.
-Temporary menus have roomier rows and a clear selected state. F1 help groups
-shortcuts into two columns when space permits and scrolls on smaller desktops.
-Reduced motion disables the brief 140 ms edge light catch and feedback fades.
-Glass creation, restore and popup presentation never move or fade document content.
-There are no animated backgrounds or desktop-capture loops.
+The glass review build adds three saved choices under **Appearance**. White is the
+fresh-install default. Choosing Liquid Glass or Frosted Glass updates open boards
+and floating tools immediately. The former Glass preference opens as Frosted Glass.
+
+On macOS 26, Liquid Glass uses AppKit to refract the desktop near the rounded
+rim. Frosted Glass uses an evenly diffused backdrop. Earlier supported Mac
+versions use Frosted Glass for either glass choice. Mac remains a Universal2
+Preview for macOS 14 and later. The system draws native Mac menus.
+
+On Windows, both glass choices request Frosted Glass on compatible Windows 11
+displays. Windows 10, remote sessions, the tested Hyper-V display driver and
+systems with transparency disabled show an opaque surface. The Appearance menu
+names the active fallback. Your preference survives changes to display or
+accessibility settings.
+
+Floating tools stay optional under **Settings → Show floating tools**. From a
+focused canvas, **F6** focuses the toolbar, **Tab** moves between tools, **Down**
+opens tool options and **Escape** returns to drawing. Reduced motion disables the
+140 ms edge emphasis. A screenshot board keeps its original image and clipping
+in every finish. The theme uses the native compositor without screen recording.
 
 <details>
 <summary>V1.3.1: actual Windows Glass and Appearance menu</summary>

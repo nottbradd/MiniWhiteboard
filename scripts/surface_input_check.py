@@ -126,16 +126,21 @@ def main():
         check('Input recipient is a separately owned process',owner.value==info['pid']!=os.getpid()
               and child.pid in (info['pid'],info['parent']) and child.poll() is None)
         region=Rect(**info['rect'])
+        display=n.monitors()[0].rect
+        region=Rect(region.x,region.y,min(region.right,display.right)-region.x,
+                    min(region.bottom,display.bottom)-region.y)
         controller=WhiteboardApplication(app,SnapPreferences())
         controller.notify=lambda text:None
         scale=app.primaryScreen().devicePixelRatio()
-        board=controller.create_board(Rect(region.x+45,region.y+65,round(620*scale),round(350*scale)))
+        normal_width=min(620,int((region.width-64)/scale)-16)
+        normal_height=min(350,int((region.height-92)/scale)-16)
+        board=controller.create_board(Rect(region.x+45,region.y+65,round(normal_width*scale),round(normal_height*scale)))
         scale=board.devicePixelRatioF()
         measurements.append({'qt_scale':scale,'native_dpi':u.GetDpiForWindow(int(board.winId())),
                              'screen':vars(n.monitors()[0].rect),'system_policy':vars(board.display_policy)})
-        for theme in ('White','Glass'):
+        for theme in ('White','Frosted Glass','Liquid Glass'):
             controller.preferences.set_theme(theme)
-            for size,width,height in [('normal',620,350),('minimum',160,100)]:
+            for size,width,height in [('normal',normal_width,normal_height),('minimum',160,100)]:
                 board.desktop.set_window_rect(board,Rect(region.x+45,region.y+65,
                     round((width+16)*scale),round((height+16)*scale)))
                 focus_board();QTest.qWait(80);lower_background()
@@ -222,7 +227,7 @@ def main():
         controller.capture.captured.connect(lambda rect,image:captured.append((rect,image)))
         for kind in ('board','screenshot'):
             for index,(dx,dy) in enumerate(((340,200),(-340,200),(340,-200),(-340,-200))):
-                anchor=(round(region.x+760),round(region.y+420))
+                anchor=(round(region.x+region.width/2),round(region.y+region.height/2))
                 end=(anchor[0]+dx,anchor[1]+dy)
                 rect=normalized(anchor,end)
                 send(background,0x8001,0,0);QTest.qWait(80);flush()

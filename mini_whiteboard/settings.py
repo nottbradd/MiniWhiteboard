@@ -56,7 +56,8 @@ HELP_SECTIONS = (
      '− hides to tray · × deletes this board · tray menu exits.<br>'
      'Tray → Appearance: White (default), Liquid Glass or Frosted Glass.<br>'
      'Settings → Show floating tools: optional, off by default.<br>'
-     'Tap a tool; hold or right-click for options. Drag the grip to move.'),
+     'Hold or right-click a tool for options. Drag the grip to move.<br>'
+     'F6 focuses floating tools · Tab moves · Down opens options · Esc returns to the canvas.'),
     ('Draw & colour',
      '<b>D</b> Draw · 1–5: 2 / 4 / 6 / 9 / 14 px.<br>'
      '<b>S</b> Shapes · 1 Rectangle · 2 Rounded rectangle · 3 Ellipse · '
