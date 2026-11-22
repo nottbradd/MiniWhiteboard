@@ -29,6 +29,7 @@ class MacDesktop(QtDesktop):
 
     def apply_appearance(self, board):
         import AppKit
+        from ...appearance import FROSTED, LIQUID, is_glass
         if getattr(board, '_appearance_observer', None) is None:
             from Foundation import NSOperationQueue
             def policy_changed(_notification):
@@ -38,7 +39,7 @@ class MacDesktop(QtDesktop):
             board._appearance_observer = centre.addObserverForName_object_queue_usingBlock_(
                 AppKit.NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification, None,
                 NSOperationQueue.mainQueue(), policy_changed)
-        if board.appearance_theme != 'Glass' or not board.display_policy.transparency:
+        if not is_glass(board.appearance_theme) or not board.display_policy.transparency or board.display_policy.high_contrast:
             record = getattr(board, '_visual_effect', None)
             if record is not None:
                 record[1].removeFromSuperview()
@@ -55,10 +56,22 @@ class MacDesktop(QtDesktop):
                 parent = content.superview()
                 if parent is None:
                     return False
-                effect = AppKit.NSVisualEffectView.alloc().initWithFrame_(content.frame())
-                effect.setMaterial_(AppKit.NSVisualEffectMaterialUnderWindowBackground)
-                effect.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
-                effect.setState_(AppKit.NSVisualEffectStateActive)
+                glass_class = getattr(AppKit, 'NSGlassEffectView', None)
+                finish = FROSTED
+                effect = None
+                if board.appearance_theme == LIQUID and glass_class is not None:
+                    try:
+                        effect = glass_class.alloc().initWithFrame_(content.frame())
+                        effect.setStyle_(AppKit.NSGlassEffectViewStyleClear)
+                        effect.setCornerRadius_(board.corner_radius())
+                        finish = LIQUID
+                    except (AttributeError, ValueError, RuntimeError):
+                        effect = None
+                if effect is None:
+                    effect = AppKit.NSVisualEffectView.alloc().initWithFrame_(content.frame())
+                    effect.setMaterial_(AppKit.NSVisualEffectMaterialPopover)
+                    effect.setBlendingMode_(AppKit.NSVisualEffectBlendingModeBehindWindow)
+                    effect.setState_(AppKit.NSVisualEffectStateActive)
                 effect.setAppearance_(AppKit.NSAppearance.appearanceNamed_(AppKit.NSAppearanceNameAqua))
                 effect.setAutoresizingMask_(AppKit.NSViewWidthSizable | AppKit.NSViewHeightSizable)
                 effect.setWantsLayer_(True)
@@ -66,8 +79,9 @@ class MacDesktop(QtDesktop):
                 effect.layer().setMasksToBounds_(True)
                 parent.addSubview_positioned_relativeTo_(effect, AppKit.NSWindowBelow, content)
                 board._visual_effect = (content, effect, parent)
+                board._native_finish = finish
             self.sync_material(board)
-            return True
+            return board._native_finish
         except (AttributeError, RuntimeError, ValueError):
             self.release_appearance(board)
             return False

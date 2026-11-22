@@ -17,7 +17,8 @@ class WindowsDesktop(QtDesktop):
 
     def apply_appearance(self, board):
         from .appearance import BackdropHost, capable
-        if board.appearance_theme != 'Glass' or not capable(board.display_policy):
+        from ...appearance import FROSTED, is_glass
+        if not is_glass(board.appearance_theme) or not capable(board.display_policy):
             self.release_appearance(board)
             return False
         try:
@@ -29,7 +30,7 @@ class WindowsDesktop(QtDesktop):
                 board._backdrop = host = BackdropHost(board)
             if board.isVisible():
                 host.sync(board)
-            return True
+            return FROSTED
         except (OSError, AttributeError):
             self.release_appearance(board)
             return False

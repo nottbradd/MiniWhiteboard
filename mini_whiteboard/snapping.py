@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, QRectF, QSettings, Signal
 from .settings import GRID_SIZE, SNAP_THRESHOLD
 from .transforms import translation, resize_transform
 from .document import ImageObject
+from .appearance import FROSTED, THEMES
 
 
 class SnapPreferences(QObject):
@@ -24,7 +25,10 @@ class SnapPreferences(QObject):
         hide = self.settings.value('shortcuts/windows_hide', 'default') if self.settings else 'default'
         self.windows_hide = hide if hide in ('default', 'shift') else 'default'
         theme = self.settings.value('appearance/theme', 'White') if self.settings else 'White'
-        self.theme = theme if theme in ('White', 'Glass') else 'White'
+        self.theme = FROSTED if theme == 'Glass' else theme if theme in THEMES else 'White'
+        if theme == 'Glass' and self.settings is not None:
+            self.settings.setValue('appearance/theme', FROSTED)
+            self.settings.sync()
         self.floating_tools = self.settings.value('tools/floating', False, type=bool) if self.settings else False
         self.custom_hotkeys = {}
         from .hotkey_config import HotkeyConfig
@@ -60,7 +64,9 @@ class SnapPreferences(QObject):
             self.settings.sync()
 
     def set_theme(self, theme):
-        if theme not in ('White', 'Glass'):
+        if theme == 'Glass':
+            theme = FROSTED
+        if theme not in THEMES:
             raise ValueError('Unknown appearance.')
         if theme == self.theme:
             return

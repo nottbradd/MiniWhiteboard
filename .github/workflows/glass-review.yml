@@ -1,0 +1,32 @@
+name: Glass finish review
+on:
+  push:
+    branches: [codex/glass-finishes-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  moving-line:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+          architecture: ${{ runner.os == 'macOS' && 'arm64' || 'x64' }}
+          cache: pip
+      - run: python -m pip install -r requirements-macos.txt pillow numpy
+      - run: python -u -m scripts.glass_optics verification/glass
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: glass-${{ matrix.os }}
+          path: verification/glass
+          if-no-files-found: warn

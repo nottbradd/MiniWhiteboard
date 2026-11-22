@@ -14,6 +14,13 @@ GLASS_RADIUS = 32
 POPOVER_RADIUS = 22
 UI_INK = '#181b24'
 UI_SECONDARY = '#4c5261'
+LIQUID = 'Liquid Glass'
+FROSTED = 'Frosted Glass'
+THEMES = ('White', LIQUID, FROSTED)
+
+
+def is_glass(theme):
+    return theme in (LIQUID, FROSTED, 'Glass')
 
 
 def interface_font(role='action'):
@@ -31,7 +38,7 @@ def interface_font(role='action'):
 
 def corner_radius(rect, theme, *, popup=False):
     from .settings import RADIUS
-    preferred = POPOVER_RADIUS if popup else GLASS_RADIUS if theme == 'Glass' else RADIUS
+    preferred = POPOVER_RADIUS if popup else GLASS_RADIUS if is_glass(theme) else RADIUS
     return min(preferred, rect.width()/2, rect.height()/2)
 
 
@@ -43,11 +50,11 @@ class DisplayPolicy:
 
 
 def surface(theme, native_glass, policy, *, preview=False):
-    if theme != 'Glass' or policy.high_contrast:
+    if not is_glass(theme) or policy.high_contrast:
         return QColor(WHITE)
     color = QColor(GLASS_TINT if native_glass else GLASS_FALLBACK)
     if policy.transparency and (native_glass or preview):
-        color.setAlpha(32 if preview else 120)
+        color.setAlpha(32 if preview else 30 if native_glass == LIQUID else 104)
     return color
 
 
@@ -59,7 +66,7 @@ def paint_surface(painter, rect, theme, native_glass, policy, *, popup=False, em
     """
     from .settings import BORDER, BORDER_WIDTH
     radius = corner_radius(rect, theme, popup=popup)
-    glass = theme == 'Glass' and not policy.high_contrast
+    glass = is_glass(theme) and not policy.high_contrast
     painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(surface(theme, native_glass, policy, preview=preview))
     painter.drawRoundedRect(rect, radius, radius)
