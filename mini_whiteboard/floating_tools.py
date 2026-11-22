@@ -202,7 +202,7 @@ class Options(ToolSurface):
         b.setChecked(checked)
         b.setEnabled(enabled)
         b.setStyleSheet('QToolButton { color:#202124; background:transparent; border:1px solid transparent; border-radius:10px; padding:2px; }'
-                        'QToolButton:checked { background:#b8eef3; border-color:#337280; }'
+                        'QToolButton:checked { background:#b8eef3; border-color:#245762; }'
                         'QToolButton:hover { background:rgba(120,160,200,35); border-color:#667889; }'
                         'QToolButton:focus { border:2px solid #164b91; }'
                         'QToolButton:disabled { color:#9b9da1; }')

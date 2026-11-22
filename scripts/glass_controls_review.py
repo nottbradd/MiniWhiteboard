@@ -191,6 +191,12 @@ def run(folder):
     print(json.dumps(checks), flush=True)
     if not all(checks.values()):
         raise RuntimeError('One or more native UI checks failed')
+    for scene, observed in report['contrast'].items():
+        if (not observed['text'] or min(observed['text'].values()) < 4.5 or
+                min(observed['tool_icon'], observed['selected_ring']) < 3):
+            raise RuntimeError(f'Insufficient measured contrast in {scene}: {observed}')
+    if report.get('focus_contrast',0) < 3:
+        raise RuntimeError('Keyboard focus missed its contrast target')
 
 
 if __name__ == '__main__':

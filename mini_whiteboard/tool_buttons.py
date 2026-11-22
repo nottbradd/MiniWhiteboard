@@ -202,7 +202,7 @@ class ToolButton(QToolButton):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self.isChecked() or self.isDown() or self.underMouse() or self.hasFocus():
-            p.setPen(QPen(QColor('#337280'),1.5) if self.isChecked() else Qt.PenStyle.NoPen)
+            p.setPen(QPen(QColor('#245762'),2) if self.isChecked() else Qt.PenStyle.NoPen)
             p.setBrush(QColor('#b8eef3') if self.isChecked() else QColor(120,160,200,25))
             p.drawRoundedRect(QRectF(self.rect()).adjusted(2,2,-2,-2),13,13)
         if self.hasFocus():
