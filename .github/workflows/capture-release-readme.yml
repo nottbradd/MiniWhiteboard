@@ -1,0 +1,41 @@
+name: Photograph the official Windows release
+on:
+  push:
+    branches: [codex/capture-official-v136-readme]
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Download the published Windows portable package
+        run: |
+          $latest=Invoke-RestMethod https://api.github.com/repos/nottbradd/MiniWhiteboard/releases/latest
+          if ($latest.tag_name -ne 'v1.3.6' -or $latest.prerelease -or $latest.draft) {throw 'Official release changed'}
+          $package=$latest.assets | Where-Object name -eq 'WinMiniWhiteboardV1.3.6.zip'
+          $checks=$latest.assets | Where-Object name -eq 'SHA256SUMS.txt'
+          Invoke-WebRequest $package.browser_download_url -OutFile official.zip
+          $actual=(Get-FileHash official.zip).Hash.ToLowerInvariant()
+          $sums=(Invoke-WebRequest $checks.browser_download_url).Content
+          if ($sums -is [byte[]]) {$sums=[Text.Encoding]::UTF8.GetString($sums)}
+          if ($package.digest -ne "sha256:$actual" -or $sums -notmatch "$actual\s+\*?WinMiniWhiteboardV1\.3\.6\.zip") {throw 'Release checksum mismatch'}
+          Expand-Archive official.zip official
+      - run: python -m pip install -r requirements.txt pywin32==311 Pillow==11.3.0
+      - name: Place, draw and type in the published executable
+        run: |
+          $exe=Get-ChildItem -LiteralPath official -Recurse -Filter 'Mini Whiteboard.exe' -File
+          if (@($exe).Count -ne 1) {throw 'Expected one application'}
+          python -u scripts/capture_release_readme.py "$($exe.FullName)" official.zip
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: official-readme-captures
+          path: verification/front-media
+          retention-days: 14
