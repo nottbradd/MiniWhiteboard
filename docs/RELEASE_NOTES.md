@@ -886,6 +886,8 @@ bundle validation do not establish interactive acceptance under that signature.
 Published [21 October 2026](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.1).
 Stable Windows release with a clearly labelled Mac preview download.
 
+[Windows screenshot of the V1.3.1 Glass board and Appearance menu](media/glass-v131-candidate.png).
+
 - Glass uses one rounded native backdrop and one continuous light-catching edge.
   The smaller rectangular frosted core and parallel perimeter lines are removed.
   Matching menus have roomier rows, clearer selected/focused states and bold
