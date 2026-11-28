@@ -1,41 +1,35 @@
 # Mini Whiteboard
 
-[![Windows tests](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/windows-tests.yml)
-[![macOS build](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml/badge.svg)](https://github.com/nottbradd/MiniWhiteboard/actions/workflows/macos-build.yml)
+Sketch and leave notes anywhere on your desktop. On Windows, hold **Ctrl+Win+Shift+W**,
+move the pointer to the opposite corner, then release to place your board.
 
-Place a small desktop whiteboard by holding a shortcut, moving the pointer and
-releasing. Draw, type, paste images and annotate screenshots with keyboard shortcuts or optional floating tools. Launch opens only a Windows tray icon or a macOS menu-bar item.
+**[Windows installer](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe)** (recommended)<br>
+[Portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip) ·
+[Mac Universal2 Preview](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MacMiniWhiteboardV1.3.6-Preview.zip)
 
-**[V1.3.6 is the current official Windows release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6).**
-It adds optional compact floating tools and reduces repeated geometry work during
-freehand drawing. Mac remains **Universal2 Preview**. Known visual and testing
-limitations are described below and in the release notes.
+![A White board with the floating toolbar above a sketch of two herb planters and the note “Give mint its own pot.”](docs/media/windows-herb-sketch-v136.png)
 
-Windows defaults are **Ctrl+Win+Shift+W** (board) and **Ctrl+Win+Shift+Q**
-(screenshot). Mac remains **Universal2 Preview**.
+The floating toolbar is optional. Turn it on in **Settings → Show floating tools**.
 
-![Mini Whiteboard icon](assets/branding/app-128.png)
+<details>
+<summary>Watch the demo</summary>
+
+![On Windows, the pointer sizes a board while Ctrl+Win+Shift+W is held. Releasing the shortcut places the board, and a single stroke draws a leaf.](docs/media/windows-hold-place-draw-v136.gif)
+
+</details>
 
 ## Download V1.3.6
 
-| Download | Platform | Installation |
-|---|---|---|
-| [Windows installer — recommended](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe) | Windows 10/11, x64 | Close Mini Whiteboard and run Setup. Installs for your account or replaces the registered installed copy. |
-| [Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip) | Windows 10/11, x64 | Extract the ZIP, open **Mini Whiteboard**, run **Mini Whiteboard.exe**. When updating, close the old copy and replace its complete application folder manually. |
-| [Mac Universal2 Preview ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MacMiniWhiteboardV1.3.6-Preview.zip) | macOS 14+; arm64 and x86_64 bundle | Quit, extract on a Mac and replace **Mini Whiteboard.app** in Applications. Interactive Mac acceptance is **NOT RUN**. |
-
-Python and Qt are included. [Release notes and verification](docs/RELEASE_NOTES.md#v136--windows-release--mac-universal2-preview--14-november-2026),
+[V1.3.6 is the official Windows release](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6)
+for Windows 10 and 11 on x64. The Mac Universal2 Preview requires macOS 14 or later
+and includes Apple silicon and Intel binaries. Python and Qt are included.
+[Release notes and verification](docs/RELEASE_NOTES.md#v136--windows-release--mac-universal2-preview--14-november-2026),
 [SHA-256 checksums](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/SHA256SUMS.txt)
 and [dependency sources](assets/licenses/SOURCES.md) accompany the release.
 These are the unchanged review-02 packages from source `b4b9d27`, previously
 published as [v1.3.6-early.1](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.6-early.1).
 That prerelease, [V1.3.4 HotkeyPatch](https://github.com/nottbradd/MiniWhiteboard/releases/tag/v1.3.4)
 and [historical releases](https://github.com/nottbradd/MiniWhiteboard/releases) remain available.
-
-Existing saved hotkeys stay as chosen; use **Settings → Hotkeys → Reset Defaults → Apply**
-to select **Ctrl+Win+Shift+W/Q**. Enable **Settings → Show floating tools** from the
-tray/menu bar. Tap a tool, hold or right-click for options, and drag the dotted grip.
-The toolbar starts off and follows the active board when enabled.
 
 **White remains the default appearance.** Glass remains grey on the tested hosted
 Windows 11 ARM64 client under x64 emulation with Hyper-V graphics and Test Mode,
@@ -61,8 +55,9 @@ Interactive Mac acceptance, execution on macOS 14 and Intel hardware remain
 
 The **Windows installer is recommended**. It installs for your
 account without an administrator prompt, adds Mini Whiteboard to Start/Search,
-and offers a desktop shortcut. The portable ZIP remains available: extract it
-and keep its entire folder together. Both launch quietly into the tray.
+and offers a desktop shortcut. For the portable version, extract the ZIP, open
+the **Mini Whiteboard** folder and run **Mini Whiteboard.exe**. Keep the folder
+together. Both versions launch into the notification area.
 
 On Mac, extract the **Universal2 Preview ZIP** on a Mac and move Mini Whiteboard.app
 to Applications. Interactive Mac acceptance is **NOT RUN**.
@@ -91,17 +86,6 @@ copies or historical downloads. On Mac, quit and replace **Mini Whiteboard.app**
 in **Applications**. Uninstall removes its own shortcuts and login registration;
 preferences remain for a later reinstall.
 
-![Hold, move and release to place a whiteboard](docs/media/placement.gif)
-
-The demo uses the app controller and renderer on a controlled desktop.
-
-<details>
-<summary>A board with drawing, shapes and text</summary>
-
-![Mini Whiteboard with drawing, shapes and text](docs/media/whiteboard.png)
-
-</details>
-
 ## Place a board or screenshot
 
 1. Point at the first corner and hold **Ctrl+Win+Shift+W** on Windows or
@@ -122,8 +106,9 @@ Mac; a denied or failed capture creates no board.
 Windows screenshot creation defaults to **Ctrl+Win+Shift+Q**. Both left/right modifier
 keys work. Open **tray → Settings → Hotkeys** to record a chord or select modifiers
 and a key manually. Create, capture and Hide All can use different chords. Apply
-checks duplicates and OS registration before saving; Cancel keeps the previous
-configuration. Reset Defaults changes the editor until you choose Apply.
+checks duplicates and OS registration before saving. Cancel keeps the previous
+configuration. Existing shortcuts survive updates. Choose **Reset Defaults → Apply**
+to restore the defaults.
 
 If a shortcut is already owned, its tray entry says **unavailable** and opens
 Hotkeys settings. Other actions remain registered. Select the explicit
@@ -166,14 +151,13 @@ Selecting a tool finishes the current textbox; ordinary tool keys still type
 normally inside the text editor. Real stylus and physical mixed-DPI acceptance
 remain **NOT RUN**.
 
-![Compact floating tools above a White board](docs/media/floating-tools-white-above-v136.png)
-
-Actual V1.3.6 application capture on the Windows Server 2025 test desktop.
-The pastel background is a separate demonstration window. The palette is
-375 × 46 logical pixels with 20-pixel icons and 42-pixel tool targets.
-
 <details>
 <summary>Placement, customisation and small-board examples</summary>
+
+![Compact floating tools above a White board](docs/media/floating-tools-white-above-v136.png)
+
+These V1.3.6 placement examples use a Windows Server 2025 test desktop.
+The palette is 375 × 46 logical pixels with 20-pixel icons and 42-pixel tool targets.
 
 ![Tool options after a long press, including the outlined White swatch](docs/media/floating-tools-white-options-v136.png)
 
@@ -277,8 +261,8 @@ leaves the utility running; choose **Exit/Quit Mini Whiteboard** to end the sess
 ## Appearance and Hide All
 
 **Appearance → White / Glass** is a global saved preference in the tray/menu.
-White is the default. V1.3.1 Glass uses a mostly neutral backing, native frost,
-rounded light-catching edges, subtle highlights and matching temporary surfaces.
+White is the default. The Glass option requests native frost and uses rounded
+edges, subtle highlights and matching temporary surfaces.
 Interface headings are bold; document text and artwork retain their original
 weight, colours and opacity. Windows 11 build 22621+ uses a rounded native compositor backdrop; Windows 10,
 unavailable effects and reduced transparency/high contrast use a solid surface.
@@ -290,16 +274,6 @@ shortcuts into two columns when space permits and scrolls on smaller desktops.
 Reduced motion disables the brief 140 ms edge light catch and feedback fades.
 Glass creation, restore and popup presentation never move or fade document content.
 There are no animated backgrounds or desktop-capture loops.
-
-<details>
-<summary>V1.3.1: actual Windows Glass and Appearance menu</summary>
-
-![V1.3.1 Glass over an owned demonstration background](docs/media/glass-v131-candidate.png)
-
-This is a native Windows capture. The caption and backdrop belong to the test
-window. This older capture predates the optional floating tools.
-
-</details>
 
 **Ctrl+Alt+H** on Windows, **Control+Option+H** on Mac, or the matching menu action
 hides all visible boards immediately. Press again to restore that recorded set
