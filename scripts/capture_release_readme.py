@@ -106,6 +106,9 @@ class Camera:
         self.bitmap=win32ui.CreateBitmap()
         self.bitmap.CreateCompatibleBitmap(self.src,*self.size)
         self.old=self.memory.SelectObject(self.bitmap)
+        self.cursor_visible_frames=0
+        self.cursor_recovered_frames=0
+        self.arrow=gui.LoadCursor(0,con.IDC_ARROW)
 
     def capture(self, cursor):
         x,y=self.box[:2]
@@ -113,12 +116,20 @@ class Camera:
         if cursor:
             flags,handle,pt=gui.GetCursorInfo()
             if flags & 1 and handle:
-                _,hx,hy,mask,color=gui.GetIconInfo(handle)
-                try:
-                    gui.DrawIconEx(self.memory.GetSafeHdc(),pt[0]-x-hx,pt[1]-y-hy,handle,0,0,0,0,con.DI_NORMAL)
-                finally:
-                    if mask:gui.DeleteObject(mask)
-                    if color:gui.DeleteObject(color)
+                self.cursor_visible_frames+=1
+            else:
+                # A hosted desktop can suppress its hardware cursor. Composite the
+                # system cursor at the measured OS position, as a screen recorder does.
+                self.cursor_recovered_frames+=1
+                handle=handle or self.arrow
+                pt=api.GetCursorPos()
+            _,hx,hy,mask,color=gui.GetIconInfo(handle)
+            try:
+                gui.DrawIconEx(self.memory.GetSafeHdc(),pt[0]-x-hx,pt[1]-y-hy,handle,
+                               api.GetSystemMetrics(con.SM_CXCURSOR),api.GetSystemMetrics(con.SM_CYCURSOR),0,0,con.DI_NORMAL)
+            finally:
+                if mask:gui.DeleteObject(mask)
+                if color:gui.DeleteObject(color)
         bits=self.bitmap.GetBitmapBits(True)
         return Image.frombytes("RGB",self.size,bits,"raw","BGRX",0,1)
 
@@ -194,6 +205,7 @@ def record(exe,archive):
         camera=Camera(crop)
         move(start);time.sleep(.12)
         frame("start",300)
+        assert ImageChops.difference(frames[-1],camera.capture(False)).getbbox(),"Missing recorded cursor at start"
         for k in CHORD:
             kd(k);held.append(k);time.sleep(.026)
         time.sleep(.23)
@@ -270,7 +282,8 @@ def record(exe,archive):
         (OUT/"receipt.json").write_text(json.dumps(dict(release="v1.3.6",zip_sha256=ZIP_HASH,exe_sha256=EXE_HASH,
             process=proc.pid,board=gui.GetWindowRect(board),toolbar=gui.GetWindowRect(toolbar),crop=crop,
             chord="Ctrl+Win+Shift+W",before_release_no_board=True,after_release_board_visible=True,
-            stages=stages,durations=durations,windows_build=sys.getwindowsversion().build),indent=2))
+            stages=stages,durations=durations,windows_build=sys.getwindowsversion().build,
+            cursor_native_frames=camera.cursor_visible_frames,cursor_composited_frames=camera.cursor_recovered_frames),indent=2))
     except Exception:
         if camera:camera.capture(False).save(OUT/"failure.png")
         if proc:print("Window titles", list(windows(proc.pid,False)),flush=True)
