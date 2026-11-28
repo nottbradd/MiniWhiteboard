@@ -3,8 +3,8 @@
 Sketch and leave notes anywhere on your desktop. On Windows, hold **Ctrl+Win+Shift+W**,
 move the pointer to the opposite corner, then release to place your board.
 
-**[Download for Windows](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe)** (recommended) ·
-[Windows portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip) ·
+**[Windows installer](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MiniWhiteboard-1.3.6-Setup.exe)** (recommended)<br>
+[Portable ZIP](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/WinMiniWhiteboardV1.3.6.zip) ·
 [Mac Universal2 Preview](https://github.com/nottbradd/MiniWhiteboard/releases/download/v1.3.6/MacMiniWhiteboardV1.3.6-Preview.zip)
 
 ![A White board with the floating toolbar above a sketch of two herb planters and the note “Give mint its own pot.”](docs/media/windows-herb-sketch-v136.png)
